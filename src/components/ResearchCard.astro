@@ -1,0 +1,248 @@
+---
+// A research entry as one cell of a ruled grid. The whole cell is the link,
+// and it inverts when hovered. Shows a small chart or two figures from the
+// report when the entry has them.
+import { coAuthorLine, researchPath, type Research } from '../lib/content';
+import { formatDateShort } from '../lib/dates';
+import { RESEARCH_TYPES, TOPICS } from '../site.config';
+import Icon from './Icon.astro';
+
+interface Props {
+  entry: Research;
+  /** The author whose site this is, left out of the "With ..." line. */
+  self: string;
+  index?: number;
+  size?: 'lead' | 'regular' | 'compact';
+}
+
+const { entry, self, index, size = 'regular' } = Astro.props;
+const { data } = entry;
+const chart = size !== 'compact' ? data.charts?.[0] : undefined;
+const numbers = !chart && size !== 'compact' ? data.keyNumbers?.slice(0, 2) : undefined;
+const max = chart ? Math.max(...chart.items.map((item) => item.value)) : 0;
+const decimals = chart?.items.some((item) => !Number.isInteger(item.value)) ? 2 : 0;
+---
+
+<article class:list={['rcard', `rcard--${size}`, 'cell', 'cell--link']}>
+  <header class="rcard__top">
+    <p class="label">
+      {index !== undefined && <span class="rcard__index numeric">{String(index).padStart(2, '0')}</span>}
+      <span>{size === 'compact' ? RESEARCH_TYPES[data.type] : TOPICS[data.topics[0]!]}</span>
+      {data.date && <time datetime={data.date}>{formatDateShort(data.date)}</time>}
+    </p>
+  </header>
+  <span class="go" aria-hidden="true"><Icon name="arrow-right" /></span>
+
+  <div class="rcard__body">
+    <h3 class="rcard__title">
+      <a class="stretched" href={researchPath(entry)}>{data.title}</a>
+    </h3>
+    {size !== 'compact' && <p class="rcard__summary">{data.summary}</p>}
+  </div>
+
+  {
+    chart && (
+      <div class="rcard__visual">
+        <p class="label">
+          {chart.title} · {chart.unit}
+        </p>
+        <dl class="rcard__chart">
+          {chart.items.map((item) => (
+            <div>
+              <dt class="label">{item.label}</dt>
+              <dd>
+                <span class="rcard__bar" style={`width:${((item.value / max) * 100).toFixed(1)}%`} />
+                <span class="rcard__value numeric">{item.value.toFixed(decimals)}</span>
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    )
+  }
+
+  {
+    numbers && (
+      <dl class="rcard__visual rcard__numbers">
+        {numbers.map((item) => (
+          <div>
+            <dt class="numeric">{item.value}</dt>
+            <dd class="muted">{item.label}</dd>
+          </div>
+        ))}
+      </dl>
+    )
+  }
+
+  <p class="rcard__meta label">{coAuthorLine(data.authors, self)} · {data.venue.name}</p>
+</article>
+
+<style>
+  .rcard {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    min-height: 100%;
+  }
+
+  .rcard .go {
+    position: absolute;
+    top: clamp(1.1rem, 0.8rem + 1.2vw, 1.75rem);
+    right: clamp(1.1rem, 0.8rem + 1.2vw, 1.75rem);
+  }
+
+  .rcard__top {
+    min-height: 2.5rem;
+    padding-right: 3.5rem;
+  }
+
+  .rcard__top .label {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3em 1.1em;
+    padding-top: 0.75rem;
+  }
+
+  .rcard__index {
+    color: var(--cell-accent);
+    transition: color 0.3s var(--ease);
+  }
+
+  .rcard__body {
+    flex: 1;
+  }
+
+  .rcard__title {
+    font-size: var(--text-xl);
+    line-height: 1.1;
+  }
+
+  .rcard__title a {
+    text-decoration: none;
+  }
+
+  .rcard--compact .rcard__title {
+    font-size: var(--text-lg);
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+  }
+
+  .rcard__summary {
+    margin-top: var(--space-4);
+    max-width: 38rem;
+    color: var(--cell-muted);
+    transition: color 0.3s var(--ease);
+  }
+
+  /* The lead card: larger type, and its chart sits beside the text on wide screens. */
+  .rcard--lead .rcard__title {
+    font-size: clamp(2rem, 1.3rem + 2.7vw, 3.75rem);
+    line-height: 1;
+    letter-spacing: -0.045em;
+    max-width: 19ch;
+  }
+
+  .rcard--lead .rcard__summary {
+    margin-top: var(--space-5);
+    font-size: var(--text-lg);
+    line-height: 1.5;
+  }
+
+  @media (min-width: 62rem) {
+    .rcard--lead {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+      grid-template-areas:
+        'top visual'
+        'body visual'
+        'meta visual';
+      column-gap: var(--space-8);
+      padding-block: clamp(1.75rem, 1rem + 2vw, 3rem);
+    }
+
+    .rcard--lead .rcard__top {
+      grid-area: top;
+    }
+
+    .rcard--lead .rcard__body {
+      grid-area: body;
+    }
+
+    .rcard--lead .rcard__meta {
+      grid-area: meta;
+    }
+
+    .rcard--lead .rcard__visual {
+      grid-area: visual;
+      align-self: end;
+      padding-right: 4rem;
+    }
+  }
+
+  /* Small chart */
+  .rcard__visual > .label {
+    margin-bottom: var(--space-4);
+    max-width: 30rem;
+  }
+
+  .rcard__chart {
+    display: grid;
+    gap: 0.45rem;
+    max-width: 32rem;
+  }
+
+  .rcard__chart > div {
+    display: grid;
+    grid-template-columns: 5.25rem minmax(0, 1fr);
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  .rcard__chart dd {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding-right: 3.75rem;
+  }
+
+  .rcard__bar {
+    flex: none;
+    height: 0.6rem;
+    min-width: 2px;
+    border-radius: 2px;
+    background: var(--cell-bar);
+    transition: background-color 0.3s var(--ease);
+  }
+
+  .rcard--lead .rcard__bar {
+    height: 0.95rem;
+  }
+
+  .rcard__value {
+    flex: none;
+    width: 0;
+    font-family: var(--mono);
+    font-size: var(--text-xs);
+    white-space: nowrap;
+  }
+
+  /* Two figures from the report */
+  .rcard__numbers {
+    display: grid;
+    gap: var(--space-4) var(--space-5);
+    grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  }
+
+  .rcard__numbers dt {
+    font-size: clamp(1.6rem, 1.3rem + 1.2vw, 2.25rem);
+    font-weight: 560;
+    line-height: 1;
+    letter-spacing: -0.045em;
+  }
+
+  .rcard__numbers dd {
+    margin-top: var(--space-2);
+    font-size: var(--text-sm);
+    line-height: 1.4;
+  }
+</style>

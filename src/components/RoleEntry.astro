@@ -1,0 +1,147 @@
+---
+// One role on the Experience page: who, what, when, and two to four contributions.
+import Icon from './Icon.astro';
+import { formatPeriod } from '../lib/dates';
+
+interface Props {
+  id: string;
+  organisation: string;
+  url?: string;
+  role: string;
+  kind: string;
+  location?: string;
+  start: string;
+  end?: string;
+  highlights: string[];
+  note?: string;
+  related?: { label: string; href: string };
+}
+
+const { id, organisation, url, role, kind, location, start, end, highlights, note, related } = Astro.props;
+---
+
+<article class="role cell" id={id} data-reveal>
+  <div class="role__aside">
+    <p class="label numeric">{formatPeriod(start, end)}</p>
+    {location && <p class="label">{location}</p>}
+    <p class="role__kind">{kind}</p>
+  </div>
+  <div class="role__main">
+    <h3>
+      {
+        url ? (
+          <a class="quiet-link" href={url} rel="noopener">
+            {organisation}
+          </a>
+        ) : (
+          organisation
+        )
+      }
+    </h3>
+    <p class="role__title">{role}</p>
+    <ul class="role__highlights">
+      {highlights.map((highlight) => <li>{highlight}</li>)}
+    </ul>
+    {note && <p class="role__note">{note}</p>}
+    {
+      related && (
+        <a class="arrow-link" href={related.href}>
+          {related.label}
+          <Icon name="arrow-right" />
+        </a>
+      )
+    }
+  </div>
+</article>
+
+<style>
+  .role {
+    display: grid;
+    gap: var(--space-4) var(--space-6);
+  }
+
+  @media (min-width: 56rem) {
+    .role {
+      grid-template-columns: 15rem minmax(0, 1fr);
+      padding-block: clamp(1.5rem, 1rem + 1.6vw, 2.5rem);
+    }
+  }
+
+  .role__aside {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-4);
+  }
+
+  @media (min-width: 56rem) {
+    .role__aside {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--space-2);
+      padding-top: 0.5rem;
+    }
+  }
+
+  .role__kind {
+    padding: 0.2rem 0.6rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    font-family: var(--mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .role h3 {
+    font-size: var(--text-2xl);
+    letter-spacing: -0.04em;
+    line-height: 1;
+  }
+
+  .role__title {
+    margin-top: var(--space-2);
+    font-size: var(--text-lg);
+    letter-spacing: -0.015em;
+    color: var(--ink-2);
+  }
+
+  .role__highlights {
+    margin-top: var(--space-5);
+    max-width: var(--measure);
+    color: var(--ink-2);
+  }
+
+  .role__highlights li {
+    position: relative;
+    padding-left: 1.5rem;
+  }
+
+  .role__highlights li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.72em;
+    width: 0.75rem;
+    height: 1px;
+    background: var(--accent-text);
+  }
+
+  .role__highlights li + li {
+    margin-top: 0.6em;
+  }
+
+  .role__note {
+    margin-top: var(--space-4);
+    max-width: var(--measure);
+    font-family: var(--mono);
+    font-size: var(--text-xs);
+    line-height: 1.6;
+    color: var(--muted);
+  }
+
+  .role .arrow-link {
+    margin-top: var(--space-4);
+  }
+</style>

@@ -1,0 +1,73 @@
+# Roles, in the order they appear on the site (order: 1 comes first).
+# Dates are YYYY-MM. Leave `end` out for a current role.
+# `kind` says what sort of role it is, so employment, student leadership and
+# contributions are never confused.
+
+- id: six-o-five-markets
+  order: 1
+  organisation: "6:05 Markets"
+  url: https://605-markets.com/
+  role: Co-Founder & Co-President
+  kind: Student-led research organisation
+  location: Chicago, IL
+  start: 2026-04
+  highlights:
+    - Co-founded and manage a markets-research organisation of 40+ members, including 25+ analysts across nine sector teams.
+    - Set analyst responsibilities, editorial standards and publication processes, overseeing weekly research across energy, commodities and macroeconomics.
+    - Lead research on oil, gas, supply disruptions and pricing dynamics, turning geopolitical, macroeconomic and energy developments into concise, scenario-driven analysis.
+    - Built the website, report templates and publication infrastructure, generating 130,000+ impressions and 22,000+ click-throughs.
+  note: Audience figures are for 6:05 Markets as a whole, not for my own reports.
+  showOnHome: true
+  homeSummary: >-
+    I co-founded and help run a student-led research group of 40+ members. I set its
+    editorial standards and publication processes, and lead its research on oil and gas.
+  related:
+    label: Research published with 6:05 Markets
+    href: /research/
+
+- id: energy-flux
+  order: 2
+  organisation: Energy Flux
+  url: https://www.energyflux.news/
+  role: Research Contributor
+  kind: Research contribution
+  location: Chicago, IL
+  start: 2026-10
+  highlights:
+    - Investigating why Henry Hub natural gas prices have remained subdued despite record US LNG feedgas demand.
+    - Developing independently authored, data-driven energy-market research for publication, working directly with the founder of Energy Flux.
+  note: This research is in development and has not yet been published.
+  showOnHome: true
+  homeSummary: >-
+    I am developing independently authored research on the US natural gas market for
+    publication, working directly with the founder of Energy Flux.
+
+- id: hbl-bank-uk
+  order: 3
+  organisation: HBL Bank UK
+  role: Wealth Management Intern, Wealth Services
+  kind: Internship
+  location: London, UK
+  start: 2026-07
+  end: 2026-09
+  highlights:
+    - Produced cross-asset market outlooks across equities, rates, FX and commodities.
+    - Benchmarked custody, dealing and FX charges against UK private banks and investment platforms for a Consumer Duty fair-value assessment.
+    - Supported the HBL Wealth launch and rebrand by creating client brochures, presentations and execution-only market materials.
+    - Analysed Pakistani capital gains tax, FIFO loss allocation and Super Tax in omnibus accounts; built calculation tools and assessed operational solutions.
+  showOnHome: true
+  homeSummary: >-
+    I produced cross-asset market outlooks, benchmarked fees for a Consumer Duty fair-value
+    assessment and prepared client materials for the HBL Wealth launch.
+
+- id: uchicago-commodities
+  order: 4
+  organisation: UChicago Commodities
+  role: Head of Energy & Wall Street Oasis Partnership Lead
+  kind: Student organisation
+  location: Chicago, IL
+  start: 2026-01
+  end: 2026-04
+  highlights:
+    - Led three analysts producing weekly oil-and-gas research that generated 10,000+ aggregate impressions.
+    - Delivered oil-market training to 25 members and managed the club’s Wall Street Oasis partnership.

@@ -1,0 +1,54 @@
+# What I can do, with the work that shows it. Keep each claim tied to evidence.
+
+- id: market-research
+  order: 1
+  title: Energy market research
+  description: >-
+    Oil, natural gas and LNG, refined products and shipping. I work from physical flows and
+    inventories to prices, set out scenarios, and state what would change the view.
+  evidence:
+    - label: Oil Above 100
+      href: /research/oil-above-100-supply-shock/
+    - label: Panama Canal and Asian energy costs
+      href: /research/panama-canal-el-nino-asia-energy-costs/
+    - label: The distillate bottleneck
+      href: /research/diesel-distillate-bottleneck/
+
+- id: writing-editing
+  order: 2
+  title: Analytical writing and editing
+  description: >-
+    Long reports and short briefs written for readers who need the conclusion first. At 6:05
+    Markets I set the editorial standards and report templates that other analysts write to.
+  evidence:
+    - label: A critique of UK energy policy
+      href: /research/uk-energy-security-critique/
+    - label: All research
+      href: /research/
+
+- id: research-leadership
+  order: 3
+  title: Research leadership
+  description: >-
+    Co-founding and running a research organisation of 40+ members, assigning analyst
+    responsibilities and building its publication process. At UChicago Commodities I delivered
+    oil-market training to 25 members.
+  evidence:
+    - label: 6:05 Markets and UChicago Commodities
+      href: /experience/
+
+- id: data-tools
+  order: 4
+  title: Data and tools
+  description: >-
+    Microsoft Excel and PowerPoint, financial-data integration and multi-agent AI research
+    workflows. I use AI tools to build and test research systems, with point-in-time data
+    rules and explicit checks on the numbers.
+  evidence:
+    - label: AI commodities research project
+      href: /projects/ai-commodities-research/
+
+- id: languages
+  order: 5
+  title: Languages
+  description: English and Italian, both fluent. Conversational Spanish.

@@ -1,0 +1,141 @@
+---
+// A horizontal bar chart drawn in HTML from figures stated in the report.
+// Bars start at zero. Every value is printed, so the chart reads without colour.
+// The bars grow in when the chart scrolls into view.
+interface Props {
+  title: string;
+  unit: string;
+  items: { label: string; value: number }[];
+  caption?: string;
+  source: string;
+}
+
+const { title, unit, items, caption, source } = Astro.props;
+const max = Math.max(...items.map((item) => item.value));
+const decimals = items.some((item) => !Number.isInteger(item.value)) ? 2 : 0;
+const format = (value: number) =>
+  value.toLocaleString('en-GB', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+---
+
+<figure class="chart" data-reveal>
+  <figcaption class="chart__head">
+    <h3 class="chart__title">{title}</h3>
+    <p class="label">{unit}</p>
+  </figcaption>
+  <dl class="chart__rows">
+    {
+      items.map((item, position) => (
+        <div class="chart__row">
+          <dt class="chart__label label">{item.label}</dt>
+          <dd class="chart__bar-cell">
+            <span
+              class="chart__bar"
+              style={`width:${((item.value / max) * 100).toFixed(2)}%;--bar-delay:${position * 70}ms`}
+            />
+            <span class="chart__value numeric">{format(item.value)}</span>
+          </dd>
+        </div>
+      ))
+    }
+  </dl>
+  {caption && <p class="chart__caption">{caption}</p>}
+  <p class="chart__source">Source: {source}</p>
+</figure>
+
+<style>
+  .chart {
+    padding: clamp(1.1rem, 0.8rem + 1.2vw, 1.75rem);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--surface);
+  }
+
+  .chart__title {
+    font-size: var(--text-lg);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.25;
+  }
+
+  .chart__head .label {
+    margin-top: var(--space-2);
+  }
+
+  .chart__rows {
+    display: grid;
+    gap: 0.6rem;
+    margin-top: var(--space-5);
+  }
+
+  .chart__row {
+    display: grid;
+    grid-template-columns: minmax(5.25rem, 20%) minmax(0, 1fr);
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  .chart__label {
+    color: var(--ink-2);
+  }
+
+  .chart__bar-cell {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-width: 0;
+    /* Leave room so the printed value never pushes the longest bar off the edge. */
+    padding-right: 4.5rem;
+  }
+
+  .chart__bar {
+    flex: none;
+    height: 1.35rem;
+    min-width: 2px;
+    border-radius: 4px;
+    background: var(--accent);
+    transform-origin: left center;
+  }
+
+  .chart__value {
+    flex: none;
+    width: 0;
+    font-family: var(--mono);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  /* Bars grow from the left as the chart is revealed. */
+  .chart:global(.reveal-wait) .chart__bar {
+    transform: scaleX(0);
+  }
+
+  .chart:global(.reveal-in) .chart__bar {
+    transform: none;
+    transition: transform 0.9s var(--ease);
+    transition-delay: calc(0.15s + var(--bar-delay, 0ms));
+  }
+
+  .chart__caption {
+    margin-top: var(--space-5);
+    font-size: var(--text-sm);
+    line-height: 1.55;
+    color: var(--ink-2);
+    max-width: var(--measure);
+  }
+
+  .chart__source {
+    margin-top: var(--space-2);
+    font-family: var(--mono);
+    font-size: var(--text-xs);
+    line-height: 1.6;
+    color: var(--muted);
+  }
+
+  @media print {
+    .chart__bar {
+      print-color-adjust: exact;
+      -webkit-print-color-adjust: exact;
+    }
+  }
+</style>

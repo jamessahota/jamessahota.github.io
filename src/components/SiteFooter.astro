@@ -1,0 +1,121 @@
+---
+import { getProfile } from '../lib/content';
+import { NAV } from '../site.config';
+import Icon from './Icon.astro';
+
+const profile = await getProfile();
+const year = new Date().getFullYear();
+---
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="cells footer-cells">
+      <div class="cell">
+        <p class="label">James Sahota</p>
+        <p class="footer-line">{profile.positioning}</p>
+      </div>
+      <nav class="cell" aria-label="Footer">
+        <p class="label">Site</p>
+        <ul>
+          {
+            NAV.map((item) => (
+              <li>
+                <a class="quiet-link" href={item.href}>
+                  {item.label}
+                </a>
+              </li>
+            ))
+          }
+          <li><a class="quiet-link" href="/cv/">CV</a></li>
+        </ul>
+      </nav>
+      <div class="cell">
+        <p class="label">Contact</p>
+        <ul>
+          <li><a class="quiet-link" href={`mailto:${profile.email}`}>{profile.email}</a></li>
+          <li>
+            <a class="quiet-link footer-external" href={profile.linkedin} rel="noopener">
+              LinkedIn <Icon name="arrow-up-right" />
+            </a>
+          </li>
+        </ul>
+      </div>
+      <div class="cell">
+        <p class="label">Based in</p>
+        <p class="footer-line">
+          Chicago <span class="numeric" data-clock="America/Chicago"></span>
+        </p>
+      </div>
+    </div>
+
+    <p class="footer-word" aria-hidden="true"><span>James Sahota</span></p>
+
+    <p class="footer-small">
+      &copy; {year} {profile.name}. Research on this site is dated analysis, shared for information. It is not investment
+      advice.
+    </p>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    padding-bottom: var(--space-6);
+  }
+
+  .footer-cells {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (min-width: 56rem) {
+    .footer-cells {
+      grid-template-columns: minmax(0, 1.6fr) repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  .footer-line {
+    margin-top: var(--space-3);
+    font-size: var(--text-lg);
+    letter-spacing: -0.02em;
+    line-height: 1.25;
+  }
+
+  .site-footer ul {
+    margin-top: var(--space-2);
+  }
+
+  .site-footer li a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35em;
+    padding-block: 0.3rem;
+    overflow-wrap: anywhere;
+  }
+
+  /* The name, set as wide as the page. */
+  .footer-word {
+    container-type: inline-size;
+    margin-top: var(--space-6);
+    overflow: hidden;
+    user-select: none;
+  }
+
+  .footer-word span {
+    display: block;
+    font-size: 14.6vw;
+    font-size: 16.1cqw;
+    font-weight: 620;
+    line-height: 0.82;
+    letter-spacing: -0.065em;
+    white-space: nowrap;
+    padding-bottom: 0.06em;
+  }
+
+  .footer-small {
+    margin-top: var(--space-4);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--line);
+    color: var(--muted);
+    font-size: var(--text-xs);
+    line-height: 1.6;
+  }
+</style>

@@ -1,0 +1,28 @@
+# Education, in the order shown on the site.
+# `period` is free text so an expected graduation year is easy to update.
+
+- id: university-of-chicago
+  order: 1
+  institution: The University of Chicago
+  location: Chicago, IL
+  qualification: B.S. Mathematics and B.A. Economics
+  period: Expected 2029
+  coursework:
+    - Calculus III
+    - Introduction to Proofs in Analysis
+    - Abstract Linear Algebra
+    - Microeconomics
+    - Macroeconomics
+  activities:
+    - Judo Club Vice President
+    - Italian Student Association President
+
+- id: st-pauls-school
+  order: 2
+  institution: St Paul’s School
+  location: London, UK
+  qualification: "A-levels: Mathematics, Further Mathematics, Physics and Philosophy"
+  period: 2020 – 2025
+  activities:
+    - Judo Club Captain
+    - Co-Chief Editor, Philosophy Magazine

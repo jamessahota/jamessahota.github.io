@@ -1,0 +1,77 @@
+---
+// A ruled row of headline figures taken from a report, each with a plain-language label.
+interface Props {
+  items: { value: string; label: string }[];
+  note?: string;
+  heading?: string;
+}
+
+const { items, note, heading = 'Key numbers' } = Astro.props;
+---
+
+<section class="key-numbers" aria-label={heading} data-reveal>
+  <dl class="cells key-numbers__grid" data-count={items.length}>
+    {
+      items.map((item) => (
+        <div class="cell">
+          <dt class="key-numbers__value numeric">{item.value}</dt>
+          <dd class="key-numbers__label">{item.label}</dd>
+        </div>
+      ))
+    }
+  </dl>
+  {note && <p class="key-numbers__note">{note}</p>}
+</section>
+
+<style>
+  /* Two across on narrow screens, all in one row when there is room. */
+  .key-numbers {
+    container-type: inline-size;
+  }
+
+  .key-numbers__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .key-numbers__grid[data-count='1'],
+  .key-numbers__grid[data-count='3'] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  @container (min-width: 34rem) {
+    .key-numbers__grid[data-count='3'] {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  @container (min-width: 46rem) {
+    .key-numbers__grid[data-count='4'] {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+
+  .key-numbers__value {
+    font-size: clamp(1.45rem, 1.1rem + 1.25vw, 2.125rem);
+    font-weight: 560;
+    line-height: 1.05;
+    letter-spacing: -0.05em;
+    /* Keep a figure such as US$105.26 in one piece. */
+    overflow-wrap: normal;
+  }
+
+  .key-numbers__label {
+    margin-top: var(--space-3);
+    font-size: var(--text-sm);
+    line-height: 1.45;
+    color: var(--muted);
+  }
+
+  .key-numbers__note {
+    margin-top: var(--space-3);
+    font-family: var(--mono);
+    font-size: var(--text-xs);
+    line-height: 1.6;
+    color: var(--muted);
+    max-width: var(--measure);
+  }
+</style>

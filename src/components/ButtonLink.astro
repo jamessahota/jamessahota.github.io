@@ -1,0 +1,31 @@
+---
+// A button-shaped link for the main actions on a page.
+// On hover a fill sweeps across it from the left.
+import Icon from './Icon.astro';
+
+interface Props {
+  href: string;
+  label: string;
+  /**
+   * primary: solid, on the page background. secondary: outlined.
+   * on-dark and outline-dark: for the dark bands.
+   */
+  variant?: 'primary' | 'secondary' | 'on-dark' | 'outline-dark';
+  icon?: 'arrow-right' | 'arrow-up-right' | 'arrow-down' | 'download' | 'mail';
+  download?: boolean;
+  class?: string;
+}
+
+const { href, label, variant = 'primary', icon, download = false, class: className } = Astro.props;
+const external = href.startsWith('http');
+---
+
+<a
+  class:list={['btn', `btn--${variant}`, className]}
+  href={href}
+  rel={external ? 'noopener' : undefined}
+  download={download || undefined}
+>
+  <span>{label}</span>
+  {icon && <Icon name={icon} />}
+</a>

@@ -1,0 +1,544 @@
+---
+import { render } from 'astro:content';
+import BarChart from '../../components/BarChart.astro';
+import ButtonLink from '../../components/ButtonLink.astro';
+import DataTable from '../../components/DataTable.astro';
+import Figure from '../../components/Figure.astro';
+import Icon from '../../components/Icon.astro';
+import KeyNumbers from '../../components/KeyNumbers.astro';
+import ResearchCard from '../../components/ResearchCard.astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import {
+  formatAuthors,
+  getProfile,
+  getPublicResearch,
+  getRelated,
+  hasDetailPage,
+  type Research,
+} from '../../lib/content';
+import { formatDate } from '../../lib/dates';
+import { RESEARCH_TYPES, STATUS_LABELS, TOPICS } from '../../site.config';
+
+// One page per public piece of research. Private entries never reach this list.
+export async function getStaticPaths() {
+  const all = await getPublicResearch();
+  return all.filter(hasDetailPage).map((entry) => ({
+    params: { slug: entry.id },
+    props: { entry, related: getRelated(entry, all) },
+  }));
+}
+
+interface Props {
+  entry: Research;
+  related: Research[];
+}
+
+const { entry, related } = Astro.props;
+const { data } = entry;
+const profile = await getProfile();
+const { Content } = await render(entry);
+const hasBody = Boolean(entry.body?.trim());
+const hasExhibits = Boolean(data.charts?.length || data.tables?.length || data.figures?.length);
+const coAuthored = data.authors.length > 1;
+
+const fullPieceLabel = `Read the full ${RESEARCH_TYPES[data.type].toLowerCase()} at ${data.venue.name}`;
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebPage',
+  name: data.title,
+  description: data.summary,
+  mainEntity: {
+    '@type': 'Report',
+    headline: data.title,
+    author: data.authors.map((name) => ({ '@type': 'Person', name })),
+    ...(data.date ? { datePublished: data.date } : {}),
+    publisher: { '@type': 'Organization', name: data.venue.name },
+    ...(data.originalUrl ? { url: data.originalUrl } : {}),
+  },
+};
+---
+
+<BaseLayout title={data.title} description={data.summary} ogType="article" jsonLd={jsonLd}>
+  <!-- A thin bar that fills as the page is read. -->
+  <div class="progress" aria-hidden="true"><span data-progress></span></div>
+
+  <article>
+    <header class="container report-header">
+      <a class="arrow-link arrow-link--back" href="/research/">
+        <Icon name="arrow-left" />
+        All research
+      </a>
+      <p class="label label--marked report-header__kicker">
+        {RESEARCH_TYPES[data.type]} · {data.topics.map((topic) => TOPICS[topic]).join(' · ')}
+      </p>
+      <h1>{data.title}</h1>
+      {data.subtitle && <p class="report-header__subtitle">{data.subtitle}</p>}
+      <p class="lede">{data.standfirst ?? data.summary}</p>
+    </header>
+
+    <div class="container report-body">
+      <aside class="details" aria-label="About this piece">
+        <dl class="cells details__list">
+          <div class="cell">
+            <dt class="label">{coAuthored ? 'Authors' : 'Author'}</dt>
+            <dd>{formatAuthors(data.authors)}</dd>
+          </div>
+          {
+            data.date && (
+              <div class="cell">
+                <dt class="label">Published</dt>
+                <dd>
+                  <time datetime={data.date}>{formatDate(data.date)}</time>
+                </dd>
+              </div>
+            )
+          }
+          {
+            data.updated && (
+              <div class="cell">
+                <dt class="label">Updated</dt>
+                <dd>
+                  <time datetime={data.updated}>{formatDate(data.updated)}</time>
+                </dd>
+              </div>
+            )
+          }
+          <div class="cell">
+            <dt class="label">Venue</dt>
+            <dd>
+              {
+                data.venue.url ? (
+                  <a class="quiet-link" href={data.venue.url} rel="noopener">
+                    {data.venue.name}
+                  </a>
+                ) : (
+                  data.venue.name
+                )
+              }
+            </dd>
+          </div>
+          <div class="cell">
+            <dt class="label">Status</dt>
+            <dd>{STATUS_LABELS[data.publicationStatus]}</dd>
+          </div>
+          {
+            data.dataAsOf && (
+              <div class="cell">
+                <dt class="label">Data</dt>
+                <dd>{data.dataAsOf}</dd>
+              </div>
+            )
+          }
+        </dl>
+        <div class="details__actions">
+          {data.originalUrl && <ButtonLink href={data.originalUrl} label={fullPieceLabel} icon="arrow-up-right" />}
+          {data.pdf && <ButtonLink href={data.pdf} label="Open the PDF" variant="secondary" icon="download" />}
+          {
+            data.fullReportMinutes && (
+              <p class="details__note">The full piece is about a {data.fullReportMinutes}-minute read.</p>
+            )
+          }
+        </div>
+      </aside>
+
+      <div class="report-main">
+        {
+          data.keyNumbers && (
+            <div class="block">
+              <KeyNumbers items={data.keyNumbers} note={data.keyNumbersNote} />
+            </div>
+          )
+        }
+
+        {
+          hasBody && (
+            <section class="block" aria-labelledby="summary-heading">
+              <h2 id="summary-heading" class="block__title label label--marked">
+                Summary
+              </h2>
+              <div class="prose summary">
+                <Content />
+              </div>
+            </section>
+          )
+        }
+
+        {
+          data.keyFindings.length > 0 && (
+            <section class="block" aria-labelledby="findings-heading">
+              <h2 id="findings-heading" class="block__title label label--marked">
+                Key findings
+              </h2>
+              <ol class="findings">
+                {data.keyFindings.map((finding, position) => (
+                  <li data-reveal={position + 1}>
+                    <span class="findings__index numeric" aria-hidden="true">
+                      {String(position + 1).padStart(2, '0')}
+                    </span>
+                    <p>{finding}</p>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          )
+        }
+
+        {
+          hasExhibits && (
+            <section class="block" aria-labelledby="exhibits-heading">
+              <h2 id="exhibits-heading" class="block__title label label--marked">
+                From the report
+              </h2>
+              <div class="exhibits">
+                {data.charts?.map((chart) => <BarChart {...chart} />)}
+                {data.figures?.map((figure) => <Figure {...figure} />)}
+                {data.tables?.map((table) => <DataTable {...table} />)}
+              </div>
+            </section>
+          )
+        }
+
+        {
+          data.approach && (
+            <section class="block" aria-labelledby="approach-heading">
+              <h2 id="approach-heading" class="block__title label label--marked">
+                Data and approach
+              </h2>
+              <div class="prose">
+                <p>{data.approach}</p>
+              </div>
+            </section>
+          )
+        }
+
+        {
+          (coAuthored || data.authorshipNote) && (
+            <section class="block" aria-labelledby="authorship-heading">
+              <h2 id="authorship-heading" class="block__title label label--marked">
+                Authorship
+              </h2>
+              <div class="prose">
+                {coAuthored && (
+                  <p>
+                    Written by {formatAuthors(data.authors)} and published by {data.venue.name}.
+                  </p>
+                )}
+                {data.authorshipNote && <p>{data.authorshipNote}</p>}
+                {data.contribution && <p>{data.contribution}</p>}
+              </div>
+            </section>
+          )
+        }
+
+        {
+          data.sources && (
+            <section class="block" aria-labelledby="sources-heading">
+              <h2 id="sources-heading" class="block__title label label--marked">
+                Principal sources
+              </h2>
+              <ul class="sources">
+                {data.sources.map((source) => (
+                  <li>
+                    {source.url ? (
+                      <a href={source.url} rel="noopener">
+                        {source.label}
+                      </a>
+                    ) : (
+                      source.label
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )
+        }
+
+        <div class="panel panel--night closing" data-reveal>
+          <p class="closing__lead">
+            {data.originalUrl ? 'This page is a summary. The full piece has the detail.' : 'This page is a summary.'}
+          </p>
+          {
+            data.originalUrl && (
+              <ButtonLink href={data.originalUrl} label={fullPieceLabel} variant="on-dark" icon="arrow-up-right" />
+            )
+          }
+          <p class="closing__note">
+            {data.date ? `Dated analysis from ${formatDate(data.date)}. ` : ''}Views and price ranges reflect the information
+            available at the time and have not been updated. Nothing here is investment advice.
+          </p>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  {
+    related.length > 0 && (
+      <section class="container related" aria-labelledby="related-heading">
+        <div class="section-head">
+          <h2 id="related-heading">Related research</h2>
+          <a class="arrow-link arrow-link--back" href="/research/">
+            <Icon name="arrow-left" />
+            Back to all research
+          </a>
+        </div>
+        <div class="cells related__list" data-reveal>
+          {related.map((other) => <ResearchCard entry={other} self={profile.name} size="compact" />)}
+        </div>
+      </section>
+    )
+  }
+</BaseLayout>
+
+<script>
+  // Reading progress: how far down the page the reader is.
+  const bar = document.querySelector<HTMLElement>('[data-progress]');
+
+  if (bar) {
+    let ticking = false;
+    const update = () => {
+      const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+      bar.style.transform = `scaleX(${scrollable > 0 ? Math.min(1, window.scrollY / scrollable) : 0})`;
+      ticking = false;
+    };
+    window.addEventListener(
+      'scroll',
+      () => {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(update);
+      },
+      { passive: true },
+    );
+    update();
+  }
+</script>
+
+<style>
+  .progress {
+    position: fixed;
+    top: calc(var(--header-height) + 1px);
+    left: 0;
+    right: 0;
+    z-index: 40;
+    height: 3px;
+    pointer-events: none;
+  }
+
+  .progress span {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+    transform: scaleX(0);
+    transform-origin: left center;
+  }
+
+  .report-header {
+    padding-block: clamp(1.5rem, 1rem + 2vw, 2.5rem) clamp(2rem, 1.4rem + 2.6vw, 3.5rem);
+  }
+
+  .report-header__kicker {
+    margin-top: clamp(1.5rem, 1rem + 2vw, 3rem);
+  }
+
+  .report-header h1 {
+    margin-top: var(--space-4);
+    max-width: 19ch;
+  }
+
+  .report-header__subtitle {
+    margin-top: var(--space-4);
+    font-family: var(--mono);
+    font-size: var(--text-sm);
+    letter-spacing: 0.02em;
+    color: var(--muted);
+  }
+
+  .report-header .lede {
+    margin-top: var(--space-5);
+  }
+
+  .report-body {
+    display: grid;
+    gap: var(--space-7);
+    padding-top: clamp(1.5rem, 1rem + 2vw, 2.5rem);
+    border-top: 1px solid var(--ink);
+  }
+
+  @media (min-width: 64rem) {
+    .report-body {
+      grid-template-columns: minmax(0, 1fr) 19rem;
+      gap: var(--space-8);
+      align-items: start;
+    }
+
+    .details {
+      grid-column: 2;
+      grid-row: 1;
+      position: sticky;
+      top: calc(var(--header-height) + var(--space-5));
+    }
+
+    .report-main {
+      grid-column: 1;
+      grid-row: 1;
+    }
+  }
+
+  /* Details panel */
+  .details__list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .details__list .cell {
+    padding: 0.85rem 1.1rem;
+  }
+
+  .details dd {
+    margin-top: 0.3rem;
+    font-size: 0.9375rem;
+    line-height: 1.4;
+  }
+
+  .details__actions {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
+    margin-top: var(--space-4);
+  }
+
+  .details__note {
+    font-family: var(--mono);
+    font-size: var(--text-xs);
+    line-height: 1.5;
+    color: var(--muted);
+  }
+
+  @media (min-width: 36rem) and (max-width: 63.99rem) {
+    .details__list {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .details__list .cell:first-child {
+      grid-column: 1 / -1;
+    }
+
+    .details__actions {
+      align-items: flex-start;
+    }
+  }
+
+  /* Main column */
+  .report-main {
+    min-width: 0;
+  }
+
+  .block + .block {
+    margin-top: var(--space-7);
+  }
+
+  .block__title {
+    margin-bottom: var(--space-5);
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  .summary {
+    font-size: var(--text-lg);
+    line-height: 1.6;
+  }
+
+  .findings {
+    max-width: 48rem;
+    border-top: 1px solid var(--ink);
+  }
+
+  .findings li {
+    display: grid;
+    grid-template-columns: 3rem minmax(0, 1fr);
+    gap: var(--space-3);
+    padding-block: var(--space-5);
+    border-bottom: 1px solid var(--line);
+    color: var(--ink-2);
+    /* Lists the reveal's fade here too, because this rule would otherwise replace it. */
+    transition:
+      padding 0.4s var(--ease),
+      opacity 0.7s var(--ease) var(--reveal-delay, 0s),
+      transform 0.7s var(--ease) var(--reveal-delay, 0s);
+  }
+
+  .findings li:hover {
+    padding-left: var(--space-3);
+  }
+
+  .findings__index {
+    font-family: var(--mono);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    line-height: 1.9;
+    color: var(--accent-text);
+  }
+
+  .exhibits {
+    display: grid;
+    /* minmax(0, 1fr) lets a wide table scroll inside its frame instead of widening the page. */
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-5);
+    max-width: 50rem;
+  }
+
+  .sources {
+    max-width: var(--measure);
+    font-size: var(--text-sm);
+    color: var(--ink-2);
+    border-top: 1px solid var(--ink);
+  }
+
+  .sources li {
+    padding-block: 0.65rem;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .closing {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-5);
+    margin-top: var(--space-7);
+    padding: clamp(1.25rem, 0.8rem + 2vw, 2.5rem);
+    max-width: 50rem;
+  }
+
+  .closing__lead {
+    font-size: var(--text-xl);
+    line-height: 1.2;
+    letter-spacing: -0.025em;
+    max-width: 24ch;
+  }
+
+  .closing__note {
+    font-family: var(--mono);
+    font-size: var(--text-xs);
+    line-height: 1.6;
+    color: var(--panel-muted);
+    max-width: 38rem;
+  }
+
+  /* Related */
+  .related {
+    margin-top: var(--section);
+  }
+
+  .related__list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  @media (min-width: 52rem) {
+    .related__list {
+      grid-template-columns: none;
+      grid-auto-flow: column;
+      grid-auto-columns: minmax(0, 1fr);
+    }
+  }
+</style>

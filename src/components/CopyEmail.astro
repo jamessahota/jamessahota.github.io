@@ -1,0 +1,58 @@
+---
+// A button that copies the email address and says so.
+// The address is also a normal link beside it, so this is a convenience only.
+import Icon from './Icon.astro';
+
+interface Props {
+  email: string;
+}
+
+const { email } = Astro.props;
+---
+
+<button class="btn btn--secondary copy" type="button" data-copy={email} hidden>
+  <span data-copy-label>Copy address</span>
+  <span class="copy__icon copy__icon--idle"><Icon name="copy" /></span>
+  <span class="copy__icon copy__icon--done"><Icon name="check" /></span>
+</button>
+<span class="visually-hidden" role="status" data-copy-status></span>
+
+<script>
+  for (const button of document.querySelectorAll<HTMLButtonElement>('[data-copy]')) {
+    if (!navigator.clipboard) continue;
+    const label = button.querySelector<HTMLElement>('[data-copy-label]')!;
+    const status = button.nextElementSibling as HTMLElement;
+    const original = label.textContent;
+    let timer = 0;
+    button.hidden = false;
+
+    button.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(button.dataset.copy ?? '');
+        label.textContent = 'Copied';
+        status.textContent = 'Email address copied';
+        button.dataset.done = 'true';
+      } catch {
+        label.textContent = 'Could not copy';
+        status.textContent = 'Could not copy the email address';
+      }
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        label.textContent = original;
+        status.textContent = '';
+        delete button.dataset.done;
+      }, 2200);
+    });
+  }
+</script>
+
+<style>
+  .copy__icon {
+    display: inline-flex;
+  }
+
+  .copy:not([data-done]) .copy__icon--done,
+  .copy[data-done] .copy__icon--idle {
+    display: none;
+  }
+</style>

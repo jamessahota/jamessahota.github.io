@@ -1,0 +1,430 @@
+---
+// The dark hero band with its illustration: streamlines squeezing through a
+// chokepoint. The lines bend around the pointer. It is an illustration of an
+// idea, not a chart of data, and it is labelled as such.
+//
+// The drawing stops when it is off screen, can be paused with the button, and
+// shows a still frame for visitors who ask their device for reduced motion.
+import Icon from './Icon.astro';
+---
+
+<div class="flow" data-flow>
+  <canvas class="flow__canvas" aria-hidden="true"></canvas>
+  <div class="flow__shade" aria-hidden="true"></div>
+
+  <div class="flow__inner container">
+    <div class="flow__content">
+      <slot />
+    </div>
+
+    <!-- Shown by the script: the caption and pause button only make sense once the drawing runs. -->
+    <div class="flow__foot" data-flow-foot hidden>
+      <p class="flow__caption label">
+        <span class="flow__fig">Fig. 01</span>
+        <span>
+          Flow through a chokepoint. <span data-flow-hint>Move the pointer to disturb it.</span>
+        </span>
+      </p>
+      <button class="flow__toggle" type="button" data-flow-toggle data-paused="false">
+        <span class="flow__toggle-icon flow__toggle-icon--pause"><Icon name="pause" /></span>
+        <span class="flow__toggle-icon flow__toggle-icon--play"><Icon name="play" /></span>
+        <span data-flow-label>Pause</span>{' '}
+        <span class="visually-hidden">the illustration</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const root = document.querySelector<HTMLElement>('[data-flow]');
+  const canvas = root?.querySelector('canvas');
+  const context = canvas?.getContext('2d');
+
+  if (root && canvas && context) {
+    const toggle = root.querySelector<HTMLButtonElement>('[data-flow-toggle]');
+    const toggleLabel = root.querySelector<HTMLElement>('[data-flow-label]');
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+    // --- Geometry, in units of the panel's width and height (0 to 1) ---------
+    const PINCH = 0.72; // where along the panel the channel is narrowest
+    const SPREAD = 0.17; // how wide the narrowing is
+    const WIDE = 0.64; // half-height of the channel away from the pinch (runs off the panel)
+    const NARROW = 0.075; // half-height at the pinch
+
+    const half = (u: number) => WIDE - (WIDE - NARROW) * Math.exp(-(((u - PINCH) / SPREAD) ** 2));
+    const centre = (u: number) => 0.5 + 0.045 * Math.sin((u * 0.95 + 0.1) * Math.PI * 2);
+
+    let width = 0;
+    let height = 0;
+    let ratio = 1;
+    let lines: number[] = [];
+    let pulses: { line: number; u: number; speed: number; length: number; accent: boolean }[] = [];
+    let colours = { line: '', bright: '', accent: '', land: '', shore: '' };
+    let time = 0;
+    let last = 0;
+    let frame = 0;
+    let visible = true;
+    let paused = reduceMotion.matches;
+
+    // The pointer, eased so the lines part smoothly.
+    const pointer = { x: 0, y: 0, tx: 0, ty: 0, force: 0, target: 0 };
+
+    const readColours = () => {
+      const style = getComputedStyle(root);
+      colours = {
+        line: style.getPropertyValue('--flow-line').trim(),
+        bright: style.getPropertyValue('--flow-bright').trim(),
+        accent: style.getPropertyValue('--flow-accent').trim(),
+        land: style.getPropertyValue('--flow-land').trim(),
+        shore: style.getPropertyValue('--flow-shore').trim(),
+      };
+    };
+
+    const seed = () => {
+      const count = Math.round(Math.min(64, Math.max(30, height / 9)));
+      lines = Array.from({ length: count }, (_, index) => -1 + (2 * (index + 0.5)) / count);
+
+      // Pulses are created once. A resize keeps them where they are, so the
+      // picture does not jump while a window is dragged or a phone is turned.
+      if (pulses.length) {
+        for (const pulse of pulses) pulse.line = Math.min(pulse.line, count - 1);
+        return;
+      }
+      const total = Math.round(Math.min(46, Math.max(16, width / 30)));
+      pulses = Array.from({ length: total }, (_, index) => ({
+        line: Math.floor(Math.random() * count),
+        u: Math.random(),
+        speed: 0.035 + Math.random() * 0.05,
+        length: 0.035 + Math.random() * 0.05,
+        accent: index % 3 !== 0,
+      }));
+    };
+
+    const resize = () => {
+      const box = root.getBoundingClientRect();
+      width = Math.max(1, box.width);
+      height = Math.max(1, box.height);
+      ratio = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.round(width * ratio);
+      canvas.height = Math.round(height * ratio);
+      seed();
+      draw();
+    };
+
+    /** The vertical position, in pixels, of streamline `s` at horizontal position `u`. */
+    const yAt = (u: number, s: number) => {
+      const reach = half(u);
+      // A slow swell, calmer where the channel is tight.
+      const swell = Math.sin((u * 1.7 - time * 0.07) * Math.PI * 2 + s * 2.6) * 0.012 * (reach / WIDE);
+      let y = (centre(u) + s * reach + swell) * height;
+
+      if (pointer.force > 0.001) {
+        const dx = u * width - pointer.x;
+        const dy = y - pointer.y;
+        const radius = Math.min(150, Math.max(70, width * 0.11));
+        const falloff = Math.exp(-(dx * dx + dy * dy) / (2 * radius * radius));
+        // Lines above the pointer lift, lines below it sink: a gap opens around it.
+        y += (dy / Math.sqrt(dy * dy + 400)) * falloff * radius * 0.62 * pointer.force;
+      }
+      return y;
+    };
+
+    const drawLand = (side: -1 | 1) => {
+      const steps = Math.ceil(width / 12);
+      context.beginPath();
+      context.moveTo(0, side < 0 ? -2 : height + 2);
+      for (let step = 0; step <= steps; step += 1) {
+        const u = step / steps;
+        context.lineTo(u * width, (centre(u) + side * (half(u) + 0.012)) * height);
+      }
+      context.lineTo(width, side < 0 ? -2 : height + 2);
+      context.closePath();
+      context.fillStyle = colours.land;
+      context.fill();
+      context.strokeStyle = colours.shore;
+      context.lineWidth = 1;
+      context.stroke();
+    };
+
+    const draw = () => {
+      context.setTransform(ratio, 0, 0, ratio, 0, 0);
+      context.clearRect(0, 0, width, height);
+      context.lineJoin = 'round';
+      context.lineCap = 'round';
+
+      const steps = Math.ceil(width / 14);
+
+      // Streamlines
+      context.strokeStyle = colours.line;
+      context.lineWidth = 1;
+      for (const s of lines) {
+        context.beginPath();
+        for (let step = 0; step <= steps; step += 1) {
+          const u = step / steps;
+          const y = yAt(u, s);
+          if (step === 0) context.moveTo(0, y);
+          else context.lineTo(u * width, y);
+        }
+        context.stroke();
+      }
+
+      // Pulses travelling along the lines, fading towards the tail
+      for (const pulse of pulses) {
+        const s = lines[pulse.line] ?? 0;
+        const segments = 7;
+        context.strokeStyle = pulse.accent ? colours.accent : colours.bright;
+        context.lineWidth = pulse.accent ? 2 : 1.5;
+        for (let segment = 0; segment < segments; segment += 1) {
+          const from = pulse.u - pulse.length * (1 - segment / segments);
+          const to = pulse.u - pulse.length * (1 - (segment + 1) / segments);
+          if (to < 0 || from > 1) continue;
+          context.globalAlpha = ((segment + 1) / segments) ** 1.6;
+          context.beginPath();
+          context.moveTo(from * width, yAt(from, s));
+          context.lineTo(to * width, yAt(to, s));
+          context.stroke();
+        }
+      }
+      context.globalAlpha = 1;
+
+      // The two headlands that form the strait, drawn over the lines
+      drawLand(-1);
+      drawLand(1);
+    };
+
+    const step = (now: number) => {
+      const delta = Math.min(0.05, (now - last) / 1000 || 0);
+      last = now;
+      time += delta;
+
+      pointer.x += (pointer.tx - pointer.x) * 0.14;
+      pointer.y += (pointer.ty - pointer.y) * 0.14;
+      pointer.force += (pointer.target - pointer.force) * 0.09;
+
+      for (const pulse of pulses) {
+        // The same volume has to pass through a narrower gap, so it moves faster there.
+        pulse.u += pulse.speed * delta * (WIDE / half(Math.min(1, Math.max(0, pulse.u)))) ** 0.75;
+        if (pulse.u - pulse.length > 1) {
+          pulse.u = 0;
+          pulse.line = Math.floor(Math.random() * lines.length);
+        }
+      }
+
+      draw();
+      frame = requestAnimationFrame(step);
+    };
+
+    const start = () => {
+      if (frame || paused || !visible || document.hidden) return;
+      last = performance.now();
+      frame = requestAnimationFrame(step);
+    };
+
+    const stop = () => {
+      cancelAnimationFrame(frame);
+      frame = 0;
+    };
+
+    const setPaused = (value: boolean) => {
+      paused = value;
+      if (toggle && toggleLabel) {
+        toggle.dataset.paused = String(paused);
+        toggleLabel.textContent = paused ? 'Play' : 'Pause';
+      }
+      if (paused) stop();
+      else start();
+    };
+
+    // --- Pointer -------------------------------------------------------------
+    const moveTo = (event: PointerEvent) => {
+      // Visitors who ask for reduced motion get a picture that does not move at all.
+      if (reduceMotion.matches) return;
+      const box = root.getBoundingClientRect();
+      pointer.tx = event.clientX - box.left;
+      pointer.ty = event.clientY - box.top;
+      if (pointer.force < 0.02) {
+        pointer.x = pointer.tx;
+        pointer.y = pointer.ty;
+      }
+      pointer.target = 1;
+      // While paused, still redraw so the lines answer the pointer.
+      if (paused) {
+        pointer.x = pointer.tx;
+        pointer.y = pointer.ty;
+        pointer.force = 1;
+        draw();
+      }
+    };
+
+    root.addEventListener('pointermove', moveTo);
+    root.addEventListener('pointerdown', moveTo);
+    root.addEventListener('pointerleave', () => {
+      if (reduceMotion.matches) return;
+      pointer.target = 0;
+      if (paused) {
+        pointer.force = 0;
+        draw();
+      }
+    });
+
+    // --- Lifecycle -----------------------------------------------------------
+    // The caption and the pause button only make sense once the drawing is running.
+    root.querySelector<HTMLElement>('[data-flow-foot]')?.removeAttribute('hidden');
+    toggle?.addEventListener('click', () => setPaused(!paused));
+
+    new ResizeObserver(resize).observe(root);
+    new IntersectionObserver((entries) => {
+      // Several records can arrive at once; the last one is the current state.
+      visible = Boolean(entries.at(-1)?.isIntersecting);
+      if (visible) start();
+      else stop();
+    }).observe(root);
+
+    document.addEventListener('visibilitychange', () => (document.hidden ? stop() : start()));
+    document.addEventListener('themechange', () => {
+      readColours();
+      draw();
+    });
+    const hint = root.querySelector<HTMLElement>('[data-flow-hint]');
+    const applyMotionPreference = () => {
+      if (hint) hint.hidden = reduceMotion.matches;
+      if (reduceMotion.matches) {
+        pointer.force = 0;
+        pointer.target = 0;
+      }
+      setPaused(reduceMotion.matches);
+      draw();
+    };
+    reduceMotion.addEventListener('change', applyMotionPreference);
+
+    readColours();
+    resize();
+    applyMotionPreference();
+  }
+</script>
+
+<style>
+  .flow {
+    /* Colours the script reads for the drawing. */
+    --flow-line: rgba(238, 240, 241, 0.16);
+    --flow-bright: rgba(238, 240, 241, 0.92);
+    --flow-accent: #ff6a33;
+    --flow-land: #1a1d20;
+    --flow-shore: rgba(238, 240, 241, 0.28);
+
+    position: relative;
+    overflow: hidden;
+    background: var(--panel);
+    color: var(--panel-ink);
+    isolation: isolate;
+  }
+
+  :global([data-theme='dark']) .flow {
+    --flow-land: #24282c;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .flow__canvas {
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Darkens the side the text sits on, so it stays readable over the lines. */
+  .flow__shade {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--panel) 92%, transparent) 0%,
+        color-mix(in srgb, var(--panel) 64%, transparent) 36%,
+        transparent 66%
+      ),
+      linear-gradient(0deg, color-mix(in srgb, var(--panel) 72%, transparent) 0%, transparent 32%);
+  }
+
+  @media (max-width: 47.99rem) {
+    .flow__shade {
+      background: linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--panel) 88%, transparent) 0%,
+        color-mix(in srgb, var(--panel) 70%, transparent) 62%,
+        color-mix(in srgb, var(--panel) 34%, transparent) 100%
+      );
+    }
+  }
+
+  .flow__inner {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: var(--space-7);
+    min-height: clamp(32rem, calc(100svh - var(--header-height) - 8.5rem), 50rem);
+    padding-block: clamp(2rem, 1rem + 4vw, 4.5rem) clamp(1.25rem, 0.8rem + 1.5vw, 2rem);
+  }
+
+  .flow__foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3) var(--space-5);
+    padding-top: var(--space-4);
+    border-top: 1px solid color-mix(in srgb, var(--panel-ink) 18%, transparent);
+  }
+
+  .flow__caption {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35em 1.25em;
+    color: var(--panel-muted);
+  }
+
+  .flow__fig {
+    color: var(--accent-on-panel);
+  }
+
+  .flow__toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55em;
+    min-height: 2.5rem;
+    padding: 0 0.9rem;
+    border: 1px solid color-mix(in srgb, var(--panel-ink) 36%, transparent);
+    border-radius: var(--radius-sm);
+    background: color-mix(in srgb, var(--panel) 70%, transparent);
+    color: var(--panel-ink);
+    font-family: var(--mono);
+    font-size: var(--text-xs);
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition:
+      background-color 0.3s var(--ease),
+      color 0.3s var(--ease);
+  }
+
+  .flow__toggle:hover {
+    background: var(--panel-ink);
+    color: #101214;
+  }
+
+  .flow__toggle:focus-visible {
+    outline-color: var(--accent-on-panel);
+  }
+
+  .flow__toggle-icon {
+    display: inline-flex;
+  }
+
+  .flow__toggle[data-paused='false'] .flow__toggle-icon--play,
+  .flow__toggle[data-paused='true'] .flow__toggle-icon--pause {
+    display: none;
+  }
+</style>

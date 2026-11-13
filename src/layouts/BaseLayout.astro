@@ -1,0 +1,136 @@
+---
+// The frame every page shares: document head, header, main content and footer.
+import { Font } from 'astro:assets';
+import '../styles/global.css';
+import SiteFooter from '../components/SiteFooter.astro';
+import SiteHeader from '../components/SiteHeader.astro';
+import { SITE } from '../site.config';
+
+interface Props {
+  /** Page title. Left out on the homepage, which uses the site title. */
+  title?: string;
+  description?: string;
+  ogType?: 'website' | 'article';
+  noindex?: boolean;
+  /** Structured data for search engines. Verified facts only. */
+  jsonLd?: Record<string, unknown>;
+}
+
+const { title, description = SITE.description, ogType = 'website', noindex = false, jsonLd } = Astro.props;
+
+const pageTitle = title ? `${title} | ${SITE.name}` : SITE.title;
+// The canonical address always uses the public site URL from astro.config.mjs, never localhost.
+const canonical = Astro.site ? new URL(Astro.url.pathname, Astro.site).href : undefined;
+const shareImage = Astro.site ? new URL('/og-default.png', Astro.site).href : undefined;
+const safeJsonLd = jsonLd ? JSON.stringify(jsonLd).replace(/</g, '\\u003c') : undefined;
+---
+
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={description} />
+    {canonical && !noindex && <link rel="canonical" href={canonical} />}
+    {noindex && <meta name="robots" content="noindex" />}
+    <meta name="theme-color" content="#eef0f1" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <meta property="og:site_name" content={SITE.name} />
+    <meta property="og:type" content={ogType} />
+    <meta property="og:title" content={title ?? SITE.title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:locale" content="en_GB" />
+    {canonical && <meta property="og:url" content={canonical} />}
+    {shareImage && <meta property="og:image" content={shareImage} />}
+    {shareImage && <meta property="og:image:width" content="1200" />}
+    {shareImage && <meta property="og:image:height" content="630" />}
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <!-- Applies a saved light or dark choice before the page is drawn, so there is no flash. -->
+    <script is:inline>
+      try {
+        const saved = localStorage.getItem('theme');
+        if (saved === 'dark' || saved === 'light') document.documentElement.dataset.theme = saved;
+        if (saved === 'dark') document.querySelector('meta[name="theme-color"]').setAttribute('content', '#101214');
+      } catch {}
+    </script>
+
+    <Font cssVariable="--font-geist" preload={[{ style: 'normal' }]} />
+    <Font cssVariable="--font-geist-mono" preload />
+    {safeJsonLd && <script type="application/ld+json" is:inline set:html={safeJsonLd} />}
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <SiteHeader />
+    <main id="main" tabindex="-1">
+      <slot />
+    </main>
+    <SiteFooter />
+  </body>
+</html>
+
+<script>
+  // --- Scroll reveal -------------------------------------------------------
+  // Elements marked data-reveal fade up as they enter the screen. Only elements
+  // that start below the fold are hidden first, and only when motion is welcome,
+  // so content is never hidden if this script fails or motion is reduced.
+  const motionOk = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const targets = [...document.querySelectorAll<HTMLElement>('[data-reveal]')];
+
+  if (motionOk && 'IntersectionObserver' in window && targets.length) {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          const element = entry.target as HTMLElement;
+          element.classList.add('reveal-in');
+          element.classList.remove('reveal-wait');
+          observer.unobserve(element);
+        }
+      },
+      { rootMargin: '0px 0px -8% 0px', threshold: 0.05 },
+    );
+
+    for (const element of targets) {
+      if (element.getBoundingClientRect().top < window.innerHeight * 0.92) continue;
+      const order = Number(element.dataset.reveal || 0);
+      if (order) element.style.setProperty('--reveal-delay', `${Math.min(order, 6) * 70}ms`);
+      element.classList.add('reveal-wait');
+      observer.observe(element);
+    }
+  }
+
+  // --- Live clock ----------------------------------------------------------
+  // Shows the current time in a named time zone, for "Chicago 14:47".
+  const clocks = [...document.querySelectorAll<HTMLElement>('[data-clock]')];
+
+  if (clocks.length) {
+    const tick = () => {
+      for (const clock of clocks) {
+        try {
+          clock.textContent = new Intl.DateTimeFormat('en-GB', {
+            hour: '2-digit',
+            minute: '2-digit',
+            timeZone: clock.dataset.clock,
+          }).format(new Date());
+        } catch {
+          clock.textContent = '';
+        }
+      }
+    };
+    tick();
+    setInterval(tick, 15_000);
+    // Labels that only make sense with a time beside them are shown once the clock runs.
+    for (const wrap of document.querySelectorAll<HTMLElement>('[data-clock-wrap]')) wrap.hidden = false;
+  }
+</script>
+
+<style>
+  main:focus {
+    outline: none;
+  }
+</style>

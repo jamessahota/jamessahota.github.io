@@ -1,0 +1,323 @@
+---
+import Icon from '../components/Icon.astro';
+import RoleEntry from '../components/RoleEntry.astro';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import {
+  getCapabilities,
+  getEducation,
+  getExperience,
+  getProfile,
+  getPublicProjects,
+  projectPath,
+} from '../lib/content';
+import { formatPeriod } from '../lib/dates';
+
+const roles = await getExperience();
+const education = await getEducation();
+const capabilities = await getCapabilities();
+const projects = await getPublicProjects();
+const profile = await getProfile();
+
+const description =
+  'Experience and education of James Sahota: co-founder of 6:05 Markets, research contributor at Energy Flux, and a mathematics and economics student at the University of Chicago.';
+---
+
+<BaseLayout title="Experience" description={description}>
+  <header class="page-header container">
+    <p class="label label--marked">Roles, education and capabilities</p>
+    <h1 class="display">Experience</h1>
+    <p class="lede">
+      Research leadership at a student-led markets group, an internship in wealth services, and study towards a B.S. in
+      mathematics and a B.A. in economics, expected in 2029. Each role is labelled for what it was.
+    </p>
+  </header>
+
+  <div class="container">
+    <section aria-labelledby="roles-heading">
+      <div class="section-head">
+        <h2 id="roles-heading">Roles</h2>
+        <p class="label numeric">{String(roles.length).padStart(2, '0')}</p>
+      </div>
+      <div class="cells stack">
+        {roles.map((role) => <RoleEntry {...role.data} />)}
+      </div>
+    </section>
+
+    {
+      projects.length > 0 && (
+        <section class="group" aria-labelledby="projects-heading">
+          <div class="section-head">
+            <h2 id="projects-heading">Independent project</h2>
+            <p class="label numeric">{String(projects.length).padStart(2, '0')}</p>
+          </div>
+          <div class="cells stack" data-reveal>
+            {projects.map((project) => (
+              <article class="row cell cell--link">
+                <div class="row__aside">
+                  <p class="label numeric">{formatPeriod(project.data.start, project.data.end)}</p>
+                  <p class="label">{project.data.kind}</p>
+                </div>
+                <div>
+                  <h3>
+                    <a class="stretched" href={projectPath(project)}>
+                      {project.data.title}
+                    </a>
+                  </h3>
+                  <p class="row__text">{project.data.summary}</p>
+                </div>
+                <span class="go" aria-hidden="true">
+                  <Icon name="arrow-right" />
+                </span>
+              </article>
+            ))}
+          </div>
+        </section>
+      )
+    }
+
+    <section class="group" id="education" aria-labelledby="education-heading">
+      <div class="section-head">
+        <h2 id="education-heading">Education</h2>
+        <p class="label numeric">{String(education.length).padStart(2, '0')}</p>
+      </div>
+      <div class="cells stack" data-reveal>
+        {
+          education.map(({ data }) => (
+            <article class="row cell">
+              <div class="row__aside">
+                <p class="label numeric">{data.period}</p>
+                <p class="label">{data.location}</p>
+              </div>
+              <div>
+                <h3>{data.institution}</h3>
+                <p class="row__lead">{data.qualification}</p>
+                <dl class="facts">
+                  {data.coursework && (
+                    <div>
+                      <dt class="label">Relevant coursework</dt>
+                      <dd>{data.coursework.join(', ')}</dd>
+                    </div>
+                  )}
+                  {data.activities && (
+                    <div>
+                      <dt class="label">Leadership and activities</dt>
+                      <dd>{data.activities.join('; ')}</dd>
+                    </div>
+                  )}
+                </dl>
+              </div>
+            </article>
+          ))
+        }
+      </div>
+    </section>
+
+    <section class="group" id="capabilities" aria-labelledby="capabilities-heading">
+      <div class="section-head">
+        <div>
+          <h2 id="capabilities-heading">Capabilities</h2>
+          <p class="group__intro">Most are tied to the work or role that shows them.</p>
+        </div>
+        <p class="label numeric">{String(capabilities.length).padStart(2, '0')}</p>
+      </div>
+      <div class="cells capabilities" data-reveal>
+        {
+          capabilities.map(({ data }, position) => (
+            <article class="capability cell">
+              <p class="label numeric capability__index">{String(position + 1).padStart(2, '0')}</p>
+              <h3>{data.title}</h3>
+              <p class="capability__text">{data.description}</p>
+              {data.evidence && (
+                <ul aria-label={`Evidence for ${data.title.toLowerCase()}`}>
+                  {data.evidence.map((item) => (
+                    <li>
+                      <a class="arrow-link" href={item.href}>
+                        {item.label}
+                        <Icon name="arrow-right" />
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </article>
+          ))
+        }
+      </div>
+    </section>
+
+    <section class="group" aria-labelledby="also-heading">
+      <div class="section-head">
+        <h2 id="also-heading">Awards and athletics</h2>
+      </div>
+      <div class="cells also" data-reveal>
+        <div class="cell">
+          <p class="label">Awards</p>
+          <ul>
+            {profile.awards.map((award) => <li>{award}</li>)}
+          </ul>
+        </div>
+        <div class="cell">
+          <p class="label">Athletics</p>
+          <ul>
+            {profile.athletics.map((item) => <li>{item}</li>)}
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <p class="cv-link">
+      The same record as a one-page document: <a href="/cv/">my CV</a>.
+    </p>
+  </div>
+</BaseLayout>
+
+<style>
+  .group {
+    margin-top: var(--section);
+  }
+
+  .group__intro {
+    margin-top: var(--space-3);
+    color: var(--muted);
+  }
+
+  .stack {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .row {
+    display: grid;
+    gap: var(--space-4) var(--space-6);
+  }
+
+  @media (min-width: 56rem) {
+    .row {
+      grid-template-columns: 15rem minmax(0, 1fr);
+      padding-block: clamp(1.5rem, 1rem + 1.6vw, 2.5rem);
+    }
+  }
+
+  .row.cell--link {
+    padding-right: 4.5rem;
+  }
+
+  .row .go {
+    position: absolute;
+    top: clamp(1.1rem, 0.8rem + 1.2vw, 1.75rem);
+    right: clamp(1.1rem, 0.8rem + 1.2vw, 1.75rem);
+  }
+
+  .row__aside {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-4);
+    align-items: baseline;
+  }
+
+  @media (min-width: 56rem) {
+    .row__aside {
+      flex-direction: column;
+      gap: var(--space-2);
+      padding-top: 0.5rem;
+    }
+  }
+
+  .row h3 {
+    font-size: var(--text-2xl);
+    letter-spacing: -0.04em;
+    line-height: 1;
+  }
+
+  .row h3 a {
+    text-decoration: none;
+  }
+
+  .row__lead {
+    margin-top: var(--space-2);
+    font-size: var(--text-lg);
+    letter-spacing: -0.015em;
+    color: var(--ink-2);
+  }
+
+  .row__text {
+    margin-top: var(--space-4);
+    max-width: var(--measure);
+    color: var(--cell-muted);
+    transition: color 0.3s var(--ease);
+  }
+
+  .facts {
+    display: grid;
+    gap: var(--space-4);
+    margin-top: var(--space-5);
+    max-width: var(--measure);
+  }
+
+  .facts dd {
+    margin-top: var(--space-1);
+    color: var(--ink-2);
+  }
+
+  .capabilities {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  @media (min-width: 48rem) {
+    .capabilities {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    /* An odd one out at the end takes the full width. */
+    .capabilities > :last-child:nth-child(odd) {
+      grid-column: 1 / -1;
+    }
+  }
+
+  .capability {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .capability__index {
+    color: var(--accent-text) !important;
+  }
+
+  .capability__text {
+    max-width: 34rem;
+    color: var(--ink-2);
+  }
+
+  .capability ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 var(--space-5);
+    margin-top: auto;
+    padding-top: var(--space-2);
+  }
+
+  .also {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  @media (min-width: 48rem) {
+    .also {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  .also ul {
+    margin-top: var(--space-3);
+  }
+
+  .also li {
+    padding-block: 0.55rem;
+    border-top: 1px solid var(--line);
+    color: var(--ink-2);
+  }
+
+  .cv-link {
+    margin-top: var(--space-7);
+    color: var(--muted);
+  }
+</style>

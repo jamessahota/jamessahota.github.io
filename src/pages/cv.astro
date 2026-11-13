@@ -1,0 +1,82 @@
+---
+// The CV is the PDF in public/, shown as it is. Nothing on this page restates it.
+// To replace it, save the new file as public/James-Sahota-CV.pdf.
+import ButtonLink from '../components/ButtonLink.astro';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getProfile } from '../lib/content';
+
+const profile = await getProfile();
+const pdf = profile.cv.pdf;
+const description = `Curriculum vitae of ${profile.name}, as a one-page PDF to read or download.`;
+---
+
+<BaseLayout title="CV" description={description}>
+  <header class="page-header container">
+    <p class="label label--marked">Curriculum vitae · Updated {profile.cv.updated}</p>
+    <h1 class="display">CV</h1>
+    {
+      pdf ? (
+        <>
+          <p class="lede">
+            One page, as a PDF. The same roles and dates, with more detail, are on the{' '}
+            <a href="/experience/">Experience page</a>.
+          </p>
+          <div class="cv-actions">
+            <ButtonLink href={pdf} label="Open the PDF" icon="arrow-up-right" />
+            <ButtonLink href={pdf} label="Download" variant="secondary" icon="download" download />
+          </div>
+        </>
+      ) : (
+        <p class="lede">
+          The PDF is not available at the moment. My roles and education are on the{' '}
+          <a href="/experience/">Experience page</a>.
+        </p>
+      )
+    }
+  </header>
+
+  {
+    pdf && (
+      <div class="container">
+        <object class="cv-frame" data={`${pdf}#view=FitH&navpanes=0`} type="application/pdf" aria-label={`${profile.name}, CV (PDF)`}>
+          <p class="cv-fallback">
+            This browser cannot show the PDF inside the page. <a href={pdf}>Open the PDF</a> instead.
+          </p>
+        </object>
+      </div>
+    )
+  }
+</BaseLayout>
+
+<style>
+  .cv-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    margin-top: var(--space-6);
+  }
+
+  /* The PDF is shown in the page on wider screens. Phones get the two buttons,
+     because their browsers open PDFs in a separate viewer. */
+  .cv-frame {
+    display: none;
+  }
+
+  @media (min-width: 56rem) {
+    .cv-frame {
+      display: block;
+      width: 100%;
+      max-width: 58rem;
+      /* A little taller than a letter page, to leave room for the viewer's own controls. */
+      aspect-ratio: 8.5 / 11.7;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+    }
+  }
+
+  .cv-fallback {
+    padding: var(--space-6);
+    color: var(--ink-2);
+  }
+</style>

@@ -1,0 +1,209 @@
+---
+import { render } from 'astro:content';
+import ButtonLink from '../components/ButtonLink.astro';
+import Icon from '../components/Icon.astro';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getAbout, getProfile } from '../lib/content';
+
+const about = await getAbout();
+const profile = await getProfile();
+const { Content } = await render(about);
+const { data } = about;
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'ProfilePage',
+  mainEntity: {
+    '@type': 'Person',
+    name: profile.name,
+    url: Astro.site?.href,
+    sameAs: [profile.linkedin],
+  },
+};
+---
+
+<BaseLayout title={data.title} description={data.description} jsonLd={jsonLd}>
+  <header class="page-header container">
+    <p class="label label--marked">About</p>
+    <h1 class="display">{profile.name}</h1>
+    <p class="lede">{data.lede}</p>
+  </header>
+
+  <div class="container about">
+    <section class="about__bio" aria-label="Biography">
+      <div class="prose">
+        <Content />
+      </div>
+    </section>
+
+    <aside class="about__aside" aria-label="Contact and links">
+      <dl class="cells about__facts">
+        <div class="cell">
+          <dt class="label">Based in</dt>
+          <dd>
+            {profile.location}
+            <span class="about__clock numeric" data-clock="America/Chicago"></span>
+          </dd>
+        </div>
+        <div class="cell">
+          <dt class="label">Languages</dt>
+          <dd>
+            {profile.languages.map((language) => `${language.name} (${language.level.toLowerCase()})`).join(', ')}
+          </dd>
+        </div>
+        <div class="cell">
+          <dt class="label">Email</dt>
+          <dd><a href={`mailto:${profile.email}`}>{profile.email}</a></dd>
+        </div>
+      </dl>
+      <div class="about__actions">
+        <ButtonLink href={profile.linkedin} label="LinkedIn" variant="secondary" icon="arrow-up-right" />
+        <ButtonLink href="/cv/" label="View CV" variant="secondary" icon="arrow-right" />
+      </div>
+    </aside>
+  </div>
+
+  <section class="container group" aria-labelledby="approach-heading">
+    <div class="section-head">
+      <h2 id="approach-heading">How I approach research</h2>
+      <p class="label numeric">{String(data.approach.length).padStart(2, '0')}</p>
+    </div>
+    <ol class="cells approach" data-reveal>
+      {
+        data.approach.map((point, position) => (
+          <li class="cell approach__item">
+            <p class="label numeric approach__index">{String(position + 1).padStart(2, '0')}</p>
+            <h3>{point.title}</h3>
+            <p class="approach__text">{point.text}</p>
+            {point.example && (
+              <a class="arrow-link" href={point.example.href}>
+                {point.example.label}
+                <Icon name="arrow-right" />
+              </a>
+            )}
+          </li>
+        ))
+      }
+    </ol>
+  </section>
+
+  <section class="container group" aria-labelledby="beyond-heading">
+    <div class="section-head">
+      <h2 id="beyond-heading">Beyond work</h2>
+    </div>
+    <div class="beyond" data-reveal>
+      {data.beyondWork.map((paragraph) => <p>{paragraph}</p>)}
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .about {
+    display: grid;
+    gap: var(--space-7);
+    padding-top: clamp(1.5rem, 1rem + 2vw, 2.5rem);
+    border-top: 1px solid var(--ink);
+  }
+
+  @media (min-width: 64rem) {
+    .about {
+      grid-template-columns: minmax(0, 1fr) 21rem;
+      gap: var(--space-8);
+      align-items: start;
+    }
+
+    .about__aside {
+      position: sticky;
+      top: calc(var(--header-height) + var(--space-5));
+    }
+  }
+
+  .about__bio .prose {
+    font-size: var(--text-lg);
+    line-height: 1.62;
+  }
+
+  .about__bio .prose > p:first-child {
+    font-size: var(--text-xl);
+    line-height: 1.35;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+  }
+
+  .about__facts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .about__facts .cell {
+    padding: 0.9rem 1.1rem;
+  }
+
+  .about__facts dd {
+    margin-top: 0.3rem;
+    font-size: 0.9375rem;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+  }
+
+  .about__clock {
+    margin-left: 0.5em;
+    font-family: var(--mono);
+    font-size: var(--text-xs);
+    color: var(--muted);
+  }
+
+  .about__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    margin-top: var(--space-4);
+  }
+
+  .group {
+    margin-top: var(--section);
+  }
+
+  .approach {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  @media (min-width: 48rem) {
+    .approach {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  .approach__item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+  }
+
+  .approach__index {
+    color: var(--accent-text) !important;
+  }
+
+  .approach__text {
+    max-width: 32rem;
+    color: var(--ink-2);
+  }
+
+  .approach__item .arrow-link {
+    margin-top: auto;
+  }
+
+  .beyond {
+    display: grid;
+    gap: var(--space-5) var(--space-8);
+    font-size: var(--text-lg);
+    line-height: 1.55;
+    color: var(--ink-2);
+  }
+
+  @media (min-width: 56rem) {
+    .beyond {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+</style>

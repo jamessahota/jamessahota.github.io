@@ -1,0 +1,37 @@
+---
+// Small line icons drawn inline, so they take the text colour and need no font or request.
+const paths = {
+  'arrow-right': 'M3 8h10M9 4l4 4-4 4',
+  'arrow-left': 'M13 8H3M7 4 3 8l4 4',
+  'arrow-up-right': 'M5 11l6-6M6 5h5v5',
+  'arrow-down': 'M8 3v10M4 9l4 4 4-4',
+  download: 'M8 2.5v7.5M4.5 7 8 10.5 11.5 7M3 13.5h10',
+  mail: 'M2 4h12v8.5H2zM2.3 4.4 8 9l5.7-4.6',
+  copy: 'M6 6h7.5v7.5H6zM3.5 10H2.5V2.5H10v1',
+  check: 'M3 8.5l3.2 3.2L13 5',
+  pause: 'M5.5 3.5v9M10.5 3.5v9',
+  play: 'M5 3.5l7.5 4.5L5 12.5z',
+  theme: 'M8 2.5a5.5 5.5 0 1 0 0 11zM8 2.5a5.5 5.5 0 0 1 0 11',
+} as const;
+
+interface Props {
+  name: keyof typeof paths;
+}
+
+const { name } = Astro.props;
+---
+
+<svg
+  class="icon"
+  data-icon={name}
+  viewBox="0 0 16 16"
+  width="16"
+  height="16"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="1.4"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+  aria-hidden="true"
+  focusable="false"><path d={paths[name]}></path></svg
+>

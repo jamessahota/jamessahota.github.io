@@ -1,0 +1,68 @@
+---
+import ButtonLink from '../components/ButtonLink.astro';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { NAV } from '../site.config';
+---
+
+<BaseLayout
+  title="Page not found"
+  description="The page you were looking for could not be found. Browse James Sahota’s research, experience and CV instead."
+  noindex
+>
+  <div class="container not-found">
+    <p class="label label--marked">Error 404</p>
+    <h1 class="display">Not found</h1>
+    <p class="lede">The address may be mistyped, or the page may have moved. These should help.</p>
+    <div class="not-found__actions">
+      <ButtonLink href="/research/" label="Browse research" icon="arrow-right" />
+      <ButtonLink href="/" label="Go to the homepage" variant="secondary" />
+    </div>
+    <ul class="not-found__links">
+      {
+        NAV.map((item) => (
+          <li>
+            <a href={item.href}>{item.label}</a>
+          </li>
+        ))
+      }
+      <li><a href="/cv/">CV</a></li>
+    </ul>
+  </div>
+</BaseLayout>
+
+<style>
+  .not-found {
+    padding-top: var(--section);
+  }
+
+  h1 {
+    margin-top: var(--space-4);
+  }
+
+  .lede {
+    margin-top: var(--space-5);
+  }
+
+  .not-found__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    margin-top: var(--space-6);
+  }
+
+  .not-found__links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-5);
+    margin-top: var(--space-6);
+    font-family: var(--mono);
+    font-size: var(--text-xs);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .not-found__links a {
+    display: inline-block;
+    padding-block: 0.5rem;
+  }
+</style>

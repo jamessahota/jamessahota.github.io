@@ -1,0 +1,145 @@
+---
+// A data table. On narrow screens it scrolls sideways inside its own frame,
+// so the page itself never scrolls horizontally.
+interface Props {
+  title: string;
+  columns: string[];
+  rows: string[][];
+  note?: string;
+  source?: string;
+}
+
+const { title, columns, rows, note, source } = Astro.props;
+const id = `table-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`;
+// Right-align a column when every cell in it is a figure.
+const isNumeric = (cell: string) => /^[\s\dUS$£€.,%–−+-]+$/.test(cell) && /\d/.test(cell);
+const numericColumn = columns.map((_, index) => index > 0 && rows.every((row) => isNumeric(row[index] ?? '')));
+---
+
+<figure class="data-table" data-reveal>
+  <figcaption id={id} class="data-table__title">{title}</figcaption>
+  <div class="data-table__scroll" role="region" aria-labelledby={id} tabindex="0">
+    <table>
+      <thead>
+        <tr>
+          {columns.map((column, index) => <th scope="col" class:list={{ num: numericColumn[index] }}>{column}</th>)}
+        </tr>
+      </thead>
+      <tbody>
+        {
+          rows.map((row) => (
+            <tr>
+              {row.map((cell, index) =>
+                index === 0 ? (
+                  <th scope="row">{cell}</th>
+                ) : (
+                  <td class:list={{ num: numericColumn[index], numeric: numericColumn[index] }}>{cell}</td>
+                ),
+              )}
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+  {note && <p class="data-table__note">{note}</p>}
+  {source && <p class="data-table__note">Source: {source}</p>}
+</figure>
+
+<style>
+  .data-table {
+    padding: clamp(1.1rem, 0.8rem + 1.2vw, 1.75rem);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--surface);
+  }
+
+  .data-table__title {
+    font-size: var(--text-lg);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.25;
+  }
+
+  .data-table__scroll {
+    margin-top: var(--space-4);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  table {
+    width: 100%;
+    min-width: 34rem;
+    border-collapse: collapse;
+    font-size: var(--text-sm);
+    line-height: 1.45;
+  }
+
+  th,
+  td {
+    padding: 0.75rem var(--space-4) 0.75rem 0;
+    text-align: left;
+    vertical-align: top;
+    border-bottom: 1px solid var(--line);
+  }
+
+  tbody tr:last-child th,
+  tbody tr:last-child td {
+    border-bottom: 0;
+  }
+
+  th:last-child,
+  td:last-child {
+    padding-right: 0;
+  }
+
+  thead th {
+    font-family: var(--mono);
+    font-size: var(--text-xs);
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    vertical-align: bottom;
+  }
+
+  tbody th {
+    font-weight: 600;
+    min-width: 9rem;
+  }
+
+  td {
+    color: var(--ink-2);
+  }
+
+  tbody tr {
+    transition: background-color 0.2s var(--ease);
+  }
+
+  tbody tr:hover {
+    background: color-mix(in srgb, var(--accent) 7%, transparent);
+  }
+
+  .num {
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  td.num {
+    font-family: var(--mono);
+    font-size: 0.8125rem;
+  }
+
+  .data-table__note {
+    margin-top: var(--space-4);
+    font-family: var(--mono);
+    font-size: var(--text-xs);
+    line-height: 1.6;
+    color: var(--muted);
+    max-width: var(--measure);
+  }
+
+  .data-table__note + .data-table__note {
+    margin-top: var(--space-2);
+  }
+</style>

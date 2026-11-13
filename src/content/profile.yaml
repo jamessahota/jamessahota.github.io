@@ -1,0 +1,60 @@
+# Who I am and how to reach me. Used on the homepage, CV, footer and About page.
+
+name: James Sahota
+positioning: Research across energy and markets.
+intro: >-
+  I’m a University of Chicago student with a particular interest in energy, commodities and
+  financial markets. I co-founded 6:05 Markets, where I help lead research and editorial
+  development.
+
+location: Chicago, IL
+email: jsahota@uchicago.edu
+linkedin: https://www.linkedin.com/in/james-sahota/
+
+# The short facts beside the homepage introduction.
+atAGlance:
+  - label: Now
+    value: Co-Founder & Co-President, 6:05 Markets
+    href: https://605-markets.com/
+  - label: Also
+    value: Research Contributor, Energy Flux
+    href: https://www.energyflux.news/
+  - label: Studying
+    value: Mathematics and Economics at the University of Chicago, expected 2029
+  - label: Research focus
+    value: Oil, natural gas and LNG, refined products, and the routes that carry them
+
+contactInvite: >-
+  I’m glad to hear from people working in energy and commodity markets, from other researchers,
+  and about relevant opportunities.
+
+# The short personal paragraph on the homepage. The full biography is in about.md.
+homeAbout: >-
+  I was born in Milan, went to school in London and now study mathematics and economics in
+  Chicago. I speak English and Italian fluently, studied philosophy at A-level and am vice
+  president of the university judo club.
+
+languages:
+  - name: English
+    level: Fluent
+  - name: Italian
+    level: Fluent
+  - name: Spanish
+    level: Conversational
+
+# Shown at the foot of the Experience page.
+athletics:
+  - 2019 Aikido World Championships quarter-finalist (Pairs Kata)
+  - Two-time Essex Aikido Championships gold medallist
+  - HMC Independent Schools U50kg judo champion
+  - Two-time English Open U57.5kg BJJ silver medallist
+
+awards:
+  - British Physics Olympiad (Top 650)
+  - UKMT Senior Maths Challenge Gold
+
+cv:
+  # The CV shown on the site: a PDF saved in the public/ folder.
+  # To replace it, save the new file under the same name.
+  pdf: /James-Sahota-CV.pdf
+  updated: November 2026
