@@ -72,11 +72,11 @@ import Icon from './Icon.astro';
     const readColours = () => {
       const style = getComputedStyle(root);
       colours = {
-        line: style.getPropertyValue('--flow-line').trim(),
-        bright: style.getPropertyValue('--flow-bright').trim(),
-        accent: style.getPropertyValue('--flow-accent').trim(),
-        land: style.getPropertyValue('--flow-land').trim(),
-        shore: style.getPropertyValue('--flow-shore').trim(),
+        line: style.getPropertyValue('--flow-line').trim() || 'rgba(238, 240, 241, 0.2)',
+        bright: style.getPropertyValue('--flow-bright').trim() || 'rgba(238, 240, 241, 0.92)',
+        accent: style.getPropertyValue('--flow-accent').trim() || '#ff6a33',
+        land: style.getPropertyValue('--flow-land').trim() || '#1a1d20',
+        shore: style.getPropertyValue('--flow-shore').trim() || 'rgba(238, 240, 241, 0.28)',
       };
     };
 
@@ -174,6 +174,8 @@ import Icon from './Icon.astro';
         const segments = 7;
         context.strokeStyle = pulse.accent ? colours.accent : colours.bright;
         context.lineWidth = pulse.accent ? 2 : 1.5;
+        context.shadowColor = pulse.accent ? colours.accent : colours.bright;
+        context.shadowBlur = pulse.accent ? 9 : 4;
         for (let segment = 0; segment < segments; segment += 1) {
           const from = pulse.u - pulse.length * (1 - segment / segments);
           const to = pulse.u - pulse.length * (1 - (segment + 1) / segments);
@@ -186,6 +188,7 @@ import Icon from './Icon.astro';
         }
       }
       context.globalAlpha = 1;
+      context.shadowBlur = 0;
 
       // The two headlands that form the strait, drawn over the lines
       drawLand(-1);
@@ -197,9 +200,11 @@ import Icon from './Icon.astro';
       last = now;
       time += delta;
 
-      pointer.x += (pointer.tx - pointer.x) * 0.14;
-      pointer.y += (pointer.ty - pointer.y) * 0.14;
-      pointer.force += (pointer.target - pointer.force) * 0.09;
+      const positionEase = 1 - Math.pow(0.86, delta * 60);
+      const forceEase = 1 - Math.pow(0.91, delta * 60);
+      pointer.x += (pointer.tx - pointer.x) * positionEase;
+      pointer.y += (pointer.ty - pointer.y) * positionEase;
+      pointer.force += (pointer.target - pointer.force) * forceEase;
 
       for (const pulse of pulses) {
         // The same volume has to pass through a narrower gap, so it moves faster there.
@@ -281,6 +286,14 @@ import Icon from './Icon.astro';
     }).observe(root);
 
     document.addEventListener('visibilitychange', () => (document.hidden ? stop() : start()));
+    window.addEventListener('pagehide', stop);
+    window.addEventListener('pageshow', () => {
+      readColours();
+      resize();
+      const box = root.getBoundingClientRect();
+      visible = box.bottom > 0 && box.top < window.innerHeight;
+      start();
+    });
     document.addEventListener('themechange', () => {
       readColours();
       draw();
@@ -306,7 +319,7 @@ import Icon from './Icon.astro';
 <style>
   .flow {
     /* Colours the script reads for the drawing. */
-    --flow-line: rgba(238, 240, 241, 0.16);
+    --flow-line: rgba(238, 240, 241, 0.2);
     --flow-bright: rgba(238, 240, 241, 0.92);
     --flow-accent: #ff6a33;
     --flow-land: #1a1d20;
@@ -314,7 +327,7 @@ import Icon from './Icon.astro';
 
     position: relative;
     overflow: hidden;
-    background: var(--panel);
+    background: radial-gradient(ellipse at 78% 48%, #272a2d, var(--panel) 72%);
     color: var(--panel-ink);
     isolation: isolate;
   }
@@ -327,16 +340,18 @@ import Icon from './Icon.astro';
   .flow__canvas {
     position: absolute;
     inset: 0;
-    z-index: -2;
+    z-index: 0;
     width: 100%;
     height: 100%;
+    pointer-events: none;
+    animation: flow-arrive 1.8s var(--ease-out) both;
   }
 
   /* Darkens the side the text sits on, so it stays readable over the lines. */
   .flow__shade {
     position: absolute;
     inset: 0;
-    z-index: -1;
+    z-index: 1;
     pointer-events: none;
     background:
       linear-gradient(
@@ -360,12 +375,14 @@ import Icon from './Icon.astro';
   }
 
   .flow__inner {
+    position: relative;
+    z-index: 2;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     gap: var(--space-7);
-    min-height: clamp(32rem, calc(100svh - var(--header-height) - 8.5rem), 50rem);
-    padding-block: clamp(2rem, 1rem + 4vw, 4.5rem) clamp(1.25rem, 0.8rem + 1.5vw, 2rem);
+    min-height: clamp(34rem, calc(100svh - var(--header-height) - 3rem), 48rem);
+    padding-block: clamp(2.5rem, 1rem + 3vw, 4rem) clamp(1.25rem, 0.8rem + 1.5vw, 2rem);
   }
 
   .flow__foot {
@@ -376,6 +393,7 @@ import Icon from './Icon.astro';
     gap: var(--space-3) var(--space-5);
     padding-top: var(--space-4);
     border-top: 1px solid color-mix(in srgb, var(--panel-ink) 18%, transparent);
+    animation: flow-caption-in 1s var(--ease-out) 0.85s both;
   }
 
   .flow__caption {
@@ -426,5 +444,23 @@ import Icon from './Icon.astro';
   .flow__toggle[data-paused='false'] .flow__toggle-icon--play,
   .flow__toggle[data-paused='true'] .flow__toggle-icon--pause {
     display: none;
+  }
+
+  @keyframes flow-arrive {
+    from { opacity: 0; transform: scale(1.07); }
+    to { opacity: 1; transform: none; }
+  }
+
+  @keyframes flow-caption-in {
+    from { opacity: 0; transform: translateY(0.75rem); }
+    to { opacity: 1; transform: none; }
+  }
+
+  @media (max-width: 47.99rem) {
+    .flow__inner { min-height: 0; gap: 2rem; padding-block: 2.5rem 1.25rem; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .flow__canvas, .flow__foot { animation: none; }
   }
 </style>

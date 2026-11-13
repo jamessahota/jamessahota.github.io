@@ -74,12 +74,26 @@ const safeJsonLd = jsonLd ? JSON.stringify(jsonLd).replace(/</g, '\\u003c') : un
 </html>
 
 <script>
-  // --- Scroll reveal -------------------------------------------------------
-  // Elements marked data-reveal fade up as they enter the screen. Only elements
-  // that start below the fold are hidden first, and only when motion is welcome,
-  // so content is never hidden if this script fails or motion is reduced.
-  const motionOk = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // Shared choreography: ruled headings, staggered groups and individual exhibits.
+  // Content stays visible without JavaScript and when motion is reduced.
+  const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const motionOk = !motionPreference.matches;
+  for (const heading of document.querySelectorAll<HTMLElement>('.section-head, .list-head')) {
+    if (!heading.hasAttribute('data-reveal')) heading.setAttribute('data-reveal', '');
+    heading.dataset.revealStyle = 'rule';
+  }
+  for (const group of document.querySelectorAll('.selected, .roles, .list, .approach, .capabilities')) {
+    [...group.children].forEach((child, index) => {
+      if (child instanceof HTMLElement && child.hasAttribute('data-reveal') && !child.dataset.reveal) {
+        child.dataset.reveal = String(index % 3);
+      }
+    });
+  }
   const targets = [...document.querySelectorAll<HTMLElement>('[data-reveal]')];
+  const reveal = (element: HTMLElement) => {
+    element.classList.add('reveal-in');
+    element.classList.remove('reveal-wait');
+  };
 
   if (motionOk && 'IntersectionObserver' in window && targets.length) {
     const observer = new IntersectionObserver(
@@ -87,21 +101,45 @@ const safeJsonLd = jsonLd ? JSON.stringify(jsonLd).replace(/</g, '\\u003c') : un
         for (const entry of entries) {
           if (!entry.isIntersecting) continue;
           const element = entry.target as HTMLElement;
-          element.classList.add('reveal-in');
-          element.classList.remove('reveal-wait');
+          reveal(element);
           observer.unobserve(element);
         }
       },
-      { rootMargin: '0px 0px -8% 0px', threshold: 0.05 },
+      { rootMargin: '0px 0px -4% 0px', threshold: 0.04 },
     );
 
     for (const element of targets) {
-      if (element.getBoundingClientRect().top < window.innerHeight * 0.92) continue;
       const order = Number(element.dataset.reveal || 0);
-      if (order) element.style.setProperty('--reveal-delay', `${Math.min(order, 6) * 70}ms`);
+      if (order) element.style.setProperty('--reveal-delay', `${Math.min(order, 6) * 85}ms`);
+      if (element.getBoundingClientRect().top < window.innerHeight * 0.96) {
+        reveal(element);
+        continue;
+      }
       element.classList.add('reveal-wait');
       observer.observe(element);
     }
+
+    motionPreference.addEventListener('change', (event) => {
+      if (!event.matches) return;
+      observer.disconnect();
+      targets.forEach(reveal);
+    });
+
+    // Keyboard navigation and browser history must never land on hidden content.
+    document.addEventListener('focusin', (event) => {
+      let element = event.target instanceof HTMLElement ? event.target : null;
+      while (element) {
+        if (element.classList.contains('reveal-wait')) reveal(element);
+        element = element.parentElement;
+      }
+    });
+    window.addEventListener('pageshow', (event) => {
+      if (!event.persisted) return;
+      targets.forEach((element) => {
+        const box = element.getBoundingClientRect();
+        if (box.top < window.innerHeight && box.bottom > 0) reveal(element);
+      });
+    });
   }
 
   // --- Live clock ----------------------------------------------------------

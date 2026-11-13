@@ -65,92 +65,31 @@ const jsonLd = {
 
   <article>
     <header class="container report-header">
-      <a class="arrow-link arrow-link--back" href="/research/">
+      <a class="arrow-link arrow-link--back" href="/research/" data-research-return>
         <Icon name="arrow-left" />
         All research
       </a>
       <p class="label label--marked report-header__kicker">
         {RESEARCH_TYPES[data.type]} · {data.topics.map((topic) => TOPICS[topic]).join(' · ')}
       </p>
-      <h1>{data.title}</h1>
+      <h1 style={`view-transition-name: research-${entry.id.replace(/[^a-zA-Z0-9_-]/g, '-')}`}>{data.title}</h1>
       {data.subtitle && <p class="report-header__subtitle">{data.subtitle}</p>}
       <p class="lede">{data.standfirst ?? data.summary}</p>
+      <div class="report-header__mobile">
+        <p class="report-header__byline">
+          <span>{formatAuthors(data.authors)}</span>
+          {data.date && <time datetime={data.date}>{formatDate(data.date)}</time>}
+        </p>
+        <div class="report-header__actions">
+          {data.originalUrl && <ButtonLink href={data.originalUrl} label={fullPieceLabel} icon="arrow-up-right" />}
+          {data.pdf && <ButtonLink href={data.pdf} label="Open the PDF" variant="secondary" icon="download" />}
+        </div>
+        {data.fullReportMinutes && <p class="details__note">The full piece is about a {data.fullReportMinutes}-minute read.</p>}
+      </div>
     </header>
 
     <div class="container report-body">
-      <aside class="details" aria-label="About this piece">
-        <dl class="cells details__list">
-          <div class="cell">
-            <dt class="label">{coAuthored ? 'Authors' : 'Author'}</dt>
-            <dd>{formatAuthors(data.authors)}</dd>
-          </div>
-          {
-            data.date && (
-              <div class="cell">
-                <dt class="label">Published</dt>
-                <dd>
-                  <time datetime={data.date}>{formatDate(data.date)}</time>
-                </dd>
-              </div>
-            )
-          }
-          {
-            data.updated && (
-              <div class="cell">
-                <dt class="label">Updated</dt>
-                <dd>
-                  <time datetime={data.updated}>{formatDate(data.updated)}</time>
-                </dd>
-              </div>
-            )
-          }
-          <div class="cell">
-            <dt class="label">Venue</dt>
-            <dd>
-              {
-                data.venue.url ? (
-                  <a class="quiet-link" href={data.venue.url} rel="noopener">
-                    {data.venue.name}
-                  </a>
-                ) : (
-                  data.venue.name
-                )
-              }
-            </dd>
-          </div>
-          <div class="cell">
-            <dt class="label">Status</dt>
-            <dd>{STATUS_LABELS[data.publicationStatus]}</dd>
-          </div>
-          {
-            data.dataAsOf && (
-              <div class="cell">
-                <dt class="label">Data</dt>
-                <dd>{data.dataAsOf}</dd>
-              </div>
-            )
-          }
-        </dl>
-        <div class="details__actions">
-          {data.originalUrl && <ButtonLink href={data.originalUrl} label={fullPieceLabel} icon="arrow-up-right" />}
-          {data.pdf && <ButtonLink href={data.pdf} label="Open the PDF" variant="secondary" icon="download" />}
-          {
-            data.fullReportMinutes && (
-              <p class="details__note">The full piece is about a {data.fullReportMinutes}-minute read.</p>
-            )
-          }
-        </div>
-      </aside>
-
       <div class="report-main">
-        {
-          data.keyNumbers && (
-            <div class="block">
-              <KeyNumbers items={data.keyNumbers} note={data.keyNumbersNote} />
-            </div>
-          )
-        }
-
         {
           hasBody && (
             <section class="block" aria-labelledby="summary-heading">
@@ -161,6 +100,14 @@ const jsonLd = {
                 <Content />
               </div>
             </section>
+          )
+        }
+
+        {
+          data.keyNumbers && (
+            <div class="block">
+              <KeyNumbers items={data.keyNumbers} note={data.keyNumbersNote} />
+            </div>
           )
         }
 
@@ -269,6 +216,70 @@ const jsonLd = {
           </p>
         </div>
       </div>
+
+      <aside class="details" aria-label="About this piece">
+        <dl class="cells details__list">
+          <div class="cell">
+            <dt class="label">{coAuthored ? 'Authors' : 'Author'}</dt>
+            <dd>{formatAuthors(data.authors)}</dd>
+          </div>
+          {
+            data.date && (
+              <div class="cell">
+                <dt class="label">Published</dt>
+                <dd>
+                  <time datetime={data.date}>{formatDate(data.date)}</time>
+                </dd>
+              </div>
+            )
+          }
+          {
+            data.updated && (
+              <div class="cell">
+                <dt class="label">Updated</dt>
+                <dd>
+                  <time datetime={data.updated}>{formatDate(data.updated)}</time>
+                </dd>
+              </div>
+            )
+          }
+          <div class="cell">
+            <dt class="label">Venue</dt>
+            <dd>
+              {
+                data.venue.url ? (
+                  <a class="quiet-link" href={data.venue.url} rel="noopener">
+                    {data.venue.name}
+                  </a>
+                ) : (
+                  data.venue.name
+                )
+              }
+            </dd>
+          </div>
+          <div class="cell">
+            <dt class="label">Status</dt>
+            <dd>{STATUS_LABELS[data.publicationStatus]}</dd>
+          </div>
+          {
+            data.dataAsOf && (
+              <div class="cell">
+                <dt class="label">Data</dt>
+                <dd>{data.dataAsOf}</dd>
+              </div>
+            )
+          }
+        </dl>
+        <div class="details__actions">
+          {data.originalUrl && <ButtonLink href={data.originalUrl} label={fullPieceLabel} icon="arrow-up-right" />}
+          {data.pdf && <ButtonLink href={data.pdf} label="Open the PDF" variant="secondary" icon="download" />}
+          {
+            data.fullReportMinutes && (
+              <p class="details__note">The full piece is about a {data.fullReportMinutes}-minute read.</p>
+            )
+          }
+        </div>
+      </aside>
     </div>
   </article>
 
@@ -277,7 +288,7 @@ const jsonLd = {
       <section class="container related" aria-labelledby="related-heading">
         <div class="section-head">
           <h2 id="related-heading">Related research</h2>
-          <a class="arrow-link arrow-link--back" href="/research/">
+          <a class="arrow-link arrow-link--back" href="/research/" data-research-return>
             <Icon name="arrow-left" />
             Back to all research
           </a>
@@ -291,6 +302,36 @@ const jsonLd = {
 </BaseLayout>
 
 <script>
+  // Restore the list context only when it belongs to this report and this origin.
+  let listContext: string | undefined;
+  try {
+    const saved: { list?: unknown; report?: unknown } = JSON.parse(sessionStorage.getItem('research-return') ?? 'null') ?? {};
+    if (typeof saved.list === 'string' && saved.report === location.pathname) {
+      const url = new URL(saved.list, location.origin);
+      if (
+        url.origin === location.origin && url.pathname === '/research/' &&
+        [...url.searchParams.keys()].every((key) => key === 'topic' || key === 'q')
+      ) {
+        listContext = url.pathname + url.search;
+        for (const anchor of document.querySelectorAll<HTMLAnchorElement>('[data-research-return]')) anchor.href = listContext;
+      }
+    }
+  } catch {}
+
+  // Related pieces keep the same list context without affecting ordinary navigation.
+  const rememberRelated = (event: MouseEvent) => {
+    if (!listContext) return;
+    const anchor = (event.target as Element).closest<HTMLAnchorElement>('.related a[href]');
+    if (!anchor) return;
+    const url = new URL(anchor.href, location.href);
+    if (url.origin !== location.origin || url.pathname === '/research/' || !url.pathname.startsWith('/research/')) return;
+    try {
+      sessionStorage.setItem('research-return', JSON.stringify({ list: listContext, report: url.pathname }));
+    } catch {}
+  };
+  document.addEventListener('click', rememberRelated);
+  document.addEventListener('auxclick', rememberRelated);
+
   // Reading progress: how far down the page the reader is.
   const bar = document.querySelector<HTMLElement>('[data-progress]');
 
@@ -358,6 +399,31 @@ const jsonLd = {
     margin-top: var(--space-5);
   }
 
+  .report-header__mobile {
+    display: grid;
+    gap: var(--space-3);
+    margin-top: var(--space-5);
+  }
+
+  .report-header__byline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-5);
+    font-size: var(--text-sm);
+    line-height: 1.5;
+    color: var(--muted);
+  }
+
+  .report-header__byline time {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .report-header__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+
   .report-body {
     display: grid;
     gap: var(--space-7);
@@ -366,6 +432,10 @@ const jsonLd = {
   }
 
   @media (min-width: 64rem) {
+    .report-header__mobile {
+      display: none;
+    }
+
     .report-body {
       grid-template-columns: minmax(0, 1fr) 19rem;
       gap: var(--space-8);
@@ -382,6 +452,12 @@ const jsonLd = {
     .report-main {
       grid-column: 1;
       grid-row: 1;
+    }
+  }
+
+  @media (max-width: 63.99rem) {
+    .details .details__actions {
+      display: none;
     }
   }
 

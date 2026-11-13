@@ -101,14 +101,16 @@ const description =
             spellcheck="false"
           />
         </div>
+        <button type="button" class="filters__reset arrow-link" data-clear hidden>Clear filters</button>
       </form>
 
       <ol class="cells list" data-list>
         {
-          published.map((entry) => (
+          published.map((entry, position) => (
             <li
               class="item cell cell--link"
               data-item
+              data-reveal={(position % 3) + 1}
               data-topics={entry.data.topics.join(' ')}
               data-search={searchable(
                 [
@@ -135,7 +137,7 @@ const description =
               <div class="item__main">
                 <h3 class="item__title">
                   <a class="stretched" href={researchPath(entry)}>
-                    {entry.data.title}
+                    <span class="research-title" style={`view-transition-name: research-${entry.id.replace(/[^a-zA-Z0-9_-]/g, '-')}`}>{entry.data.title}</span>
                   </a>
                 </h3>
                 <p class="item__summary">{entry.data.summary}</p>
@@ -174,6 +176,7 @@ const description =
   if (form && count && empty && list) {
     const chips = [...form.querySelectorAll<HTMLButtonElement>('[data-topic]')];
     const search = form.querySelector<HTMLInputElement>('input[type="search"]')!;
+    const clear = form.querySelector<HTMLButtonElement>('[data-clear]')!;
     const params = new URLSearchParams(location.search);
     let topic = chips.some((chip) => chip.dataset.topic === params.get('topic')) ? params.get('topic')! : '';
     search.value = params.get('q') ?? '';
@@ -198,6 +201,7 @@ const description =
       for (const chip of chips) chip.setAttribute('aria-pressed', String(chip.dataset.topic === topic));
 
       const filtered = Boolean(topic || words.length);
+      clear.hidden = !filtered;
       count.textContent = filtered ? `Showing ${shown} of ${items.length}` : `${items.length} pieces`;
       empty.hidden = shown > 0;
       list.hidden = shown === 0;
@@ -231,12 +235,30 @@ const description =
     search.addEventListener('input', () => apply());
     form.addEventListener('submit', (event) => event.preventDefault());
 
-    empty.querySelector('[data-reset]')?.addEventListener('click', () => {
+    const reset = () => {
       topic = '';
       search.value = '';
       apply();
       search.focus();
-    });
+    };
+    clear.addEventListener('click', reset);
+    empty.querySelector('[data-reset]')?.addEventListener('click', reset);
+
+    // Remember the filtered list for this specific report, including modified clicks.
+    const rememberList = (event: MouseEvent) => {
+      const anchor = (event.target as Element).closest<HTMLAnchorElement>('[data-item] a[href]');
+      if (!anchor) return;
+      const report = new URL(anchor.href, location.href);
+      if (report.origin !== location.origin || !report.pathname.startsWith('/research/')) return;
+      try {
+        sessionStorage.setItem('research-return', JSON.stringify({
+          list: location.pathname + location.search,
+          report: report.pathname,
+        }));
+      } catch {}
+    };
+    list.addEventListener('click', rememberList);
+    list.addEventListener('auxclick', rememberList);
 
     form.hidden = false;
     apply(false);
@@ -248,7 +270,8 @@ const description =
   .in-progress {
     display: grid;
     gap: var(--space-4) var(--space-6);
-    padding: clamp(1.25rem, 0.8rem + 2vw, 2.5rem);
+    padding: clamp(1rem, 0.8rem + 1vw, 1.75rem);
+    border-left: 3px solid var(--accent-on-panel);
   }
 
   @media (min-width: 56rem) {
@@ -283,14 +306,14 @@ const description =
   }
 
   .in-progress__summary {
-    max-width: 48rem;
-    font-size: var(--text-xl);
-    line-height: 1.3;
-    letter-spacing: -0.02em;
+    max-width: 60rem;
+    font-size: var(--text-base);
+    line-height: 1.5;
+    letter-spacing: -0.01em;
   }
 
   .in-progress .label:not(.in-progress__badge) {
-    margin-top: var(--space-4);
+    margin-top: var(--space-2);
   }
 
   /* List heading and filters */
@@ -360,7 +383,7 @@ const description =
     min-height: 2.5rem;
     padding: 0.4rem 1rem;
     font: inherit;
-    font-size: var(--text-sm);
+    font-size: 1rem;
     color: var(--ink);
     background: var(--surface);
     border: 1px solid var(--line);
@@ -376,6 +399,15 @@ const description =
   .filters__search input:hover,
   .filters__search input:focus-visible {
     border-color: var(--ink);
+  }
+
+  .filters__reset {
+    min-height: 2.5rem;
+    padding-inline: 0;
+    color: var(--accent-text);
+    background: none;
+    border: 0;
+    cursor: pointer;
   }
 
   /* List */

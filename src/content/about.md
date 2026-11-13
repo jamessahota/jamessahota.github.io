@@ -18,8 +18,8 @@ approach:
       href: /research/saudi-crude-rerouting-yanbu/
   - title: Keep data, estimates and assumptions apart
     text: >-
-      Agencies measure different things over different periods. I say which figure comes from
-      where, and I do not add together numbers that describe overlapping constraints.
+      Agencies use different definitions and reporting periods. I identify each source and check
+      for overlapping constraints before combining figures.
     example:
       label: The distillate bottleneck
       href: /research/diesel-distillate-bottleneck/

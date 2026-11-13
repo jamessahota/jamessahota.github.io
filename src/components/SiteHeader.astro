@@ -88,15 +88,48 @@ const current = (href: string) => (path === href ? 'page' : path.startsWith(href
   if (toggle && nav && label) {
     root.classList.add('has-nav-toggle');
     toggle.hidden = false;
+    const desktop = window.matchMedia('(min-width: 56rem)');
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const header = toggle.closest('header')!;
+    let closeTimer: ReturnType<typeof setTimeout> | undefined;
 
-    const setOpen = (open: boolean) => {
+    const finishClose = () => {
+      nav.removeAttribute('data-closing');
+      root.classList.remove('nav-open');
+      for (const element of outside) element?.removeAttribute('inert');
+    };
+
+    const setOpen = (requested: boolean, immediate = false) => {
+      const mobile = !desktop.matches;
+      const open = requested && mobile;
+      const wasOpen = toggle.getAttribute('aria-expanded') === 'true';
+      clearTimeout(closeTimer);
       toggle.setAttribute('aria-expanded', String(open));
       nav.toggleAttribute('data-open', open);
       label.textContent = open ? 'Close' : 'Menu';
-      root.classList.toggle('nav-open', open);
-      // While the menu covers the page, keep focus and screen readers inside it.
-      for (const element of outside) element?.toggleAttribute('inert', open);
+
+      // The closed panel stays in the DOM for its exit, but never in the tab order.
+      nav.toggleAttribute('inert', mobile && !open);
+      if (mobile) nav.setAttribute('aria-hidden', String(!open));
+      else nav.removeAttribute('aria-hidden');
+
+      if (open) {
+        nav.removeAttribute('data-closing');
+        root.classList.add('nav-open');
+        for (const element of outside) element?.setAttribute('inert', '');
+      } else {
+        if (nav.contains(document.activeElement)) toggle.focus();
+        if (mobile && wasOpen && !immediate && !reducedMotion.matches) {
+          nav.setAttribute('data-closing', '');
+          // Match the panel's 560ms exit, with a small fallback margin.
+          closeTimer = setTimeout(finishClose, 600);
+        } else {
+          finishClose();
+        }
+      }
     };
+
+    setOpen(false, true);
 
     toggle.addEventListener('click', () => setOpen(toggle.getAttribute('aria-expanded') !== 'true'));
 
@@ -105,6 +138,20 @@ const current = (href: string) => (path === href ? 'page' : path.startsWith(href
         setOpen(false);
         toggle.focus();
       }
+
+      if (event.key === 'Tab' && toggle.getAttribute('aria-expanded') === 'true') {
+        const controls = [...header.querySelectorAll<HTMLElement>('a[href], button:not([disabled])')]
+          .filter((element) => element.getClientRects().length > 0 && !element.closest('[inert]'));
+        const first = controls[0];
+        const last = controls.at(-1);
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last?.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first?.focus();
+        }
+      }
     });
 
     nav.addEventListener('click', (event) => {
@@ -112,9 +159,13 @@ const current = (href: string) => (path === href ? 'page' : path.startsWith(href
     });
 
     // Close the menu if the window grows past the small-screen layout.
-    window.matchMedia('(min-width: 56rem)').addEventListener('change', (event) => {
-      if (event.matches) setOpen(false);
+    desktop.addEventListener('change', () => setOpen(false, true));
+    reducedMotion.addEventListener('change', () => {
+      if (reducedMotion.matches && nav.hasAttribute('data-closing')) setOpen(false, true);
     });
+    // A page restored from the browser's cache should always have a usable header.
+    window.addEventListener('pageshow', () => setOpen(false, true));
+    window.addEventListener('pageswap', () => setOpen(false, true));
   }
 </script>
 
@@ -125,6 +176,17 @@ const current = (href: string) => (path === href ? 'page' : path.startsWith(href
     z-index: 50;
     background: var(--bg);
     border-bottom: 1px solid var(--line);
+    view-transition-name: site-header;
+  }
+
+  @supports (backdrop-filter: blur(12px)) {
+    @media (min-width: 56rem) {
+      .site-header {
+        background: color-mix(in srgb, var(--bg) 90%, transparent);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+      }
+    }
   }
 
   .bar {
@@ -161,7 +223,8 @@ const current = (href: string) => (path === href ? 'page' : path.startsWith(href
     letter-spacing: 0.02em;
     transition:
       background-color 0.3s var(--ease),
-      color 0.3s var(--ease);
+      color 0.3s var(--ease),
+      transform var(--motion-base, 420ms) var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1));
   }
 
   /* The small square after the initials, as in the favicon. */
@@ -174,9 +237,11 @@ const current = (href: string) => (path === href ? 'page' : path.startsWith(href
     transition: background-color 0.3s var(--ease);
   }
 
-  .brand:hover .brand__mark {
+  .brand:hover .brand__mark,
+  .brand:focus-visible .brand__mark {
     background: var(--accent);
     color: var(--on-accent);
+    transform: translateY(-2px) rotate(-5deg);
   }
 
   .brand:hover .brand__mark::after {
@@ -365,17 +430,34 @@ const current = (href: string) => (path === href ? 'page' : path.startsWith(href
 
     :global(.has-nav-toggle) .nav {
       position: fixed;
-      inset: calc(var(--header-height) + 1px) 0 0 0;
-      display: none;
+      inset: calc(var(--header-height) + 1px) 0 auto 0;
+      height: calc(100vh - var(--header-height) - 1px);
+      height: calc(100dvh - var(--header-height) - 1px);
+      display: flex;
       flex-direction: column;
       justify-content: space-between;
-      padding: var(--space-5) var(--gutter) var(--space-6);
+      padding: clamp(1.5rem, 5vh, 3rem) var(--gutter) var(--space-6);
       background: var(--bg);
       overflow-y: auto;
+      visibility: hidden;
+      pointer-events: none;
+      opacity: 0;
+      clip-path: inset(0 0 100% 0);
+      transform: translateY(-0.75rem);
+      transition:
+        clip-path 560ms var(--ease-in-out, cubic-bezier(0.76, 0, 0.24, 1)),
+        transform 560ms var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)),
+        opacity 360ms ease,
+        visibility 0s 560ms;
     }
 
     :global(.has-nav-toggle) .nav[data-open] {
-      display: flex;
+      visibility: visible;
+      pointer-events: auto;
+      opacity: 1;
+      clip-path: inset(0);
+      transform: none;
+      transition-delay: 0s;
     }
 
     :global(.has-nav-toggle) .nav ul {
@@ -385,6 +467,23 @@ const current = (href: string) => (path === href ? 'page' : path.startsWith(href
 
     :global(.has-nav-toggle) .nav li {
       border-bottom: 1px solid var(--line);
+      opacity: 0;
+      transform: translateY(1.75rem);
+      transition:
+        transform 620ms var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)),
+        opacity 360ms ease;
+    }
+
+    :global(.has-nav-toggle) .nav li:nth-child(2) {
+      --nav-order: 1;
+    }
+
+    :global(.has-nav-toggle) .nav li:nth-child(3) {
+      --nav-order: 2;
+    }
+
+    :global(.has-nav-toggle) .nav li:nth-child(4) {
+      --nav-order: 3;
     }
 
     :global(.has-nav-toggle) .nav__link,
@@ -401,6 +500,15 @@ const current = (href: string) => (path === href ? 'page' : path.startsWith(href
       letter-spacing: -0.04em;
       line-height: 1;
       text-transform: none;
+      transition:
+        color var(--motion-fast, 180ms) ease,
+        padding-left var(--motion-base, 420ms) var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1));
+    }
+
+    :global(.has-nav-toggle) .nav__link:hover,
+    :global(.has-nav-toggle) .nav__link:focus-visible {
+      color: var(--accent-text);
+      padding-left: 0.45rem;
     }
 
     :global(.has-nav-toggle) .nav__link::after {
@@ -412,19 +520,15 @@ const current = (href: string) => (path === href ? 'page' : path.startsWith(href
     }
 
     :global(.has-nav-toggle) .nav[data-open] li {
-      animation: nav-in 0.5s var(--ease) backwards;
+      opacity: 1;
+      transform: none;
+      transition-delay: calc(110ms + var(--nav-order, 0) * 55ms);
     }
 
-    :global(.has-nav-toggle) .nav[data-open] li:nth-child(2) {
-      animation-delay: 0.05s;
-    }
-
-    :global(.has-nav-toggle) .nav[data-open] li:nth-child(3) {
-      animation-delay: 0.1s;
-    }
-
-    :global(.has-nav-toggle) .nav[data-open] li:nth-child(4) {
-      animation-delay: 0.15s;
+    :global(.has-nav-toggle) .nav[data-closing] li {
+      transform: translateY(-1rem);
+      transition-duration: 300ms;
+      transition-delay: calc((3 - var(--nav-order, 0)) * 35ms);
     }
 
     :global(.has-nav-toggle) .nav__contact {
@@ -432,6 +536,17 @@ const current = (href: string) => (path === href ? 'page' : path.startsWith(href
       margin-top: var(--space-6);
       font-family: var(--mono);
       font-size: var(--text-sm);
+      opacity: 0;
+      transform: translateY(0.75rem);
+      transition:
+        opacity var(--motion-base, 420ms) ease,
+        transform var(--motion-base, 420ms) var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1));
+    }
+
+    :global(.has-nav-toggle) .nav[data-open] .nav__contact {
+      opacity: 1;
+      transform: none;
+      transition-delay: 240ms;
     }
 
     :global(.nav-open) {
@@ -439,10 +554,11 @@ const current = (href: string) => (path === href ? 'page' : path.startsWith(href
     }
   }
 
-  @keyframes nav-in {
-    from {
-      opacity: 0;
-      transform: translateY(1rem);
+  @media (prefers-reduced-motion: reduce) {
+    :global(.has-nav-toggle) .nav,
+    :global(.has-nav-toggle) .nav li,
+    :global(.has-nav-toggle) .nav__contact {
+      transition: none;
     }
   }
 

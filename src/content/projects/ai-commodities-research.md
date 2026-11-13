@@ -1,9 +1,8 @@
 ---
 title: AI Commodities Research & Forecasting System
 summary: >-
-  An independent project that tests whether a structured, AI-assisted research process can turn
-  scheduled energy data releases into forecasts and hypothetical positions, and whether the
-  results survive transaction costs. All results are simulated.
+  An independent project testing AI-assisted forecasts and hypothetical positions around
+  scheduled energy data releases, with transaction costs included. All results are simulated.
 kind: Independent project
 start: 2026-07
 visibility: public
@@ -24,9 +23,7 @@ Scheduled data releases can move energy prices within hours. The petroleum inven
 
 ## My role
 
-This is an independent project. I designed the research questions, the workflow and the controls, chose the data and the evaluation rules, and reviewed the outputs.
-
-I built the system with AI coding tools. I did not write all of the code by hand, and I do not present this as professional software engineering. My contribution is the research design and the judgement about what counts as a valid test.
+This is an independent project. I designed the research questions, workflow, controls and evaluation rules, selected the data, and reviewed the outputs. I used AI coding tools to build the system.
 
 ## Inputs
 
