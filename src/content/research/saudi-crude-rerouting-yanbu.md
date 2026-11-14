@@ -1,8 +1,9 @@
 ---
 title: Saudi Crude Rerouting to Yanbu After the Hormuz Disruption
 summary: >-
-  How much Saudi oil can bypass the Strait of Hormuz? The brief shows that the East-West
-  pipeline to Yanbu softens the shock and replaces only part of the lost flow.
+  Saudi Arabia’s East-West pipeline offers an alternative to Hormuz, but cannot replace all
+  the lost flow. The report assesses the limits at Yanbu and the risks transferred to the Red
+  Sea.
 authors:
   - Abraham Went
   - James Sahota
@@ -10,7 +11,7 @@ date: 2026-03-29
 topics:
   - shipping-chokepoints
   - oil-markets
-type: brief
+type: report
 venue:
   name: "6:05 Markets"
   url: https://605-markets.com/
@@ -33,6 +34,6 @@ related:
   - hormuz-under-fire-uae
 ---
 
-When shipping through the Strait of Hormuz was disrupted, Saudi Arabia rerouted crude across the country by pipeline to the Red Sea port of Yanbu. Loadings there rose to 1.9 million barrels a day in the first five days of March 2026, from 1.1 million in February. The brief sets that against the scale of the problem. Saudi Arabia exports more than 7 million barrels a day, of which roughly 6 million usually move through Hormuz, and Yanbu rarely loads more than 2.5 million.
+When shipping through the Strait of Hormuz was disrupted, Saudi Arabia rerouted crude across the country by pipeline to the Red Sea port of Yanbu. Loadings there rose to 1.9 million barrels a day in the first five days of March 2026, from 1.1 million in February. That increase must be set against the scale of the disruption: Saudi Arabia exports more than 7 million barrels a day, of which roughly 6 million usually move through Hormuz, and Yanbu rarely loads more than 2.5 million.
 
-The conclusion is that the workaround is real but partial. It reduces the shock without removing it, and it moves risk westward to the Red Sea corridor, where freight and insurance costs had risen sharply.
+The workaround offers partial relief while moving some risk westward to the Red Sea corridor, where freight and insurance costs had risen sharply.

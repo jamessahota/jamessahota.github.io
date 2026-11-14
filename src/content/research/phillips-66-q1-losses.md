@@ -1,9 +1,9 @@
 ---
 title: "Phillips 66: Oil Price Spike Drives Nearly $1 Billion in Q1 Losses"
 summary: >-
-  How did a refiner lose nearly US$900 million in a quarter of surging prices? The note
-  attributes the loss to derivatives positioning, not operations, and asks whether it is a
-  one-quarter dislocation.
+  Why did Phillips 66 expect nearly US$900 million in losses as oil prices surged? The note
+  examines its derivatives exposure and whether the hit represented a temporary dislocation
+  or a wider earnings problem.
 authors:
   - Abraham Went
   - James Sahota
@@ -43,4 +43,4 @@ related:
 
 On 6 April 2026, Phillips 66 said its first-quarter results would include nearly US$900 million of pre-tax losses, after the Iran conflict and the disruption to flows through the Strait of Hormuz drove a rapid rise in crude and product prices. The company held a net short position of around 50 million barrels in crude and product derivatives at the end of March, and those positions moved against it. The figures were preliminary and subject to the company’s closing procedures.
 
-The note argues that this was a positioning shock, not a structural operational weakness: the company had reported crude capacity utilisation of 99% in the fourth quarter of 2025. It takes a cautiously positive view of the shares ahead of the full results, while noting that the scale of the loss argued for caution.
+We viewed the loss as a positioning shock rather than a structural operational weakness: the company had reported crude capacity utilisation of 99% in the fourth quarter of 2025. Our view of the shares ahead of the full results was cautiously positive, with the scale of the loss limiting conviction.

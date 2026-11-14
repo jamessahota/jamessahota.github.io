@@ -1,9 +1,9 @@
 ---
 title: "TotalEnergies: Cash Returns in a Volatile Energy Market"
 summary: >-
-  A company note written after TotalEnergies’ first-quarter 2026 results. It frames the
-  integrated major as a diversified cash-return business and sets out the risks that would
-  undermine that view.
+  TotalEnergies’ first-quarter 2026 results showed the breadth of its cash generation. This
+  company note examines the case for dividends and buybacks, and the commodity, refining and
+  political risks that could weaken it.
 authors:
   - James Sahota
   - Benjamin Lozovsky
@@ -56,6 +56,6 @@ related:
   - chevron-venezuela-asset-swap
 ---
 
-This note examines TotalEnergies after its first-quarter 2026 results. Its argument is that the company is better understood as a diversified cash-flow business than as a bet on the crude price. Earnings come from upstream oil and gas, LNG, refining, trading and power, and the company returns cash through dividends and buybacks. Higher prices in the quarter outweighed production shut in across Qatar, Iraq and offshore UAE.
+TotalEnergies’ first-quarter 2026 results supported a view of the company as a diversified cash-flow business. Earnings come from upstream oil and gas, LNG, refining, trading and power, and the company returns cash through dividends and buybacks. Higher prices in the quarter outweighed production shut in across Qatar, Iraq and offshore UAE.
 
-The note frames the shares as a constructive long, not a high-growth story, at a forward price-to-earnings ratio of roughly eight times. It sets out bull, base and bear cases and names the main risks: lower commodity prices, normalising refining margins and political pressure in France.
+At a forward price-to-earnings ratio of roughly eight times, our constructive long view rested on cash returns rather than high growth. The note sets out bull, base and bear cases, with lower commodity prices, normalising refining margins and political pressure in France as the main risks.

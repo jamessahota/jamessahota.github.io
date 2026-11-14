@@ -1,9 +1,9 @@
 ---
 title: "Crude Is Returning. Diesel Isn't: The Distillate Bottleneck in Global Oil Markets"
 summary: >-
-  If Middle Eastern crude exports have recovered, why is diesel still scarce? The report argues
-  that the constraint has moved from crude availability to refining capacity, so diesel will
-  normalise more slowly than crude.
+  By October 2026, Middle Eastern crude exports had nearly recovered, but diesel remained
+  scarce. The report traces the bottleneck to refining and delivery capacity, and explains
+  why product markets could take longer to normalise.
 standfirst: >-
   By October 2026 Middle Eastern crude exports had almost returned to pre-conflict levels,
   while refined-product supply remained severely impaired. This report examines why diesel has
@@ -109,11 +109,11 @@ tables:
     source: 6:05 Markets calculations, as published in the report.
 
 approach: >-
-  The report keeps apart figures that describe different periods and different parts of the
-  supply chain. Export losses, refinery throughput and damaged capacity overlap, so they are
-  not added together. The replacement arithmetic is presented as a sensitivity and not as a
-  reconciled supply forecast, and the price scenarios are conditional outcomes without assigned
-  probabilities. We said we would reduce conviction if three things happened together:
+  The analysis distinguishes figures for different periods and parts of the supply chain.
+  Export losses, refinery throughput and damaged capacity overlap, so they are not added
+  together. Replacement calculations show sensitivity to assumptions rather than a reconciled
+  supply forecast. Price scenarios are conditional outcomes without assigned probabilities.
+  We would reduce conviction if three things happened together:
   delivered diesel volumes rose, East Coast stocks moved back towards their seasonal average,
   and the New York Harbor diesel-minus-Brent spread narrowed.
 

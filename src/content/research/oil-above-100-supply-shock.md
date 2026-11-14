@@ -2,9 +2,9 @@
 title: "Oil Above 100 is a Real Supply Shock but NOT a Permanent Price Regime"
 subtitle: Iran War and Strait of Hormuz Oil Price Outlook
 summary: >-
-  Is oil above US$100 a new price regime or a severe but finite shock? Writing in September
-  2026, I argued that the supply loss was real, and that the futures curve and weakening demand
-  still pointed to lower prices through 2027.
+  Oil above US$100 reflected a real supply loss. My September 2026 report argues that the
+  futures curve, weakening demand and alternative supply routes still pointed to lower prices
+  through 2027.
 standfirst: >-
   Brent crossed US$105 a barrel in September 2026 as attacks on shipping around the Strait of
   Hormuz intensified. This report asks whether triple-digit oil reflected a war premium, a
@@ -148,8 +148,8 @@ related:
   - saudi-crude-rerouting-yanbu
 ---
 
-The report’s starting point is that the move above US$100 was not a purely speculative war premium. By early September the EIA estimated that 6.7 million barrels a day of Gulf crude production had been shut in during August, and the IEA estimated that observed global inventories had fallen by 410 million barrels between the start of the war and the end of July. Dated Brent, the physical benchmark, had traded above US$100 before front-month futures followed.
+The move above US$100 reflected a physical supply loss. By early September the EIA estimated that 6.7 million barrels a day of Gulf crude production had been shut in during August, and the IEA estimated that observed global inventories had fallen by 410 million barrels between the start of the war and the end of July. Dated Brent, the physical benchmark, had traded above US$100 before front-month futures followed.
 
-The report then argues that a price above US$100 already discounted a serious and persistent disruption. The futures curve fell sharply into 2027, demand was weakening under high prices, and pipelines, ship-to-ship transfers and strategic stocks were absorbing part of the shock.
+I argued that a price above US$100 already discounted a serious and persistent disruption. The futures curve fell sharply into 2027, demand was weakening under high prices, and pipelines, ship-to-ship transfers and strategic stocks were absorbing part of the shock.
 
 My base case was Brent at US$95–115 over the following month, US$85–100 at the end of 2026 and an annual average of US$70–90 in 2027. I held that view with medium confidence, because dark shipping obscured true flows and a single diplomatic or military event could move the front of the curve by double digits.

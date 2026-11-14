@@ -25,12 +25,12 @@ const description =
 
 <BaseLayout title="Experience" description={description}>
   <header class="page-header container experience-header">
-    <p class="label label--marked">Roles, education and capabilities</p>
+    <p class="label label--marked">Roles, education and skills</p>
     <h1 class="display">Experience</h1>
     <div class="experience-header__lower">
       <p class="lede">
-        Research leadership at a student-led markets group, an internship in wealth services, and study towards a B.S. in
-        mathematics and a B.A. in economics, expected in 2029.
+        I co-founded 6:05 Markets and develop research with Energy Flux. My experience also includes
+        wealth services at HBL Bank UK and energy-research leadership at UChicago Commodities.
       </p>
       <ButtonLink href="/cv/" label="View CV" icon="arrow-up-right" />
     </div>
@@ -38,7 +38,7 @@ const description =
       <a href="#roles-heading">Roles <Icon name="arrow-down" /></a>
       {projects.length > 0 && <a href="#projects-heading">Independent project <Icon name="arrow-down" /></a>}
       <a href="#education">Education <Icon name="arrow-down" /></a>
-      <a href="#capabilities">Capabilities <Icon name="arrow-down" /></a>
+      <a href="#capabilities">Skills <Icon name="arrow-down" /></a>
     </nav>
   </header>
 
@@ -125,8 +125,8 @@ const description =
     <section class="group" id="capabilities" aria-labelledby="capabilities-heading">
       <div class="section-head">
         <div>
-          <h2 id="capabilities-heading">Capabilities</h2>
-          <p class="group__intro">Research, writing, leadership and tools, with examples from my work.</p>
+          <h2 id="capabilities-heading">Skills</h2>
+          <p class="group__intro">Research, writing and leadership, illustrated through my work.</p>
         </div>
         <p class="label numeric">{String(capabilities.length).padStart(2, '0')}</p>
       </div>
@@ -176,7 +176,7 @@ const description =
     </section>
 
     <p class="cv-link">
-      The same record as a one-page document: <a href="/cv/">my CV</a>.
+      For a one-page summary, <a href="/cv/">view my CV</a>.
     </p>
   </div>
 </BaseLayout>

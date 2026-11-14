@@ -40,7 +40,9 @@ const months = Array.from({ length: lastMonth - firstMonth + 1 }, (_, offset) =>
   };
 });
 
-const types = [...new Set(dated.map((entry) => entry.data.type))];
+const types = (Object.keys(RESEARCH_TYPES) as (keyof typeof RESEARCH_TYPES)[]).filter((type) =>
+  dated.some((entry) => entry.data.type === type),
+);
 const range = dated.length
   ? `${monthName(firstMonth, 'long')} ${Math.floor(firstMonth / 12)} to ${monthName(lastMonth, 'long')} ${Math.floor(lastMonth / 12)}`
   : '';
@@ -91,7 +93,7 @@ const idle = `${dated.length} pieces · ${range}`;
                   <span class="tape__sq tape__sq--pending" data-readout={`In progress · ${entry.data.venue.name}`} />
                 ))}
               </div>
-              <span class="tape__label">To come</span>
+              <span class="tape__label">In progress</span>
             </div>
           )}
         </div>

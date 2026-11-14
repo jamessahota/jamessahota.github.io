@@ -29,9 +29,8 @@ export const TOPIC_IDS = Object.keys(TOPICS) as [TopicId, ...TopicId[]];
 
 export const RESEARCH_TYPES = {
   report: 'Report',
-  brief: 'Brief',
-  'company-note': 'Company note',
   commentary: 'Commentary',
+  'company-note': 'Company note',
 } as const;
 
 export type ResearchTypeId = keyof typeof RESEARCH_TYPES;

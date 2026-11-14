@@ -1,56 +1,54 @@
 ---
 title: AI Commodities Research & Forecasting System
 summary: >-
-  An independent project testing AI-assisted forecasts and hypothetical positions around
-  scheduled energy data releases, with transaction costs included. All results are simulated.
+  A research system that uses AI agents to analyse scheduled energy data releases, develop
+  scenario forecasts and test hypothetical positions after transaction costs.
 kind: Independent project
 start: 2026-07
 visibility: public
 featured: true
 facts:
   - value: "35"
-    label: Historical EIA releases in the backtest
+    label: Historical EIA releases tested
   - value: "15"
-    label: Instrument baskets in the backtest
+    label: Instrument baskets tested
   - value: US$100,000
-    label: Size of each paper portfolio. No capital has been managed
-factsNote: Backtested on historical data. Simulated results are not evidence of live performance.
+    label: Simulated capital per portfolio
+factsNote: All results are simulated. The project does not manage capital or execute trades.
 ---
 
-## The problem
+## Research question
 
-Scheduled data releases can move energy prices within hours. The petroleum inventory reports published by the US Energy Information Administration (EIA) are a clear example. I wanted to test, under strict rules, whether a structured research process could turn an event like that into a forecast and a hypothetical position, and whether anything would be left after transaction costs.
+Scheduled energy-data releases can move prices within hours. This project asks whether a structured research process can translate those releases into useful forecasts and hypothetical positions after transaction costs. I use the petroleum inventory reports published by the US Energy Information Administration (EIA) as the test case.
 
 ## My role
 
-This is an independent project. I designed the research questions, workflow, controls and evaluation rules, selected the data, and reviewed the outputs. I used AI coding tools to build the system.
+I designed the research questions, selected the data and set the workflow, controls and evaluation rules. I used AI coding tools to build the system and reviewed the research outputs myself.
 
 ## Inputs
 
-The system integrates market, macroeconomic and inventory data to model event-driven opportunities across energy futures, exchange-traded funds and equities. The backtest covers 35 historical EIA releases and 15 instrument baskets.
+The system combines market, macroeconomic and inventory data to test event-driven scenarios across energy futures, exchange-traded funds and equities. The backtest covers 35 historical EIA releases and 15 instrument baskets.
 
 ## Approach
 
-The system is organised as a sequence of separate roles, each handled by its own agent:
+AI agents handle four stages of the research process:
 
-1. **Information.** Gather the release and related data, and record when each item became available.
-2. **Interpretation.** Compare the release with what the market expected and identify the mechanism by which it should matter.
-3. **Forecasting.** Produce scenario forecasts with explicit assumptions.
-4. **Evaluation.** Build a hypothetical position and test it against historical prices.
+1. **Data.** Collect the release and related data, preserving when each item became available.
+2. **Analysis.** Compare the release with market expectations and explain how any difference could affect prices.
+3. **Forecasts.** Develop scenario forecasts with explicit assumptions.
+4. **Backtesting.** Build hypothetical positions and test them against historical prices after transaction costs.
 
-Four design choices matter more than the tools:
+Four controls govern the backtest:
 
-- **Point-in-time data.** A decision may only use information that was available at the moment it would have been made. Without that rule a backtest uses information from the future and its results mean nothing.
-- **Calculations stay in code.** A deterministic Python engine is the authority for every number. The language models interpret and draft; they do not calculate results.
-- **Costs and risk are included.** The backtests apply transaction costs, position sizing and risk controls within paper portfolios of US$100,000.
-- **Human approval.** Scope, uncertain sources and key assumptions pass through review before they are used.
+- **Point-in-time data.** Each decision uses only information that would have been available when it was made.
+- **Calculations in code.** A deterministic Python engine performs the calculations. The AI agents interpret the information and draft the research.
+- **Costs and risk.** The backtest applies transaction costs, position sizing and risk controls to each US$100,000 paper portfolio.
+- **Human review.** I review the scope, uncertain sources and key assumptions before they enter the analysis.
 
 ## Output
 
-The output is a set of point-in-time backtests and research reports, each with a record of its inputs, assumptions and calculations so that a result can be traced and reproduced.
+The system produces point-in-time backtests and research reports, with the inputs, assumptions and calculations recorded alongside each result. That record makes the analysis traceable and reproducible.
 
 ## Limitations
 
-All results are simulated. The portfolios are paper portfolios: no capital has been managed, and the system has no connection to a broker and places no trades.
-
-The work is experimental. It has not established a trading edge, and I am not publishing performance figures, because backtested results are easy to over-read. The sample is one type of event over a limited history, and a backtest cannot fully capture liquidity, financing or execution in a live market.
+This remains an experimental research project. All results come from historical backtests in simulated portfolios. The system is not connected to a broker, does not execute trades and has not managed capital.

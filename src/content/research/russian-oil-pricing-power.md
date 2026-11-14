@@ -1,9 +1,9 @@
 ---
 title: Why Russian Oil Is Regaining Pricing Power
 summary: >-
-  Why has the discount on Russian Urals crude narrowed so sharply? The brief argues that the
-  discount is cyclical, set by physical supply and demand, and has not been permanently
-  resolved.
+  A tighter physical market narrowed the discount on Russian Urals crude. The report argues
+  that the change was cyclical, driven by Asian demand, disrupted competing supply and
+  adaptation to sanctions.
 authors:
   - James Sahota
   - Audrey Levin Kim
@@ -11,7 +11,7 @@ authors:
 date: 2026-08
 topics:
   - oil-markets
-type: brief
+type: report
 venue:
   name: "6:05 Markets"
   url: https://605-markets.com/
@@ -41,6 +41,6 @@ keyFindings:
     buying weakens, Russian export availability rises or sanctions enforcement tightens.
 ---
 
-For much of 2022 and 2023, Urals traded at a steep discount to Brent because of sanctions, shipping constraints and a smaller pool of buyers. This brief traces how that gap narrowed. During the Hormuz crisis Urals traded at a premium of just over US$10 a barrel to Brent, and by early August 2026 the two were close to parity at around US$75–85.
+For much of 2022 and 2023, Urals traded at a steep discount to Brent because of sanctions, shipping constraints and a smaller pool of buyers. The report traces how that gap narrowed. During the Hormuz crisis Urals traded at a premium of just over US$10 a barrel to Brent, and by early August 2026 the two were close to parity at around US$75–85.
 
-Our position was that the convergence is cyclical. We expected the discount to stay relatively narrow while Asian demand was strong and Middle Eastern supply uncertain. Once conditions settle, we expected the differential to move within a narrower range of US$5–15 a barrel, without returning to the deep discounts of 2022–2023.
+Our view was that the convergence was cyclical. We expected the discount to stay relatively narrow while Asian demand was strong and Middle Eastern supply uncertain. Once conditions settled, we expected the differential to move within a narrower range of US$5–15 a barrel, without returning to the deep discounts of 2022–2023.

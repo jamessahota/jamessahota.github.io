@@ -61,7 +61,7 @@ Page layouts are in `src/pages/` and shared pieces in `src/components/`. Adding 
    date: 2026-11-20            # or 2026-11, or 2026, if that is all you can verify
    topics:
      - oil-markets             # see TOPICS in src/site.config.ts
-   type: report                # report, brief, company-note or commentary
+   type: report                # report, commentary or company-note; use publicationStatus for in-progress work
    venue:
      name: "6:05 Markets"
      url: https://605-markets.com/

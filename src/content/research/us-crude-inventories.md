@@ -1,9 +1,9 @@
 ---
 title: "Are US Crude Inventories Running Low & What Does This Mean?"
 summary: >-
-  Are US crude inventories running low, and what does that mean for prices? A team report from
-  the 6:05 Markets oil and gas desk finds stocks below their seasonal norm and falling when they
-  usually build, without establishing an outright shortage.
+  In October 2026, US crude stocks were below their seasonal norm and falling when they
+  usually build. This team report examines refinery runs, trade and production, and why low
+  inventories alone do not establish a shortage.
 standfirst: >-
   In mid-October 2026, US commercial crude stocks were 3.3% below their five-year seasonal
   average and falling at a time of year when they usually rise. This team report tests the
@@ -90,6 +90,6 @@ related:
 
 In the week ending 16 October 2026, US commercial crude stocks excluding the Strategic Petroleum Reserve stood at 412.5 million barrels. That was 13.9 million barrels lower than on 18 September and 3.3% below the calendar-matched 2021–2025 average. Over the equivalent four weeks, stocks had historically risen by 8.3 million barrels on average. Inventories were therefore both below average and falling when they usually build, although the report is explicit that this does not establish an outright shortage.
 
-The report works through the possible causes: domestic production, imports and exports, product demand and the price response. It concludes that strong refinery runs, driven by tight global distillate markets, and lower net imports account for most of the draw.
+The analysis examines domestic production, imports and exports, product demand and the price response. Strong refinery runs, driven by tight global distillate markets, and lower net imports account for most of the draw.
 
 The base case over the following eight to twelve weeks was for inventories to stay below their seasonal average while refinery runs remained strong. Over a longer horizon the report expected draws to end by the first quarter of 2027 and stocks to rebuild through the rest of that year.

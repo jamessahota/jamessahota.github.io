@@ -1,9 +1,9 @@
 ---
 title: Henry Hub and record US LNG feedgas demand
 summary: >-
-  Why have Henry Hub natural gas prices remained subdued despite record US LNG feedgas demand?
-  Independently authored research, in development with the founder of Energy Flux, for
-  publication.
+  Independent research in development with the founder of Energy Flux, examining why Henry
+  Hub natural gas prices have remained subdued despite record US LNG feedgas demand. Intended
+  for publication.
 authors:
   - James Sahota
 topics:

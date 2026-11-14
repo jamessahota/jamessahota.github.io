@@ -1,8 +1,9 @@
 ---
 title: "Powerless in the Caribbean: Cuba’s Energy Collapse and the Fight for Economic Survival"
 summary: >-
-  Why did Cuba’s power system fail, and does it matter beyond the island? The brief argues that
-  the crisis is too small to move global benchmarks but tightens Caribbean fuel markets.
+  Cuba’s fuel shortage and ageing grid threaten prolonged blackouts. The report traces the
+  regional implications: tighter Caribbean fuel markets, with little direct effect on global
+  oil benchmarks.
 authors:
   - James Sahota
   - Benjamin Lozovsky
@@ -10,7 +11,7 @@ authors:
 date: 2026-05
 topics:
   - policy-security
-type: brief
+type: report
 venue:
   name: "6:05 Markets"
   url: https://605-markets.com/
@@ -29,7 +30,7 @@ keyFindings:
     premiums staying US$4–7 a barrel above seasonal averages, with a negligible direct effect
     on Brent.
   - >-
-    The fuel shortage and the state of the grid are separate problems. The brief notes that
+    The fuel shortage and the state of the grid are separate problems. The report notes that
     generation shortfalls occurred in earlier years without a fuel shortage.
   - >-
     The bull case had Cuba securing consistent state-backed shipments from Russia or
@@ -40,6 +41,6 @@ related:
   - dangote-refinery-african-energy
 ---
 
-Cuba’s energy crisis followed the loss of the imported fuel on which its ageing power system depended. Supply from Venezuela ended after US action there in early 2026, and a US blockade in February cut off other suppliers. Domestic crude output of about 40,000 barrels a day falls well short of the roughly 100,000 the island needs, and a rapid build-out of solar capacity could not realistically close the gap. The brief adds that an underinvested grid would limit generation even if fuel returned.
+Cuba’s energy crisis followed the loss of the imported fuel on which its ageing power system depended. Supply from Venezuela ended after US action there in early 2026, and a US blockade in February cut off other suppliers. Domestic crude output of about 40,000 barrels a day falls well short of the roughly 100,000 the island needs. A rapid expansion of solar capacity could not realistically close the gap, and an underinvested grid would limit generation even if fuel supplies recovered.
 
 Our base case was emergency survival, not recovery: sporadic external shipments would prevent a total grid collapse, while blackouts and weak industrial output persisted through 2026.

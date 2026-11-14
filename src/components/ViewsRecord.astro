@@ -107,7 +107,7 @@ const filters = [
       <div class="record__head">
         <h2 id="views-heading" class={report ? 'record__heading--block label label--marked' : 'record__heading'}>{heading}</h2>
         <p class="record__tally label numeric">
-          <span>{judged.length} judged</span>
+          <span>{judged.length} assessed</span>
           {judged.length > 0 && (
             <>
               {' '}
@@ -193,7 +193,7 @@ const filters = [
                       </p>
                     )}
                     {view.outcome && <p class="record__source">Source: {view.outcome.source}.</p>}
-                    {latest && <p class="record__source">Latest price: {latest.source}. Not live: refreshed each weekday evening.</p>}
+                    {latest && <p class="record__source">Latest price: {latest.source}. Updated on weekday evenings; prices are not live.</p>}
                     {view.context && <p class="record__source">{view.context}</p>}
                   </div>
                 </li>
@@ -203,12 +203,13 @@ const filters = [
         </div>
       ))}
       <p class="record__note">
-        Listed: every base-case view that puts a named benchmark in a price range at a set date or over a set period,
-        and every call published with a report on 6:05 Markets, including those that miss. Not listed: conditional
-        scenarios, and views with no named benchmark or no set date. Where a report’s base case was also published as a
-        call for the same range and period, it is listed once, as the call. Views are judged once their date has passed:
-        a call on the series it resolves against, and a report view that names only Brent on front-month Brent futures,
-        the contract behind the headline Brent price in the report.
+        This record includes every call published with a report on 6:05 Markets and every base-case view that gives a
+        price range for a named benchmark at a specified date or over a defined period. Misses are included.
+        Conditional scenarios and views without a named benchmark or assessment date are excluded.
+        A base case published as a call for the same range and period appears once, as the call.
+        Each view is assessed after its date has passed, using the series specified in the call.
+        Report views that name only Brent are assessed against front-month Brent futures, the contract used for the
+        report’s headline Brent price.
       </p>
     </section>
   )

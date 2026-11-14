@@ -2,8 +2,9 @@
 title: "Panama Canal: El Niño Risks Raising Asia’s Energy Import Costs"
 subtitle: LNG, LPG and Oil Price Outlook
 summary: >-
-  Would drought restrictions at the Panama Canal raise Asian LNG and LPG delivery costs? The
-  report argues that they would amplify an already tight energy system, not cause the shortage.
+  Drought restrictions at Panama could compound an already tight energy market. The report
+  traces the effect of fewer transits through freight costs to Asian LNG and LPG prices, with
+  crude oil a secondary channel.
 standfirst: >-
   The Iran war had already tightened two vital chokepoints. This report examines what a third
   constraint would do: renewed El Niño restrictions on the Panama Canal, and how they would
@@ -144,8 +145,8 @@ related:
   - diesel-distillate-bottleneck
 ---
 
-The report’s central conclusion is that Panama is an amplifier of an already tight energy system, not the original source of the shortage. The Panama Canal Authority cut daily transit slots from 36 to 32 in September 2026, then announced 33 from 15 October and raised the permitted draught to 14.94 metres. Our base case assumed that this relief would prove temporary and that capacity would tighten again to roughly 28–30 transits a day through the fourth quarter as a strong El Niño developed.
+Renewed Panama restrictions would compound an already tight energy system. The Panama Canal Authority cut daily transit slots from 36 to 32 in September 2026, then announced 33 from 15 October and raised the permitted draught to 14.94 metres. Our base case assumed that this relief would prove temporary and that capacity would tighten again to roughly 28–30 transits a day through the fourth quarter as a strong El Niño developed.
 
 We expected the clearest effect in freight and in delivered LNG and LPG prices in Asia, with outright Brent a secondary channel. The base case placed JKM at US$27–31 per MMBtu, BLNG3 at US$70,000–90,000 a day and BLPG3 at US$350–400 a tonne through late Q4 2026. Confidence was medium-high on freight and medium on LNG and LPG prices.
 
-The thesis depended on the recent rainfall and operating improvement proving temporary. The report says so directly, and names the freight, auction and transit levels at which it would weaken.
+The thesis depended on the recent improvement in rainfall and operating conditions proving temporary. The report identifies the freight, auction and transit levels that would weaken it.

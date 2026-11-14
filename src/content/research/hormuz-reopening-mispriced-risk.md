@@ -1,9 +1,9 @@
 ---
 title: Why the Oil market is mispricing risk in Hormuz
 summary: >-
-  Did the reopening of the Strait of Hormuz mean the oil market was back to normal? The brief
-  argues that reopening is not normalisation, and that the market had priced the headline
-  without the residual cost.
+  Reopening Hormuz did not remove the costs of disrupted shipping. The report examines tanker
+  availability, insurance and delayed cargoes, arguing that crude prices had discounted a
+  smoother recovery than physical conditions supported.
 authors:
   - James Sahota
   - Michael Wu
@@ -11,7 +11,7 @@ date: 2026-07-06
 topics:
   - oil-markets
   - shipping-chokepoints
-type: brief
+type: report
 venue:
   name: "6:05 Markets"
   url: https://605-markets.com/
@@ -46,6 +46,6 @@ related:
   - saudi-crude-rerouting-yanbu
 ---
 
-After a temporary peace deal between the US and Iran allowed commercial shipping to restart, crude fell from crisis levels as traders priced in relief. The brief argues that the market was mispricing risk at about US$68 a barrel. Tankers had still been attacked, vessels were diverting around suspected mines, insurance premiums were above pre-war levels, and producers needed time and ships to clear delayed cargoes.
+After a temporary peace deal between the US and Iran allowed commercial shipping to restart, crude fell from crisis levels as traders priced in relief. We argued that the market was mispricing risk at about US$68 a barrel. Tankers had still been attacked, vessels were diverting around suspected mines, insurance premiums were above pre-war levels, and producers needed time and ships to clear delayed cargoes.
 
-We expected crude to rise to around US$75–80 in the following weeks and to stay volatile while the peace framework was uncertain. Over a longer horizon the brief warned of the opposite problem: a supply overhang, with prices possibly falling below US$60, if production and OPEC+ additions returned faster than demand could absorb them.
+We expected crude to rise to around US$75–80 in the following weeks and remain volatile while the peace framework was uncertain. Over a longer horizon, production restarts and OPEC+ additions could outpace demand, creating a supply overhang and potentially pushing prices below US$60.

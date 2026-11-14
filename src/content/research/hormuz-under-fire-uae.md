@@ -1,8 +1,9 @@
 ---
 title: "Hormuz Under Fire: Iran’s Strike on UAE Oil Infrastructure and the New Gulf Risk Premium"
 summary: >-
-  What did Iran’s strikes on the UAE mean for oil? The brief argues that the risk had widened
-  from the Strait of Hormuz itself to the infrastructure that bypasses it.
+  Iran’s strikes on Fujairah extended oil-supply risk beyond the Strait of Hormuz to the
+  infrastructure that bypasses it. The report assesses the remaining export routes and
+  near-term price scenarios.
 authors:
   - James Sahota
   - Benjamin Lozovsky
@@ -11,7 +12,7 @@ date: 2026-05
 topics:
   - oil-markets
   - shipping-chokepoints
-type: brief
+type: report
 venue:
   name: "6:05 Markets"
   url: https://605-markets.com/
@@ -33,7 +34,7 @@ keyFindings:
     Attacking the bypass route is a different risk from threatening the strait. Even partial
     disruption at Fujairah weakens one of the few remaining outlets for Gulf crude.
   - >-
-    The brief did not expect a complete collapse of UAE export capacity unless the pipeline
+    The report did not expect a complete collapse of UAE export capacity unless the pipeline
     was struck directly or a wider maritime control zone around Fujairah was enforced.
   - >-
     Reported covert UAE strikes on Iranian energy infrastructure made de-escalation less
@@ -44,6 +45,6 @@ related:
   - oil-above-100-supply-shock
 ---
 
-Iranian strikes on the UAE, the first since a ceasefire took effect on 8 April 2026, sent oil prices up by about 6% and caused a fire at a refinery in the Fujairah port area. Fujairah matters because it sits outside the Strait of Hormuz and is the terminus of the Abu Dhabi Crude Oil Pipeline. Crude exports through it had risen 38% since the start of the war. The brief reads the strikes as political, intended to divide the UAE from its Gulf neighbours.
+Iranian strikes on the UAE, the first since a ceasefire took effect on 8 April 2026, sent oil prices up by about 6% and caused a fire at a refinery in the Fujairah port area. Fujairah sits outside the Strait of Hormuz and is the terminus of the Abu Dhabi Crude Oil Pipeline. Crude exports through it had risen 38% since the start of the war. We interpreted the strikes as a political attempt to divide the UAE from its Gulf neighbours.
 
-The brief sets out three scenarios. Our base case was a persistent but contained conflict, with further pressure on infrastructure connected to Fujairah and Brent in a range of about US$110–125 a barrel in the near term.
+The report sets out three scenarios. Our base case was a persistent but contained conflict, with further pressure on infrastructure connected to Fujairah and Brent in a range of about US$110–125 a barrel in the near term.

@@ -4,8 +4,8 @@
   order: 1
   title: Energy market research
   description: >-
-    Oil, natural gas and LNG, refined products and shipping. I work from physical flows and
-    inventories to prices, set out scenarios, and state what would change the view.
+    Research on oil, natural gas and LNG, refining and shipping. I connect physical flows and
+    inventories to prices, build scenarios and identify what would change each view.
   evidence:
     - label: Oil Above 100
       href: /research/oil-above-100-supply-shock/
@@ -18,8 +18,8 @@
   order: 2
   title: Analytical writing and editing
   description: >-
-    Long reports and short briefs written for readers who need the conclusion first. At 6:05
-    Markets I set the editorial standards and report templates that other analysts write to.
+    Reports, commentary and company notes that lead with the conclusion and explain the evidence.
+    At 6:05 Markets, I set editorial standards and build the templates our analysts use.
   evidence:
     - label: A critique of UK energy policy
       href: /research/uk-energy-security-critique/
@@ -30,9 +30,9 @@
   order: 3
   title: Research leadership
   description: >-
-    Co-founding and running a research organisation of 40+ members, assigning analyst
-    responsibilities and building its publication process. At UChicago Commodities I delivered
-    oil-market training to 25 members.
+    I help lead a research organisation of 40+ members, assign analyst responsibilities and
+    manage the publication process. At UChicago Commodities, I delivered oil-market training
+    to 25 members.
   evidence:
     - label: 6:05 Markets and UChicago Commodities
       href: /experience/
@@ -41,9 +41,9 @@
   order: 4
   title: Data and tools
   description: >-
-    Microsoft Excel and PowerPoint, financial-data integration and multi-agent AI research
-    workflows. I use AI tools to build and test research systems, with point-in-time data
-    rules and explicit checks on the numbers.
+    Excel, PowerPoint, financial-data integration and multi-agent research workflows. I use AI
+    coding tools to build and test research systems, with controls on when data was available
+    and checks on the calculations.
   evidence:
     - label: AI commodities research project
       href: /projects/ai-commodities-research/

@@ -1,9 +1,9 @@
 ---
 title: "The Illusion of Energy Security: A Critique of the UK Government’s Energy Policy"
 summary: >-
-  Does the UK government’s clean-power strategy reduce the country’s exposure to global energy
-  prices? This critique argues that the policy is stronger on targets than on delivery, and
-  that its position on North Sea licensing is its weakest point.
+  Can the UK’s clean-power strategy reduce its exposure to global energy prices? This
+  commentary examines the delivery risks and argues that the approach to North Sea licensing
+  is the policy’s weakest point.
 authors:
   - James Sahota
 date: 2026-05
@@ -51,8 +51,8 @@ related:
   - european-wind-energy-security
 ---
 
-This is an opinion piece. It examines the UK government’s energy policy: clean power by 2030, Great British Energy, the Warm Homes Plan and a ban on new North Sea exploration licences. I accept the potential benefit. A system with more domestic low-carbon generation and lower demand would be less exposed to imported fuel costs.
+This commentary examines the UK government’s energy policy: clean power by 2030, Great British Energy, the Warm Homes Plan and a ban on new North Sea exploration licences. A system with more domestic low-carbon generation and lower demand could reduce exposure to imported fuel costs. My concern is how that ambition translates into physical supply and demand.
 
-My argument is that the plan depends on the things Britain has historically delivered slowly, such as grid expansion, planning, storage and new generation. The government’s own planning documents envisage clean sources delivering at least 95% of Great Britain’s generation by 2030, up from 60% in 2023 on the government’s own figures.
+The plan depends on grid expansion, planning, storage and new generation, all areas where Britain has historically delivered slowly. The government’s planning documents envisage clean sources delivering at least 95% of Great Britain’s generation by 2030, up from 60% in 2023 on its own figures.
 
 The sharpest criticism concerns the North Sea. If domestic output falls faster than demand, the gap is filled by imports. That leaves the UK no less dependent on hydrocarbons and more exposed to external supply chains.

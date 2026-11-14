@@ -1,8 +1,9 @@
 ---
 title: "The Dangote Effect: How One Refinery Is Reshaping African Energy"
 summary: >-
-  Can one refinery turn Nigeria from a fuel importer into a regional exporter? The brief sets
-  out three scenarios that turn on access to crude and on regulation.
+  Dangote could turn Nigeria from a fuel importer into a regional supplier. The report sets
+  out three scenarios for the refinery, shaped by access to crude, regulation and operating
+  reliability.
 authors:
   - James Sahota
   - Audrey Levin Kim
@@ -11,7 +12,7 @@ authors:
 date: 2026-05
 topics:
   - refining-products
-type: brief
+type: report
 venue:
   name: "6:05 Markets"
   url: https://605-markets.com/
@@ -41,6 +42,6 @@ related:
   - cuba-energy-collapse
 ---
 
-The Dangote refinery has a nameplate capacity of 650,000 barrels a day. If it can run consistently, it could help Nigeria move from importing refined fuel to exporting it across the region. The brief identifies two obstacles. The refinery has struggled to secure enough Nigerian crude and has turned to foreign suppliers, and it is in a commercial and legal dispute with fuel marketers over import licences.
+The Dangote refinery has a nameplate capacity of 650,000 barrels a day. If it can run consistently, it could help Nigeria move from importing refined fuel to exporting it across the region. Two obstacles stand out: difficulty securing enough Nigerian crude, which has forced the refinery to seek foreign supply, and a commercial and legal dispute with fuel marketers over import licences.
 
-The outcome we judged most likely leaned towards regional export expansion, contingent on crude access and regulatory stability. The question was no longer whether Dangote could operate, but whether Nigeria’s regulatory framework would allow it to become the dominant regional supply hub.
+We judged regional export expansion the most likely outcome, provided crude access improved and regulation remained stable. The question was whether Nigeria’s regulatory framework would allow an operating refinery to become the dominant regional supply hub.

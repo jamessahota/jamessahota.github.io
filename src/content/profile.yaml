@@ -3,8 +3,8 @@
 name: James Sahota
 positioning: Research across energy and markets
 intro: >-
-  I study mathematics and economics at the University of Chicago and co-founded 6:05 Markets.
-  I’m looking for trading experience across equities, derivatives and commodities.
+  I study mathematics and economics at the University of Chicago. I co-founded 6:05 Markets
+  and am looking for trading experience across equities, derivatives and commodities.
 
 location: Chicago, IL
 email: jsahota@uchicago.edu
@@ -22,17 +22,16 @@ atAGlance:
     href: https://www.energyflux.news/
 
 contactInvite: >-
-  I’m glad to hear from people working in markets, from other researchers, and about trading
-  opportunities.
+  I’d be happy to discuss trading opportunities across equities, derivatives and commodities.
+  I also welcome conversations about markets and research.
 
 # The panel beside the homepage About paragraph.
 lookingFor:
   label: What I’m looking for
   title: Trading experience
   text: >-
-    Trading is what interests me. My research asks what the market has already priced in and
-    what would prove a view wrong. I’m looking for experience where those views are tested
-    against prices.
+    My research asks what the market has priced in and what could prove a view wrong.
+    I’m looking for trading experience that puts those views to the test.
   markets:
     - Equities
     - Derivatives
@@ -40,9 +39,9 @@ lookingFor:
 
 # The short personal paragraph on the homepage. The full biography is in about.md.
 homeAbout: >-
-  I was born in Milan, went to school in London and am now based in Chicago. I speak English
-  and Italian fluently, studied philosophy at A-level and am vice president of the university
-  judo club.
+  I was born in Milan, went to school in London and now study in Chicago. Outside research,
+  I’m vice president of the university judo club. I speak English and Italian fluently and
+  studied philosophy at A-level.
 
 languages:
   - name: English

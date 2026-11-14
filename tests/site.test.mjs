@@ -53,11 +53,14 @@ const research = readdirSync(RESEARCH_DIR)
   .map((file) => {
     const source = read(join(RESEARCH_DIR, file));
     const field = (key) => source.match(new RegExp(`^${key}:\\s*["']?(.+?)["']?\\s*$`, 'm'))?.[1];
+    const authorBlock = source.match(/^authors:[ \t]*\n((?:[ \t]+-[^\n]*(?:\n|$))+)/m)?.[1] ?? '';
     return {
       slug: file.replace(/\.md$/, ''),
       title: field('title'),
       visibility: field('visibility'),
       status: field('publicationStatus'),
+      type: field('type'),
+      authors: [...authorBlock.matchAll(/^[ \t]+-[ \t]+(.+)$/gm)].map((match) => match[1].replace(/^["']|["']$/g, '')),
     };
   });
 
@@ -106,6 +109,36 @@ test('work in progress is listed but has no page of its own', () => {
   for (const entry of research.filter((item) => item.visibility === 'public' && item.status === 'in-progress')) {
     assert.ok(!built.has(`/research/${entry.slug}/index.html`), `${entry.slug} should not have a page yet`);
   }
+});
+
+test('research uses reports, commentary and company notes, with work in progress separate', () => {
+  const allowed = new Set(['report', 'commentary', 'company-note']);
+  for (const entry of research.filter((item) => item.visibility === 'public')) {
+    assert.ok(allowed.has(entry.type), `${entry.slug} has an unsupported research type: ${entry.type}`);
+  }
+  const index = visibleText(read(join(DIST, 'research/index.html')));
+  assert.doesNotMatch(index, /\bbriefs?\b/i, 'the research page still labels work as briefs');
+  for (const label of ['Report', 'Commentary', 'Company note', 'In progress']) {
+    assert.ok(index.includes(label), `the research page is missing ${label}`);
+  }
+});
+
+test('co-authors are credited on detail pages and omitted from selected research', () => {
+  const self = read(join(ROOT, 'src/content/profile.yaml')).match(/^name:\s*(.+)$/m)[1];
+  for (const entry of research.filter((item) => item.visibility === 'public' && item.status !== 'in-progress')) {
+    assert.ok(entry.authors.length > 0, `no authors found for ${entry.slug}`);
+    const html = read(join(DIST, `research/${entry.slug}/index.html`));
+    const credits = html.match(/<div[^>]*data-research-credits[^>]*>([\s\S]*?)<\/div>/)?.[1];
+    const others = entry.authors.filter((author) => author !== self);
+    if (others.length) {
+      assert.ok(credits, `${entry.slug} has no visible co-author credit`);
+      for (const author of others) assert.ok(visibleText(credits).includes(author), `${entry.slug} omits ${author}`);
+    } else {
+      assert.ok(!credits, `${entry.slug} should not have a co-author credit`);
+    }
+  }
+  const home = visibleText(read(join(DIST, 'index.html')));
+  assert.doesNotMatch(home, /Co-authored with|Co-authors:|Sole author/i, 'author credits appear on the homepage');
 });
 
 test('every internal link, image, stylesheet and document exists', () => {

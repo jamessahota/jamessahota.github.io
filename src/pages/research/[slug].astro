@@ -13,6 +13,8 @@ import ViewChangers from '../../components/ViewChangers.astro';
 import ViewsRecord from '../../components/ViewsRecord.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import {
+  formatAuthors,
+  getProfile,
   getPublicResearch,
   getRelated,
   hasDetailPage,
@@ -45,6 +47,8 @@ interface Props {
 
 const { entry, related, next } = Astro.props;
 const { data } = entry;
+const profile = await getProfile();
+const coAuthors = data.authors.filter((author) => author !== profile.name);
 const { Content } = await render(entry);
 const hasViews = (await getCollection('views')).some((view) => view.data.report === entry.id);
 const hasBody = Boolean(entry.body?.trim());
@@ -62,6 +66,7 @@ const jsonLd = {
     headline: data.title,
     ...(data.date ? { datePublished: data.date } : {}),
     publisher: { '@type': 'Organization', name: data.venue.name },
+    author: data.authors.map((name) => ({ '@type': 'Person', name })),
     ...(data.originalUrl ? { url: data.originalUrl } : {}),
   },
 };
@@ -85,6 +90,12 @@ const jsonLd = {
       <h1 style={`view-transition-name: research-${entry.id.replace(/[^a-zA-Z0-9_-]/g, '-')}`}>{data.title}</h1>
       {data.subtitle && <p class="report-header__subtitle">{data.subtitle}</p>}
       <p class="lede">{data.standfirst ?? data.summary}</p>
+      {coAuthors.length > 0 && (
+        <div class="report-header__credits" data-research-credits>
+          <p>Co-authored with {formatAuthors(coAuthors)}.</p>
+          {data.authorshipNote && <p class="report-header__credit-note">{data.authorshipNote}</p>}
+        </div>
+      )}
       <div class="report-header__mobile">
         <p class="report-header__byline">
           {data.date && <time datetime={data.date}>{formatDate(data.date)}</time>}
@@ -93,7 +104,7 @@ const jsonLd = {
           {data.originalUrl && <ButtonLink href={data.originalUrl} label={fullPieceLabel} icon="arrow-up-right" />}
           {data.pdf && <ButtonLink href={data.pdf} label="Open the PDF" variant="secondary" icon="download" />}
         </div>
-        {data.fullReportMinutes && <p class="details__note">The full piece is about a {data.fullReportMinutes}-minute read.</p>}
+        {data.fullReportMinutes && <p class="details__note">Full {RESEARCH_TYPES[data.type].toLowerCase()}: {data.fullReportMinutes}-minute read.</p>}
       </div>
       </div>
       <div class="report-header__visual"><ResearchVisual entry={entry} compact /></div>
@@ -224,7 +235,7 @@ const jsonLd = {
 
         <div class="panel panel--night closing" data-reveal>
           <p class="closing__lead">
-            {data.originalUrl ? 'This page is a summary. The full piece has the detail.' : 'This page is a summary.'}
+            {data.originalUrl ? `Read the full ${RESEARCH_TYPES[data.type].toLowerCase()} for the complete analysis.` : 'Research summary.'}
           </p>
           {
             data.originalUrl && (
@@ -292,7 +303,7 @@ const jsonLd = {
           {data.pdf && <ButtonLink href={data.pdf} label="Open the PDF" variant="secondary" icon="download" />}
           {
             data.fullReportMinutes && (
-              <p class="details__note">The full piece is about a {data.fullReportMinutes}-minute read.</p>
+              <p class="details__note">Full {RESEARCH_TYPES[data.type].toLowerCase()}: {data.fullReportMinutes}-minute read.</p>
             )
           }
         </div>
@@ -446,6 +457,19 @@ const jsonLd = {
 
   .report-header .lede {
     margin-top: var(--space-5);
+  }
+
+  .report-header__credits {
+    margin-top: var(--space-4);
+    max-width: 46rem;
+    color: var(--muted);
+    font-size: var(--text-sm);
+    line-height: 1.55;
+  }
+
+  .report-header__credit-note {
+    margin-top: var(--space-2);
+    font-size: var(--text-xs);
   }
 
   .report-header__mobile {
