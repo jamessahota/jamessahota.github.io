@@ -21,6 +21,14 @@ originalUrl: https://605-markets.com/report/oil-gas-totalenergies-cash-returns-v
 fullReportMinutes: 12
 featured: true
 order: 3
+cardFigure:
+  kind: cash-returns
+  title: Diversified cash generation
+  numbers:
+    - value: US$8.6bn
+      label: Cash flow from operations, Q1 2026
+    - value: US$1.5bn
+      label: Share buyback, Q2 2026
 keyFindings:
   - >-
     First-quarter cash flow from operations was reported at US$8.6 billion and net income at

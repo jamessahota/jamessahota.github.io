@@ -19,6 +19,16 @@ originalUrl: https://605-markets.com/report/policy-uk-energy-security-critique/
 fullReportMinutes: 12
 featured: true
 order: 4
+cardFigure:
+  kind: clean-power
+  title: Great Britain · clean electricity generation
+  numbers:
+    - value: 60%
+      label: Share of generation in 2023
+      percentage: 60
+    - value: ≥95%
+      label: Government target for 2030
+      percentage: 95
 keyFindings:
   - >-
     Execution risk has a commodity-market consequence. Delays to grids, storage and generation

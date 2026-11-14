@@ -95,6 +95,21 @@ const research = defineCollection({
       cover: z.object({ src: publicFile, alt: z.string(), credit: z.string().optional() }).optional(),
       featured: z.boolean().default(false),
       order: z.number().optional(),
+      // A bespoke preview exhibit; kept separate from the report's body figures.
+      cardFigure: z
+        .discriminatedUnion('kind', [
+          z.object({
+            kind: z.literal('cash-returns'),
+            title: z.string(),
+            numbers: z.array(keyNumber).length(2),
+          }),
+          z.object({
+            kind: z.literal('clean-power'),
+            title: z.string(),
+            numbers: z.array(keyNumber.extend({ percentage: z.number().min(0).max(100) })).length(2),
+          }),
+        ])
+        .optional(),
       keyNumbers: z.array(keyNumber).min(1).max(4).optional(),
       keyNumbersNote: z.string().optional(),
       keyFindings: z.array(z.string()).max(6).default([]),

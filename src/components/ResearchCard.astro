@@ -2,23 +2,23 @@
 // A research entry as one cell of a ruled grid. The whole cell is the link,
 // and it inverts when hovered. Shows a small chart or two figures from the
 // report when the entry has them.
-import { coAuthorLine, researchPath, type Research } from '../lib/content';
+import { researchPath, type Research } from '../lib/content';
 import { formatDateShort } from '../lib/dates';
 import { RESEARCH_TYPES, TOPICS } from '../site.config';
 import Icon from './Icon.astro';
+import ResearchCardFigure from './ResearchCardFigure.astro';
 
 interface Props {
   entry: Research;
-  /** The author whose site this is, left out of the "With ..." line. */
-  self: string;
   index?: number;
   size?: 'lead' | 'regular' | 'compact';
 }
 
-const { entry, self, index, size = 'regular' } = Astro.props;
+const { entry, index, size = 'regular' } = Astro.props;
 const { data } = entry;
-const chart = size !== 'compact' ? data.charts?.[0] : undefined;
-const numbers = !chart && size !== 'compact' ? data.keyNumbers?.slice(0, 2) : undefined;
+const figure = size !== 'compact' ? data.cardFigure : undefined;
+const chart = !figure && size !== 'compact' ? data.charts?.[0] : undefined;
+const numbers = !figure && !chart && size !== 'compact' ? data.keyNumbers?.slice(0, 2) : undefined;
 const max = chart ? Math.max(...chart.items.map((item) => item.value)) : 1;
 const decimals = chart?.items.some((item) => !Number.isInteger(item.value)) ? 2 : 0;
 ---
@@ -39,6 +39,12 @@ const decimals = chart?.items.some((item) => !Number.isInteger(item.value)) ? 2 
     </h3>
     {size !== 'compact' && <p class="rcard__summary">{data.summary}</p>}
   </div>
+
+  {figure && (
+    <div class="rcard__visual rcard__exhibit" data-vt-visual>
+      <ResearchCardFigure figure={figure} />
+    </div>
+  )}
 
   {
     chart && (
@@ -92,7 +98,7 @@ const decimals = chart?.items.some((item) => !Number.isInteger(item.value)) ? 2 
     )
   }
 
-  <p class="rcard__meta label">{coAuthorLine(data.authors, self)} · {data.venue.name}</p>
+  <p class="rcard__meta label">{data.venue.name}</p>
 </article>
 
 <style>
@@ -447,6 +453,10 @@ const decimals = chart?.items.some((item) => !Number.isInteger(item.value)) ? 2 
       width: calc(100% + 2rem);
       margin-inline: -1rem;
     }
+  }
+
+  @media (max-width: 22.99rem) {
+    .rcard__numbers { grid-template-columns: 1fr; }
   }
 
   /* Touch screens have no hover, so the card crossing the middle of the screen is the

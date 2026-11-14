@@ -144,10 +144,9 @@ html[data-vt='theme'][data-vt-dir='back']::view-transition-new(theme-edge) { ani
 }
 
 /* ==========================================================================
-   Decoration that rests
-   A decorative loop marked data-loop runs a few times when it comes into view
-   and then stops. It runs again while its card or panel is hovered or focused.
-   The script in BaseLayout.astro adds and removes .is-running.
+   Continuous decoration
+   A decorative loop marked data-loop runs continuously while its host is visible.
+   BaseLayout.astro adds and removes .is-running as the host enters/leaves view.
    ========================================================================== */
 [data-loop]:not(.is-running) { animation-play-state: paused !important; }
 

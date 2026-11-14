@@ -274,49 +274,34 @@ const safeJsonLd = jsonLd ? JSON.stringify(jsonLd).replace(/</g, '\\u003c') : un
         if (box.top < window.innerHeight && box.bottom > 0) reveal(element);
       });
     });
+  } else {
+    // A page opened while paused must also be ready to animate after Resume.
+    targets.forEach(reveal);
   }
 
-  // --- Decoration that rests -----------------------------------------------
-  // A looping decoration marked data-loop runs a few times when it comes into view,
-  // then stops at the end of a cycle. It runs again while its host is hovered or focused.
+  // --- Continuous decoration -----------------------------------------------
+  // Loop for as long as the illustration is visible. Hover and focus are not
+  // prerequisites; global pause and reduced-motion preferences still take priority.
   const loops = [...document.querySelectorAll<HTMLElement | SVGElement>('[data-loop]')];
   if (loops.length && 'IntersectionObserver' in window) {
-    const hosts = new Map<Element, { start: () => void; rest: () => void }[]>();
+    const hosts = new Map<Element, (HTMLElement | SVGElement)[]>();
     for (const element of loops) {
       const host = element.closest('[data-loop-host]') ?? element;
-      const limit = Number(element.dataset.loop) || 3;
-      let cycles = 0;
-      let held = false;
-      element.addEventListener('animationiteration', () => {
-        cycles += 1;
-        if (cycles >= limit && !held) element.classList.remove('is-running');
-      });
-      const start = () => {
-        cycles = 0;
-        element.classList.add('is-running');
-      };
-      // Finish the cycle in progress, so nothing stops halfway along its route.
-      const rest = () => {
-        cycles = limit;
-      };
-      host.addEventListener('pointerenter', () => { held = true; start(); });
-      host.addEventListener('pointerleave', () => { held = false; rest(); });
-      host.addEventListener('focusin', () => { held = true; start(); });
-      host.addEventListener('focusout', () => { held = false; rest(); });
-      hosts.set(host, [...(hosts.get(host) ?? []), { start, rest }]);
+      hosts.set(host, [...(hosts.get(host) ?? []), element]);
     }
     const loopObserver = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
-          for (const loop of hosts.get(entry.target) ?? []) {
-            if (entry.isIntersecting) loop.start();
-            else loop.rest();
+          for (const element of hosts.get(entry.target) ?? []) {
+            element.classList.toggle('is-running', entry.isIntersecting);
           }
         }
       },
-      { threshold: 0.2 },
+      { threshold: 0 },
     );
     for (const host of hosts.keys()) loopObserver.observe(host);
+  } else {
+    loops.forEach((element) => element.classList.add('is-running'));
   }
 
   // --- Live clock ----------------------------------------------------------

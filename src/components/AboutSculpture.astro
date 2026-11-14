@@ -1,0 +1,170 @@
+---
+// An abstract geometric study, with no geographic or data meaning.
+const layers = Array.from({ length: 15 }, (_, index) => ({
+  depth: index - 7,
+  turn: (index - 7) * 4,
+  edge: index % 4 === 0 ? '#ffb28b' : '#ff6a33',
+}));
+---
+
+<figure class="about-sculpture" data-reveal data-loop-host aria-label="A rotating, layered geometric sculpture">
+  <div class="about-sculpture__stage" aria-hidden="true">
+    <div class="about-sculpture__glow"></div>
+    <div class="about-sculpture__shadow" data-loop></div>
+    <div class="about-sculpture__object" data-loop>
+      {layers.map((layer, index) => (
+        <div class:list={['about-sculpture__layer', { 'about-sculpture__layer--cap': index === 0 || index === layers.length - 1 }]} style={`--depth:${layer.depth};--turn:${layer.turn}deg;--edge:${layer.edge}`}>
+          <svg viewBox="0 0 200 200" width="200" height="200" fill="none" focusable="false">
+            <path class="about-sculpture__face" d="M18 3H182L197 18V182L182 197H18L3 182V18Z" />
+            <path class="about-sculpture__edge" d="M18 3H182L197 18V182L182 197H18L3 182V18Z" />
+            <path class="about-sculpture__detail" d="M24 16H43M16 24V43M157 16H176M184 24V43M184 157V176M157 184H176M24 184H43M16 157V176" />
+          </svg>
+        </div>
+      ))}
+      <div class="about-sculpture__axis about-sculpture__axis--one"></div>
+      <div class="about-sculpture__axis about-sculpture__axis--two"></div>
+    </div>
+    <svg class="about-sculpture__frame" viewBox="0 0 600 370" width="600" height="370" fill="none" focusable="false">
+      <path d="M20 32V20H32M568 20H580V32M580 338V350H568M32 350H20V338" />
+      <path d="M296 20H304M300 16V24M296 350H304M300 346V354" />
+    </svg>
+  </div>
+  <figcaption class="about-sculpture__caption">
+    <span>Geometry in motion</span>
+    <span class="about-sculpture__mark" aria-hidden="true"></span>
+  </figcaption>
+</figure>
+
+<style>
+  .about-sculpture {
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
+    color: #eef0f1;
+    background-color: #171b1e;
+    background-image:
+      radial-gradient(ellipse at 65% 20%, #ff6a3312, transparent 65%),
+      linear-gradient(#eef0f106 1px, transparent 1px),
+      linear-gradient(90deg, #eef0f106 1px, transparent 1px);
+    background-size: auto, 32px 32px, 32px 32px;
+    border: 1px solid #343a3f;
+    border-radius: var(--radius);
+  }
+
+  .about-sculpture__stage {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 60 / 37;
+    perspective: 900px;
+    perspective-origin: 50% 42%;
+    isolation: isolate;
+  }
+
+  .about-sculpture__stage::after {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    inset: 65% 8% 0;
+    background: linear-gradient(#8899a21a 1px, transparent 1px), linear-gradient(90deg, #8899a21a 1px, transparent 1px);
+    background-size: 30px 30px;
+    transform: rotateX(70deg);
+    transform-origin: center bottom;
+    mask-image: radial-gradient(ellipse, #000, transparent 70%);
+  }
+
+  .about-sculpture__glow {
+    position: absolute;
+    inset: 6% 14% 7%;
+    background: radial-gradient(ellipse, #ff6a330e, transparent 68%);
+    pointer-events: none;
+  }
+
+  .about-sculpture__shadow {
+    position: absolute;
+    width: 42%;
+    height: 9%;
+    left: 29%;
+    bottom: 9%;
+    border-radius: 50%;
+    background: #0008;
+    filter: blur(12px);
+    opacity: 0.6;
+    animation: sculpture-shadow 24s ease-in-out infinite;
+  }
+
+  .about-sculpture__object {
+    position: absolute;
+    top: 47%;
+    left: 50%;
+    width: 1em;
+    height: 1em;
+    margin: -0.5em;
+    font-size: clamp(6.5rem, 14vw, 14rem);
+    transform-style: preserve-3d;
+    transform: translateY(-0.025em) rotateX(58deg) rotateY(22deg) rotateZ(35deg);
+    animation: sculpture-turn 24s linear infinite;
+  }
+
+  .about-sculpture__layer {
+    position: absolute;
+    inset: 0;
+    transform: translateZ(calc(var(--depth) * 0.05em)) rotateZ(var(--turn));
+    backface-visibility: visible;
+  }
+
+  .about-sculpture__layer svg { display: block; width: 100%; height: 100%; overflow: visible; }
+  .about-sculpture__face { fill: #171b1e03; }
+  .about-sculpture__layer--cap .about-sculpture__face { fill: #20262c3d; }
+  .about-sculpture__edge { stroke: var(--edge); stroke-width: 1; vector-effect: non-scaling-stroke; }
+  .about-sculpture__detail { stroke: #e6e8e94a; stroke-width: 0.8; vector-effect: non-scaling-stroke; }
+
+  .about-sculpture__axis {
+    position: absolute;
+    top: 0.5em;
+    left: 0.1em;
+    width: 0.8em;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #ff6a3370, transparent);
+    transform: rotateY(90deg);
+  }
+  .about-sculpture__axis--two { transform: rotateY(90deg) rotateX(90deg); }
+
+  .about-sculpture__frame { position: absolute; inset: 0; display: block; width: 100%; height: 100%; stroke: #eef0f13b; stroke-width: 1; pointer-events: none; }
+
+  .about-sculpture__caption {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.2rem 1.5rem;
+    border-top: 1px solid #343a3f;
+    color: #a2a9b0;
+    font-family: var(--mono);
+    font-size: 0.6875rem;
+    line-height: 1.5;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .about-sculpture__mark { width: 5px; height: 5px; flex-shrink: 0; background: #ff6a33; }
+
+  @keyframes sculpture-turn {
+    0% { transform: translateY(-0.025em) rotateX(58deg) rotateY(22deg) rotateZ(35deg); }
+    25% { transform: translateY(0.025em) rotateX(58deg) rotateY(112deg) rotateZ(35deg); }
+    50% { transform: translateY(-0.025em) rotateX(58deg) rotateY(202deg) rotateZ(35deg); }
+    75% { transform: translateY(0.025em) rotateX(58deg) rotateY(292deg) rotateZ(35deg); }
+    100% { transform: translateY(-0.025em) rotateX(58deg) rotateY(382deg) rotateZ(35deg); }
+  }
+  @keyframes sculpture-shadow {
+    0%, 50%, 100% { transform: scaleX(0.95); opacity: 0.6; }
+    25%, 75% { transform: scaleX(0.82); opacity: 0.42; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .about-sculpture__object, .about-sculpture__shadow { animation: none !important; }
+  }
+  @media (max-width: 29.99rem) {
+    .about-sculpture__caption { padding: 1rem; font-size: 0.625rem; }
+    .about-sculpture__stage { perspective: 650px; }
+  }
+</style>
