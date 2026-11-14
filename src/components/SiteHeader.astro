@@ -77,6 +77,8 @@ const current = (href: string) => (path === href ? 'page' : path.startsWith(href
 </header>
 
 <script>
+  import { createThemeTransition } from '../lib/theme-transition';
+
   // --- Light and dark ------------------------------------------------------
   const root = document.documentElement;
   const themeToggle = document.querySelector<HTMLButtonElement>('[data-theme-toggle]');
@@ -99,32 +101,20 @@ const current = (href: string) => (path === href ? 'page' : path.startsWith(href
       // Lets illustrations pick up the new colours.
       document.dispatchEvent(new CustomEvent('themechange'));
     };
-    themeToggle.addEventListener('click', () => {
-      const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
-      const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches || root.dataset.motion === 'paused';
-      const start = (document as Document & { startViewTransition?: (callback: () => void) => { finished: Promise<void> } })
-        .startViewTransition;
-      if (still || !start || root.dataset.vt) {
-        setTheme(next);
-        return;
-      }
-      // One ruled edge crosses the page: the new theme is behind it, the old one ahead.
-      const edge = document.createElement('div');
-      edge.className = 'theme-edge';
-      root.dataset.vt = 'theme';
-      root.dataset.vtDir = next === 'dark' ? 'forward' : 'back';
-      const transition = start.call(document, () => {
-        setTheme(next);
-        document.body.append(edge);
-      });
-      const settle = () => {
-        edge.remove();
-        delete root.dataset.vt;
-        delete root.dataset.vtDir;
-      };
-      // A skipped transition rejects; tidy up either way.
-      transition.finished.then(settle, settle);
+    const themeMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const themeTransition = createThemeTransition({
+      root,
+      applyTheme: setTheme,
+      still: () => themeMotion.matches || root.dataset.motion === 'paused',
     });
+    themeToggle.addEventListener('click', themeTransition.toggle);
+    themeMotion.addEventListener('change', (event) => {
+      if (event.matches) themeTransition.finish();
+    });
+    document.addEventListener('motionchange', (event) => {
+      if ((event as CustomEvent<{ paused?: boolean }>).detail?.paused) themeTransition.finish();
+    });
+    window.addEventListener('pagehide', themeTransition.finish);
   }
 
   // One persisted motion setting controls CSS decoration and the route scene.

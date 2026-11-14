@@ -133,6 +133,47 @@ html[data-vt='theme'][data-vt-dir='back']::view-transition-new(theme-edge) { ani
   pointer-events: none;
 }
 
+/* Older Safari has no native page snapshots. A matching orange-edged curtain
+   covers the viewport before the palette changes, then uncovers the new theme. */
+.theme-curtain {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483646;
+  overflow: hidden;
+  pointer-events: none;
+  background: #101214;
+  background-image:
+    radial-gradient(ellipse at 85% 35%, #ff6a3314, transparent 65%),
+    linear-gradient(#eef0f106 1px, transparent 1px),
+    linear-gradient(90deg, #eef0f106 1px, transparent 1px);
+  background-size: auto, 40px 40px, 40px 40px;
+  transform: translateX(100%);
+  will-change: transform;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+.theme-curtain[data-theme='light'] {
+  background-color: #efeee8;
+  background-image:
+    radial-gradient(ellipse at 15% 35%, #ff6a330e, transparent 65%),
+    linear-gradient(#10121406 1px, transparent 1px),
+    linear-gradient(90deg, #10121406 1px, transparent 1px);
+}
+
+.theme-curtain[data-direction='back'] { transform: translateX(-100%); }
+
+.theme-curtain::before,
+.theme-curtain::after {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  width: 2px;
+  background: var(--accent);
+}
+.theme-curtain::before { left: 0; }
+.theme-curtain::after { right: 0; }
+
 @media (hover: hover) and (pointer: fine) {
   .btn > span:first-child {
     translate: var(--magnetic-x, 0px) var(--magnetic-y, 0px);
