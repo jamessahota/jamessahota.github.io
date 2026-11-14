@@ -1,5 +1,6 @@
 # Builds the site, runs the checks and publishes it to GitHub Pages
-# every time a change reaches the main branch.
+# every time a change reaches the main branch, and each weekday evening so that
+# the latest prices beside open views on the research page stay current.
 #
 # Before the first push, on GitHub: Settings → Pages → Build and deployment → Source: "GitHub Actions".
 # Until that is set, GitHub publishes the repository's files directly and this workflow cannot deploy.
@@ -11,6 +12,10 @@ on:
     branches: [main]
   # Allows a manual run from the Actions tab.
   workflow_dispatch:
+  # 22:30 UTC, Monday to Friday: after US markets close. Nothing is committed;
+  # the refreshed prices go only into the published site.
+  schedule:
+    - cron: '30 22 * * 1-5'
 
 permissions:
   contents: read
@@ -28,6 +33,10 @@ jobs:
     steps:
       - name: Check out the repository
         uses: actions/checkout@v7
+      - name: Refresh the latest prices shown beside open views
+        # A source that cannot be reached keeps the last committed price, so the site still deploys.
+        run: node scripts/update-prices.mjs
+        continue-on-error: true
       - name: Install, check, build and upload the site
         uses: withastro/action@v6
         with:

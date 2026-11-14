@@ -321,6 +321,8 @@ const views = defineCollection({
       // Endpoint: the price on the due date. Average: the average over the period.
       basis: z.enum(['endpoint', 'average']),
       instrument: z.string(),
+      // While a view is open, the latest price of its instrument, from src/data/latest-prices.json.
+      track: z.string().optional(),
       outcome: z
         .object({ value: z.number(), date: isoDay, source: z.string() })
         .optional(),

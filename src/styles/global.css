@@ -769,6 +769,11 @@ main > :last-child {
     display: none;
   }
 
+  /* A row that is hidden until its script runs stays hidden. */
+  .side-scroll[hidden] {
+    display: none !important;
+  }
+
   .side-scroll > * {
     flex: none;
     scroll-snap-align: start;

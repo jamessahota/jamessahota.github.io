@@ -103,6 +103,8 @@ Dated views from the reports live in `src/content/views.yaml`, one entry per vie
     source: NYMEX Brent futures (BZ=F), front month, closing price, via Yahoo Finance
 ```
 
+While a view is open, the page also shows the latest price of its instrument when the entry has a `track` that names a price in `src/data/latest-prices.json`. Those prices are not live. The deployment (`.github/workflows/deploy.yml`) refreshes them every weekday at 22:30 UTC, after US markets close, and on every push: it fetches the newest close for each price that has a free source (Brent and JKM futures from Yahoo Finance, New York Harbor diesel from FRED) and builds the site with them. Nothing is committed, so the copy in the repository can be older than the one on the site; `npm run prices` updates it locally. If a source cannot be reached, the last committed price is used and the site still deploys. GitHub pauses scheduled runs in a repository with no commits for 60 days; a manual run from the Actions tab, or any push, starts them again. A price with no free source, such as the Baltic freight rates, can be added to that file by hand without a `fetch` entry, and the script will leave it alone.
+
 Use the price of the instrument the view names. The page works out whether the outcome was inside the range, so never type a verdict, and keep every view, including those that miss. A new view needs its `report` (the file name of the report), `source` (`report` or `call`), `view`, `formed`, `due`, `range` (a `low`, a `high` or both, with a `unit`), `basis` (`endpoint` or `average`) and `instrument`. The build stops if `report` names a report that does not exist.
 
 ### Update the biography
@@ -182,7 +184,7 @@ All of these are additions on top of plain HTML. With JavaScript off, every page
 | Range bars | Tables on report pages, `src/components/DataTable.astro` | A column made only of ranges ("US$95–115") or percentages draws a thin bar under each figure, on one scale from zero. A row whose first cell says "base case" is drawn solid. Pointing at a cell tints its row and column |
 | Findings rail | Report pages | A line beside the key findings fills as they are read. It needs a browser with scroll-driven animations; elsewhere the list is unchanged |
 | Up next | End of each report | A dark band that lifts open on the next piece (the one published before it) |
-| Views and outcomes | `/research/` and report pages, `src/components/ViewsRecord.astro` | Each dated view drawn as its range on a scale, with a dot where the market finished once it falls due |
+| Views and outcomes | `/research/` and report pages, `src/components/ViewsRecord.astro` | Each dated view drawn as its range on a scale, with a dot where the market finished once it falls due, and a hollow marker at the latest price while it is open. On `/research/` the record can be filtered to the views inside their range, those that missed, or those still open |
 | What would change the view | Report pages, `src/components/ViewChangers.astro` | The conditions a report set out in advance, grouped by whether they would count against its view or for it |
 | Selected research on a phone | Homepage | The four cards sit in one row that is swiped sideways, with a count of the card in view |
 | Sideways rows on a phone | Topic chips, and the section links on the Experience, About, project and report pages | One row that scrolls sideways instead of wrapping into a tall stack (`.side-scroll` in `global.css`) |

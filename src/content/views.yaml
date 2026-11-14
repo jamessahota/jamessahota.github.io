@@ -12,6 +12,8 @@
 # - `instrument` is what the view priced. Judge it against that instrument only.
 # - Add `outcome` only once `due` has passed, from a named source, with the date of the price.
 # - Whether the outcome is inside the range is worked out by the page. Never type a verdict.
+# - `track` names an entry in src/data/latest-prices.json. While the view is open, the page shows
+#   that price as the latest. Refresh the prices with `npm run prices`.
 
 # Oil Above 100 (sole author), 12 September 2026
 - id: brent-one-month-sep-2026
@@ -27,12 +29,6 @@
     value: 104.72
     date: 2026-10-09
     source: NYMEX Brent futures (BZ=F), front month, closing price, via Yahoo Finance. The last close before the one-month mark
-  context: >-
-    The report did not say which Brent price its ranges refer to. The headline Brent price it
-    quoted, US$105.26 on 10 September, was for November futures, and its curve was ICE Brent futures,
-    so the view is judged on front-month futures. Physical Brent spot was far higher on
-    9 October, at US$130.03 (EIA Europe Brent spot, via FRED), which would have been above
-    the range.
 
 - id: brent-call-oct-2026
   report: oil-above-100-supply-shock
@@ -47,10 +43,6 @@
     value: 112.33
     date: 2026-10-30
     source: NYMEX Brent Last Day Financial futures, settlement at 17:00 EDT on 30 October, the last trading day on or before 31 October
-  context: >-
-    The call was headed US$95–115 and resolved on its upper limit only. It was written on
-    13 September, the day after the report was published, with a later deadline than the
-    report’s one-month view.
 
 - id: brent-end-2026-sep-2026
   report: oil-above-100-supply-shock
@@ -61,6 +53,7 @@
   range: { low: 85, high: 100, unit: US$ per barrel }
   basis: endpoint
   instrument: Brent futures, front month
+  track: brent-futures
 
 - id: brent-2027-average-sep-2026
   report: oil-above-100-supply-shock
@@ -71,6 +64,7 @@
   range: { low: 70, high: 90, unit: US$ per barrel }
   basis: average
   instrument: Brent futures, front month (2027 average of daily closes)
+  track: brent-futures
 
 # Panama Canal (with Benjamin Lozovsky), 5 October 2026
 # Editor's note, not shown on the site: JKMX6 is the November 2026 contract (X = November).
@@ -85,6 +79,7 @@
   range: { low: 27, high: 31, unit: US$ per MMBtu }
   basis: endpoint
   instrument: JKM LNG futures (JKMX6, CME)
+  track: jkm-futures
 
 - id: blng3-q4-2026
   report: panama-canal-el-nino-asia-energy-costs
@@ -116,6 +111,7 @@
   range: { low: 4.5, high: 4.75, unit: US$ per gallon }
   basis: average
   instrument: New York Harbor ULSD spot (EIA)
+  track: nyh-ulsd
 
 # Why the oil market is mispricing risk in Hormuz (with Michael Wu), 6 July 2026
 - id: brent-end-2026-hormuz-call
@@ -127,8 +123,4 @@
   range: { low: 82, unit: US$ per barrel }
   basis: endpoint
   instrument: Brent futures, front month (BZ=F)
-  context: >-
-    The call was written on 1 September 2026, eight weeks after the brief was published on
-    6 July; the brief itself gives no end-2026 level. Its short-dated view, that crude would rise
-    from about US$68 to around US$75–80 in the next couple of weeks, is not listed because it
-    named no benchmark and no date.
+  track: brent-futures

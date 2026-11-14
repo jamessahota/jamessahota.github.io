@@ -1,0 +1,35 @@
+{
+  "brent-futures": {
+    "label": "Brent futures, front month",
+    "unit": "US$ per barrel",
+    "source": "NYMEX Brent Last Day Financial futures (BZ=F), front month, closing price, via Yahoo Finance",
+    "fetch": {
+      "provider": "yahoo",
+      "ticker": "BZ=F"
+    },
+    "value": 95.84,
+    "date": "2026-11-13"
+  },
+  "jkm-futures": {
+    "label": "JKM LNG futures, front month",
+    "unit": "US$ per MMBtu",
+    "source": "JKM LNG futures (JKM=F), front month, closing price, via Yahoo Finance",
+    "fetch": {
+      "provider": "yahoo",
+      "ticker": "JKM=F"
+    },
+    "value": 31.351,
+    "date": "2026-11-13"
+  },
+  "nyh-ulsd": {
+    "label": "New York Harbor ULSD spot",
+    "unit": "US$ per gallon",
+    "source": "New York Harbor ultra-low sulphur diesel spot price, EIA, via FRED (DDFUELNYH)",
+    "fetch": {
+      "provider": "fred",
+      "series": "DDFUELNYH"
+    },
+    "value": 4.204,
+    "date": "2026-11-11"
+  }
+}
