@@ -38,6 +38,15 @@ keyNumbers:
     label: Base-case range for the 2027 annual average Brent price
 keyNumbersNote: Figures as reported in the paper. The price range is an analyst assumption, not a forecast from a model.
 
+viewChangers:
+  - condition: "Insured flows recover for two weeks, physical premiums compress and Brent falls below roughly US$90 as the curve flattens."
+    direction: weaken
+  - condition: "Gulf output stays at least 4 million barrels per day below pre-war levels into early 2027 while deferred Brent moves above US$100."
+    direction: weaken
+  - condition: "Diesel and jet margins compress rapidly, signalling that refinery and product supply is normalising."
+    direction: weaken
+  - condition: "A sustained recovery in Chinese imports would amplify Gulf supply losses; a renewed pullback would absorb part of the shock."
+    direction: either
 keyFindings:
   - >-
     Physical tightness came first. Dated Brent traded above US$100 from 3 September, before the

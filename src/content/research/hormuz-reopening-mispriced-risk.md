@@ -19,6 +19,13 @@ publicationStatus: published
 visibility: public
 originalUrl: https://605-markets.com/report/oil-gas-hormuz-mispricing-risk/
 fullReportMinutes: 11
+viewChangers:
+  - condition: "The Strait reopens more smoothly than expected, delayed barrels clear quickly and the remaining logistical premium leaves crude prices."
+    direction: weaken
+  - condition: "Tanker availability improves, insurance costs fall back to previous normal levels and OPEC supply additions arrive without disruption, so the market could shift from pricing a residual geopolitical shock to pricing a short-term supply overhang."
+    direction: weaken
+  - condition: "Shipping flows, freight conditions and OPEC+ delivery become clearer; until then, the report expects volatility to stay elevated."
+    direction: either
 keyFindings:
   - >-
     The main constraint was the gap between legal reopening and operational normalisation:

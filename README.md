@@ -29,7 +29,8 @@ Other commands:
 
 | To change | Edit |
 | --- | --- |
-| Name, introduction, email, LinkedIn, languages, awards, athletics | `src/content/profile.yaml` |
+| Name, introduction, email, LinkedIn, languages, awards, athletics, and the homepage “What I’m looking for” panel (`lookingFor`) | `src/content/profile.yaml` |
+| Dated views from the reports, and how they turned out | `src/content/views.yaml` (the rules are at the top of the file) |
 | Biography, research approach and other interests | `src/content/about.md` |
 | Roles | `src/content/experience.yaml` |
 | Degree, coursework, activities | `src/content/education.yaml` |
@@ -74,6 +75,7 @@ Page layouts are in `src/pages/` and shared pieces in `src/components/`. Adding 
 
 3. Write the summary in the body, below the second `---`.
 4. Optional extras: `subtitle`, `standfirst`, `keyNumbers`, `charts`, `tables`, `approach`, `sources`, `related` and `dataAsOf` are shown in `oil-above-100-supply-shock.md`, and `authorshipNote` in `diesel-distillate-bottleneck.md`. `contribution` is one line of text. `figures` is a list of images, each with `src`, `alt`, `width`, `height`, `caption` and `credit`.
+   `viewChangers` lists up to four conditions the report itself says would change its view, each with `direction: weaken`, `strengthen` or `either`; take them from the published text only (see `oil-above-100-supply-shock.md`). `cardFigure` draws a figure on the homepage card in place of a chart: `kind: cash-returns` needs a `unit` and an `amount` for each of its two numbers (see `totalenergies-cash-returns.md`); `kind: clean-power` needs a `percentage` for each (see `uk-energy-security-critique.md`).
 5. Run `npm run verify`. If a field is missing or a link is malformed, the message names the file and the field.
 
 Rules the build enforces: published work needs a `date` and either an `originalUrl` or a `pdf`; links must start with `https://`; a `pdf`, `figures` image or `cover` must exist in `public/`; table rows must match their columns; chart values cannot be negative.
@@ -89,6 +91,19 @@ Rules the build enforces: published work needs a `date` and either an `originalU
 ### Choose the featured research on the homepage
 
 In each report's front matter, `featured: true` puts it on the homepage and `order` sets the position. The homepage shows the first four, two by two: 1 and 2 on the top row, 3 and 4 beneath them.
+
+### Record how a view turned out
+
+Dated views from the reports live in `src/content/views.yaml`, one entry per view, with the rules at the top of the file. A view shows as open until its `due` date. Once that date has passed, add:
+
+```yaml
+  outcome:
+    value: 104.72
+    date: 2026-10-09        # the date of the price used
+    source: NYMEX Brent futures (BZ=F), front month, closing price, via Yahoo Finance
+```
+
+Use the price of the instrument the view names. The page works out whether the outcome was inside the range, so never type a verdict, and keep every view, including those that miss. A new view needs its `report` (the file name of the report), `source` (`report` or `call`), `view`, `formed`, `due`, `range` (a `low`, a `high` or both, with a `unit`), `basis` (`endpoint` or `average`) and `instrument`. The build stops if `report` names a report that does not exist.
 
 ### Update the biography
 
@@ -159,7 +174,7 @@ All of these are additions on top of plain HTML. With JavaScript off, every page
 | Copy address | Homepage contact block | Copies the email address |
 | Light and dark | Header switch | One ruled edge crosses the page, with the new theme behind it |
 | Pause animations | The pause icon in the header, beside the theme switch, on every page; and the Pause button in the hero | One setting with two buttons: it stills decorative CSS motion and the hero on every page, and the choice is remembered. The header icon is hidden for visitors who ask for reduced motion, for whom nothing moves anyway |
-| Research exhibits | `src/components/ResearchCard.astro` (cards) and `src/components/ResearchVisual.astro` (report headers) | A card shows its report's first chart, or two key numbers above a route illustration. The title and exhibit of the piece being opened travel to its page |
+| Research exhibits | `src/components/ResearchCard.astro` (cards) and `src/components/ResearchVisual.astro` (report headers) | A card shows its report’s `cardFigure`, its first chart, or two key numbers above a route illustration. The title and exhibit of the piece being opened travel to its page |
 | Project workflow | `src/components/ProjectFlow.astro` | Four stages from the documented research workflow |
 | Page changes | Between pages | Pages change with a direction: sideways between sections, down into a report and up on the way back. The orange underline in the header slides to the new section, and the title and plate of the piece being opened travel to its page. The rules are in `src/styles/motion.css`; the direction is set by the script in the head of `src/layouts/BaseLayout.astro` |
 | Publication record | `/research/`, `src/components/ResearchTape.astro` | One square per piece, stacked by month, built from the dates in the content files. Pointing at a square names the piece and marks its row; filtering empties the squares outside the topic |
@@ -167,4 +182,8 @@ All of these are additions on top of plain HTML. With JavaScript off, every page
 | Range bars | Tables on report pages, `src/components/DataTable.astro` | A column made only of ranges ("US$95–115") or percentages draws a thin bar under each figure, on one scale from zero. A row whose first cell says "base case" is drawn solid. Pointing at a cell tints its row and column |
 | Findings rail | Report pages | A line beside the key findings fills as they are read. It needs a browser with scroll-driven animations; elsewhere the list is unchanged |
 | Up next | End of each report | A dark band that lifts open on the next piece (the one published before it) |
-| Loops that rest | Everywhere | A decoration marked `data-loop` runs a few times when it comes into view, then stops until its card or panel is hovered or focused |
+| Views and outcomes | `/research/` and report pages, `src/components/ViewsRecord.astro` | Each dated view drawn as its range on a scale, with a dot where the market finished once it falls due |
+| What would change the view | Report pages, `src/components/ViewChangers.astro` | The conditions a report set out in advance, grouped by whether they would count against its view or for it |
+| Selected research on a phone | Homepage | The four cards sit in one row that is swiped sideways, with a count of the card in view |
+| Sideways rows on a phone | Topic chips, and the section links on the Experience, About, project and report pages | One row that scrolls sideways instead of wrapping into a tall stack (`.side-scroll` in `global.css`) |
+| Continuous decoration | Everywhere | A decoration marked `data-loop` runs while its card or panel is on screen. The pause switch in the header stops it |

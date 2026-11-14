@@ -42,6 +42,15 @@ keyNumbersNote: >-
   Sources: Reuters/Kpler, 12 October 2026; EIA Weekly Petroleum Status Report, 7 October 2026.
   Refinery capacity represents outages, not necessarily lost output.
 
+viewChangers:
+  - condition: "Delivered diesel volumes rise, East Coast stocks move back towards their seasonal average and the New York Harbor diesel-minus-Brent spread narrows, all at the same time."
+    direction: weaken
+  - condition: "Refinery repairs proceed faster than assumed, so global refining capacity normalises sooner and crack spreads narrow."
+    direction: weaken
+  - condition: "Diesel supply meets demand without further inventory draws, which the report calls the clearest sign that its view is wrong."
+    direction: weaken
+  - condition: "Diesel deficits continue even as crude availability improves."
+    direction: strengthen
 keyFindings:
   - >-
     Diesel rose faster than crude. In September 2026 the New York Harbor diesel-minus-Brent

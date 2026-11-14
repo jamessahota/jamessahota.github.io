@@ -18,6 +18,13 @@ publicationStatus: published
 visibility: public
 originalUrl: https://605-markets.com/report/energy-chevron-venezuela-asset-swap/
 fullReportMinutes: 6
+viewChangers:
+  - condition: "Logistical and infrastructure constraints stop Chevron reaching its production target, exposing Venezuela’s neglected oil infrastructure and the scale of investment needed."
+    direction: weaken
+  - condition: "Venezuela loses political stability or sanctions stop being lifted; the report says both are necessary for the deal to succeed."
+    direction: weaken
+  - condition: "Chevron successfully pairs its Venezuelan heavy crude production with its refineries, the report’s bullish scenario."
+    direction: strengthen
 keyFindings:
   - >-
     The heavy, sour crude of the Orinoco Belt suits refineries designed to process it, such as

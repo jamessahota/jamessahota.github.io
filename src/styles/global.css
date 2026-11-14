@@ -707,6 +707,75 @@ main > :last-child {
 }
 
 /* ==========================================================================
+   Small screens
+   ========================================================================== */
+
+/* On touch screens a small text link still gets a target a finger can hit,
+   without changing how it looks. */
+@media (pointer: coarse) {
+  .arrow-link {
+    min-height: 2.75rem;
+  }
+}
+
+@media (max-width: 47.99rem) {
+  /* A section count stays on the heading's line, at the right. */
+  .section-head:has(> p.label.numeric:last-child) {
+    flex-wrap: nowrap;
+    align-items: flex-end;
+  }
+
+  .section-head:has(> p.label.numeric:last-child) > :first-child {
+    min-width: 0;
+  }
+
+  /* A link that wraps keeps its arrow beside its last word. */
+  .capability .arrow-link,
+  .approach__item .arrow-link {
+    display: inline-block;
+    min-height: 0;
+    padding-block: 0.85rem;
+    line-height: 1.4;
+    text-wrap: balance;
+  }
+
+  .capability .arrow-link .icon,
+  .approach__item .arrow-link .icon {
+    display: inline-block;
+    margin-left: 0.5em;
+    vertical-align: -0.125em;
+  }
+}
+
+/* A row of chips or links that scrolls sideways on a phone instead of wrapping
+   into a tall stack. It runs to the screen edges and fades at the right to show
+   there is more. */
+@media (max-width: 47.99rem) {
+  /* !important because each row's own styles set it to wrap. */
+  .side-scroll {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+    margin-inline: calc(-1 * var(--gutter)) !important;
+    padding-inline: var(--gutter) !important;
+    scroll-padding-inline: var(--gutter);
+    mask-image: linear-gradient(90deg, #000 calc(100% - 2.5rem), transparent);
+  }
+
+  .side-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  .side-scroll > * {
+    flex: none;
+    scroll-snap-align: start;
+  }
+}
+
+/* ==========================================================================
    Motion
    ========================================================================== */
 

@@ -44,6 +44,15 @@ keyNumbers:
     label: Latest refinery utilisation
 keyNumbersNote: Figures from EIA weekly data, as reported in the paper.
 
+viewChangers:
+  - condition: "Within the eight-to-twelve-week horizon, supply recovers faster while refinery demand weakens, allowing US commercial crude stocks to rebuild."
+    direction: weaken
+  - condition: "US refinery runs pull back. The report names refinery utilisation as the indicator to watch and any pullback in runs as a primary catalyst for inventory rebuilding."
+    direction: weaken
+  - condition: "A persistent gap below the seasonal average would support WTI; a narrowing gap would weaken that price signal."
+    direction: either
+  - condition: "Middle East flows are disrupted, Russian refineries stay damaged and US refinery runs continue throughout 2027, so draws persist, stocks stay below average and the 2027 rebuild the report expected does not materialise."
+    direction: weaken
 keyFindings:
   - >-
     Domestic production does not explain most of the draw. Hurricane Isaias removed roughly 2

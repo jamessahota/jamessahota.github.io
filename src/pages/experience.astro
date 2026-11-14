@@ -34,7 +34,7 @@ const description =
       </p>
       <ButtonLink href="/cv/" label="View CV" icon="arrow-up-right" />
     </div>
-    <nav class="experience-jumps" aria-label="On this page">
+    <nav class="experience-jumps side-scroll" aria-label="On this page">
       <a href="#roles-heading">Roles <Icon name="arrow-down" /></a>
       {projects.length > 0 && <a href="#projects-heading">Independent project <Icon name="arrow-down" /></a>}
       <a href="#education">Education <Icon name="arrow-down" /></a>
@@ -347,6 +347,30 @@ const description =
     padding-block: 0.55rem;
     border-top: 1px solid var(--line);
     color: var(--ink-2);
+  }
+
+  @media (max-width: 55.99rem) {
+    .row.cell--link {
+      padding-right: clamp(1.1rem, 0.8rem + 1.2vw, 1.75rem);
+    }
+
+    .row.cell--link .row__aside {
+      min-height: 2.75rem;
+      padding-right: 3.75rem;
+    }
+  }
+
+  @media (pointer: coarse) {
+    .experience-jumps a {
+      min-height: 2.75rem;
+      padding-block: 0;
+    }
+  }
+
+  @media (max-width: 47.99rem) {
+    .capability {
+      min-height: 0;
+    }
   }
 
   .cv-link {

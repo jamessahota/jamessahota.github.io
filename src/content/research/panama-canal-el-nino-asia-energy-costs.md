@@ -38,6 +38,15 @@ keyNumbers:
     label: Base-case JKM range per MMBtu through late Q4 2026
 keyNumbersNote: Figures as reported in the paper. The JKM range is an analyst estimate conditional on renewed canal restrictions.
 
+viewChangers:
+  - condition: "The announced 33 daily slots from 15 October are delivered and sustained, and permitted draught stays at 14.94m or improves."
+    direction: weaken
+  - condition: "BLNG3 falls below about US$50,000/day for two consecutive weeks, BLPG3 below about US$300/tonne despite continuing Panama restrictions, or JKM trades below US$23/MMBtu."
+    direction: weaken
+  - condition: "Daily transit availability falls below about 27 vessels, especially towards the 2023–24 level of 22, or draught restrictions approach 13.4–14.0 metres."
+    direction: strengthen
+  - condition: "JKM moves above US$30/MMBtu while Middle East supply is broadly unchanged, giving cleaner evidence that Panama constraints are reaching Asian delivered prices."
+    direction: strengthen
 keyFindings:
   - >-
     An auction premium buys access; it does not replace the toll. Under the published tariff a

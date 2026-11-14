@@ -150,9 +150,10 @@ const stages = [
     .project-flow__stage { padding-inline: 0.75rem; }
     .project-flow__stage:nth-child(2) { border: 0; }
     .project-flow__stage p { font-size: 0.8125rem; }
-    .project-flow--compact .project-flow__stages { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; padding-inline: 0.4rem; }
-    .project-flow--compact .project-flow__name { font-size: 0.65rem; letter-spacing: -0.035em; }
-    .project-flow--compact .project-flow__stage:nth-child(2) { border-right: 1px solid #30383e; }
+    /* On a phone the four stage names would have to break mid-word to fit under the
+       four nodes, so they sit two by two instead, at reading size. */
+    .project-flow--compact .project-flow__stages { gap: 1rem 0; padding-inline: 0.6rem; }
+    .project-flow--compact .project-flow__name { font-size: 0.9375rem; }
   }
 
   @media (prefers-reduced-motion: reduce) {

@@ -24,11 +24,18 @@ cardFigure:
   title: Great Britain · clean electricity generation
   numbers:
     - value: 60%
-      label: Share of generation in 2023
+      label: Clean share of generation, 2023
       percentage: 60
     - value: ≥95%
       label: Government target for 2030
       percentage: 95
+viewChangers:
+  - condition: "The policy genuinely reduces the UK’s exposure to volatile global energy commodities over time, which the report sets as the test of success."
+    direction: weaken
+  - condition: "Clean capacity, storage and grid upgrades arrive too slowly, so gas keeps an outsized role in power pricing."
+    direction: strengthen
+  - condition: "UK demand either falls fast enough to justify a sharper drop in domestic supply, or stays high while output falls, leaving the UK more reliant on imports and global prices."
+    direction: either
 keyFindings:
   - >-
     Execution risk has a commodity-market consequence. Delays to grids, storage and generation

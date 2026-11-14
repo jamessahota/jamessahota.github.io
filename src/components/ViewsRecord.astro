@@ -1,0 +1,376 @@
+---
+// Views and outcomes: each dated view from a report, drawn as its range on a scale, with
+// where the market actually finished once the view has come due. Whether the outcome was
+// inside the range is worked out here from the numbers, never typed into the content file.
+import { getCollection } from 'astro:content';
+import { getPublicResearch, researchPath } from '../lib/content';
+import { formatDate } from '../lib/dates';
+
+interface Props {
+  /** Only the views from one report. Leave out for all of them. */
+  report?: string;
+  heading?: string;
+}
+
+const { report, heading = 'Views and outcomes' } = Astro.props;
+const research = await getPublicResearch();
+const allViews = await getCollection('views');
+// A view that names a report that does not exist would otherwise vanish silently, missed or not.
+const allResearch = await getCollection('research');
+for (const { data: view } of allViews) {
+  if (!allResearch.some((entry) => entry.id === view.report)) {
+    throw new Error(`src/content/views.yaml: "${view.id}" names a report that does not exist: "${view.report}"`);
+  }
+}
+const views = allViews
+  .map((entry) => entry.data)
+  .filter((view) => (report ? view.report === report : true))
+  .filter((view) => research.some((entry) => entry.id === view.report))
+  .sort((a, b) => a.due.localeCompare(b.due));
+
+type View = (typeof views)[number];
+const format = (value: number) =>
+  value.toLocaleString('en-GB', { minimumFractionDigits: Number.isInteger(value) ? 0 : 2, maximumFractionDigits: 2 });
+
+const verdict = (view: View) => {
+  if (!view.outcome) return { key: 'pending', text: `Due ${formatDate(view.due)}` };
+  const { low, high } = view.range;
+  if (low !== undefined && view.outcome.value < low) return { key: 'below', text: 'Missed: below the range' };
+  if (high !== undefined && view.outcome.value > high) return { key: 'above', text: 'Missed: above the range' };
+  return { key: 'inside', text: 'Inside the range' };
+};
+
+// Each row gets a scale wide enough for its range and its outcome, with some air either side.
+// A one-sided range runs off the edge of its scale on the open side.
+const scale = (view: View) => {
+  const { low, high } = view.range;
+  const values = [low, high, view.outcome?.value].filter((value): value is number => value !== undefined);
+  const span = Math.max(Math.max(...values) - Math.min(...values), Math.max(...values.map(Math.abs)) * 0.15) || 1;
+  const min = Math.min(...values) - span * 0.35;
+  const max = Math.max(...values) + span * 0.35;
+  const at = (value: number) => ((value - min) / (max - min)) * 100;
+  const from = low !== undefined ? at(low) : 0;
+  const to = high !== undefined ? at(high) : 100;
+  return {
+    from: from.toFixed(2),
+    width: (to - from).toFixed(2),
+    open: low === undefined ? 'left' : high === undefined ? 'right' : undefined,
+    outcome: view.outcome ? at(view.outcome.value).toFixed(2) : undefined,
+  };
+};
+
+const describe = (view: View) => {
+  const { low, high, unit } = view.range;
+  if (low !== undefined && high !== undefined) return `${format(low)}–${format(high)}, ${unit}`;
+  if (high !== undefined) return `at or below ${format(high)}, ${unit}`;
+  return `at or above ${format(low!)}, ${unit}`;
+};
+
+const title = (id: string) => research.find((entry) => entry.id === id);
+// Rows are grouped under the report they come from, newest report first.
+const groups = [...new Set(views.map((view) => view.report))]
+  .map((id) => ({ piece: title(id)!, views: views.filter((view) => view.report === id) }))
+  .sort((a, b) => (b.piece.data.date ?? '').localeCompare(a.piece.data.date ?? ''));
+const judged = views.filter((view) => view.outcome);
+const inside = judged.filter((view) => verdict(view).key === 'inside').length;
+---
+
+{
+  views.length > 0 && (
+    <section class="record" id="views" aria-labelledby="views-heading" data-reveal>
+      <div class="record__head">
+        <h2 id="views-heading" class={report ? 'record__heading--block label label--marked' : 'record__heading'}>{heading}</h2>
+        <p class="record__tally label numeric">
+          <span>{judged.length} judged</span>
+          {judged.length > 0 && (
+            <>
+              {' '}
+              <span>· {inside} inside the range</span> <span>· {judged.length - inside} missed</span>
+            </>
+          )}{' '}
+          <span>· {views.length - judged.length} still open</span>
+        </p>
+      </div>
+      {groups.map((group) => (
+        <div class="record__group">
+          {!report && (
+            <p class="record__report label">
+              From <a href={researchPath(group.piece)}>{group.piece.data.title}</a>
+            </p>
+          )}
+          <ol class="record__list">
+            {group.views.map((view, index) => {
+              const result = verdict(view);
+              const place = scale(view);
+              return (
+                <li class:list={['record__row', `record__row--${result.key}`]} style={`--i:${index}`}>
+                  <div class="record__what">
+                    <p class="record__view">{view.view}</p>
+                    <p class="record__meta label">
+                      <span class="record__kind">{view.source === 'call' ? 'Published call' : 'From the report'}</span> ·{' '}
+                      {view.instrument} · made {formatDate(view.formed)}
+                    </p>
+                  </div>
+                  <div class="record__chart" aria-hidden="true">
+                    <span
+                      class:list={['record__band', place.open && `record__band--open-${place.open}`]}
+                      style={`left:${place.from}%;width:${place.width}%`}
+                    />
+                    {view.range.low !== undefined && (
+                      <span class="record__end numeric" style={`left:${place.from}%`}>{format(view.range.low)}</span>
+                    )}
+                    {view.range.high !== undefined && (
+                      <span class="record__end numeric" style={`left:${(Number(place.from) + Number(place.width)).toFixed(2)}%`}>
+                        {format(view.range.high)}
+                      </span>
+                    )}
+                    {place.outcome && <span class="record__dot" style={`left:${place.outcome}%`} />}
+                  </div>
+                  <div class="record__result">
+                    <p class="record__verdict">
+                      <span class="record__flag" aria-hidden="true" />
+                      {result.text}
+                    </p>
+                    <p class="record__detail">
+                      View: {describe(view)}
+                      {view.basis === 'average' ? ', as an average' : ''}.
+                      {view.outcome && (
+                        <>
+                          {' '}
+                          Outcome: {format(view.outcome.value)} on {formatDate(view.outcome.date)}.
+                        </>
+                      )}
+                    </p>
+                    {view.outcome && <p class="record__source">Source: {view.outcome.source}.</p>}
+                    {view.context && <p class="record__source">{view.context}</p>}
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        </div>
+      ))}
+      <p class="record__note">
+        Listed: every base-case view that puts a named benchmark in a price range at a set date or over a set period,
+        and every call published with a report on 6:05 Markets, including those that miss. Not listed: conditional
+        scenarios, and views with no named benchmark or no set date. Where a report’s base case was also published as a
+        call for the same range and period, it is listed once, as the call. Views are judged once their date has passed:
+        a call on the series it resolves against, and a report view that names only Brent on front-month Brent futures,
+        the contract behind the headline Brent price in the report.
+      </p>
+    </section>
+  )
+}
+
+<style>
+  .record {
+    container-type: inline-size;
+    margin-top: clamp(2rem, 1.4rem + 2.6vw, 3.5rem);
+  }
+
+  /* On a report page the heading matches the page's other section labels. */
+  .record__heading--block {
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  .record__tally span {
+    white-space: nowrap;
+  }
+
+  .record__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-2) var(--space-5);
+    padding-bottom: var(--space-4);
+    border-bottom: 1px solid var(--ink);
+  }
+
+  .record__heading {
+    font-size: var(--text-xl);
+    letter-spacing: -0.025em;
+  }
+
+  .record__report {
+    padding-top: var(--space-5);
+    line-height: 1.6;
+  }
+
+  .record__report a {
+    color: var(--ink);
+  }
+
+  .record__row {
+    display: grid;
+    gap: var(--space-4);
+    padding-block: var(--space-5);
+    border-bottom: 1px solid var(--line);
+  }
+
+  /* Three columns only when the record itself is wide enough, wherever it sits. */
+  @container (min-width: 48rem) {
+    .record__row {
+      grid-template-columns: minmax(0, 4fr) minmax(0, 4fr) minmax(0, 4fr);
+      align-items: center;
+      gap: var(--space-6);
+    }
+  }
+
+  .record__view {
+    font-size: var(--text-lg);
+    line-height: 1.3;
+    letter-spacing: -0.015em;
+  }
+
+  .record__meta {
+    margin-top: var(--space-2);
+    line-height: 1.6;
+  }
+
+  /* The range as a band on a scale, with a dot where the market finished. */
+  .record__chart {
+    position: relative;
+    height: 3.25rem;
+    background: linear-gradient(var(--line), var(--line)) 0 1.1rem / 100% 1px no-repeat;
+  }
+
+  .record__band {
+    position: absolute;
+    top: calc(1.1rem - 0.35rem);
+    height: 0.7rem;
+    border: 1.5px solid var(--ink-2);
+    background: color-mix(in srgb, var(--ink) 8%, transparent);
+    transform-origin: left center;
+  }
+
+  /* A one-sided view fades out towards its open end. */
+  .record__band--open-left {
+    border-left: 0;
+    mask-image: linear-gradient(90deg, transparent, #000 40%);
+  }
+
+  .record__band--open-right {
+    border-right: 0;
+    mask-image: linear-gradient(90deg, #000 60%, transparent);
+  }
+
+  .record__kind {
+    color: var(--ink);
+  }
+
+  .record__row--inside .record__band {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 22%, transparent);
+  }
+
+  .record__end {
+    position: absolute;
+    top: 1.85rem;
+    transform: translateX(-50%);
+    font-family: var(--mono);
+    font-size: var(--text-xs);
+    color: var(--muted);
+  }
+
+  .record__dot {
+    position: absolute;
+    top: calc(1.1rem - 0.45rem);
+    width: 0.9rem;
+    height: 0.9rem;
+    margin-left: -0.45rem;
+    border: 2px solid var(--bg);
+    border-radius: 50%;
+    background: var(--ink);
+    box-shadow: 0 0 0 1px var(--ink);
+  }
+
+  .record__row--inside .record__dot {
+    background: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent);
+  }
+
+  .record__verdict {
+    display: flex;
+    align-items: center;
+    gap: 0.6em;
+    font-weight: 600;
+  }
+
+  .record__flag {
+    width: 0.6rem;
+    height: 0.6rem;
+    border: 1.5px solid var(--muted);
+  }
+
+  .record__row--inside .record__flag {
+    border-color: var(--accent);
+    background: var(--accent);
+  }
+
+  .record__row--above .record__flag,
+  .record__row--below .record__flag {
+    border-color: var(--ink);
+    background: var(--ink);
+  }
+
+  .record__row--pending .record__verdict {
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  .record__detail {
+    margin-top: var(--space-2);
+    color: var(--ink-2);
+    font-size: var(--text-sm);
+    line-height: 1.5;
+  }
+
+  .record__source,
+  .record__note {
+    margin-top: var(--space-2);
+    font-family: var(--mono);
+    font-size: var(--text-xs);
+    line-height: 1.55;
+    color: var(--muted);
+  }
+
+  .record__note {
+    margin-top: var(--space-4);
+    max-width: var(--measure);
+  }
+
+  /* On arrival each band draws out from its low end, then the outcome lands on the scale. */
+  .record:global(.reveal-wait) .record__band {
+    transform: scaleX(0);
+  }
+
+  .record:global(.reveal-wait) .record__dot {
+    opacity: 0;
+    transform: translateY(-1rem);
+  }
+
+  .record:global(.reveal-in) .record__band {
+    transform: none;
+    transition: transform 0.8s var(--ease-out) calc(0.2s + var(--i) * 120ms);
+  }
+
+  .record:global(.reveal-in) .record__dot {
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity 0.3s var(--ease) calc(0.85s + var(--i) * 120ms),
+      transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) calc(0.85s + var(--i) * 120ms);
+  }
+
+  @media print {
+    .record .record__band,
+    .record .record__dot {
+      opacity: 1 !important;
+      transform: none !important;
+      print-color-adjust: exact;
+      -webkit-print-color-adjust: exact;
+    }
+  }
+</style>

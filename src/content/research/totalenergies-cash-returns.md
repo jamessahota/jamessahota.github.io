@@ -23,12 +23,24 @@ featured: true
 order: 3
 cardFigure:
   kind: cash-returns
-  title: Diversified cash generation
+  title: Cash generated against cash returned by buyback
+  unit: US$ billion
   numbers:
     - value: US$8.6bn
       label: Cash flow from operations, Q1 2026
+      amount: 8.6
     - value: US$1.5bn
-      label: Share buyback, Q2 2026
+      label: Share buyback announced for Q2 2026
+      amount: 1.5
+viewChangers:
+  - condition: "Oil and LNG prices fall sharply, pressuring upstream earnings, cash flow and buyback capacity."
+    direction: weaken
+  - condition: "Refining margins normalise because product demand slows, inventories rebuild or crude/product spreads narrow."
+    direction: weaken
+  - condition: "As a French major earning strong profits in a volatile period, TotalEnergies faces windfall-tax pressure, tighter regulation or negative investor sentiment."
+    direction: weaken
+  - condition: "Oil and LNG prices stay elevated, refining margins stay resilient and management keeps returning cash."
+    direction: strengthen
 keyFindings:
   - >-
     First-quarter cash flow from operations was reported at US$8.6 billion and net income at

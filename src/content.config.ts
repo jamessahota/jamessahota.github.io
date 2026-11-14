@@ -101,7 +101,9 @@ const research = defineCollection({
           z.object({
             kind: z.literal('cash-returns'),
             title: z.string(),
-            numbers: z.array(keyNumber).length(2),
+            // `amount` is the figure as a plain number in `unit`, so the bars can be drawn to scale.
+            unit: z.string(),
+            numbers: z.array(keyNumber.extend({ amount: z.number().positive() })).length(2),
           }),
           z.object({
             kind: z.literal('clean-power'),
@@ -113,6 +115,13 @@ const research = defineCollection({
       keyNumbers: z.array(keyNumber).min(1).max(4).optional(),
       keyNumbersNote: z.string().optional(),
       keyFindings: z.array(z.string()).max(6).default([]),
+      // What the report itself says would change its view. Taken from the published text,
+      // never added after the fact. 'weaken' would count against the view, 'strengthen' for it.
+      viewChangers: z
+        .array(z.object({ condition: z.string(), direction: z.enum(['weaken', 'strengthen', 'either']) }))
+        .min(1)
+        .max(4)
+        .optional(),
       charts: z
         .array(
           z.object({
@@ -214,6 +223,8 @@ const profile = defineCollection({
     linkedin: httpsUrl,
     atAGlance: z.array(z.object({ label: z.string(), value: z.string(), href: link.optional() })),
     contactInvite: z.string(),
+    // The panel beside the homepage About paragraph: what James is looking for next.
+    lookingFor: z.object({ label: z.string(), title: z.string(), text: z.string(), markets: z.array(z.string()).min(1) }),
     homeAbout: z.string(),
     languages: z.array(z.object({ name: z.string(), level: z.string() })),
     athletics: z.array(z.string()),
@@ -285,4 +296,41 @@ const capabilities = defineCollection({
   }),
 });
 
-export const collections = { research, projects, profile, about, experience, education, capabilities };
+// Dated views from the reports, and what the market did. Each view is quoted from a published
+// report; an outcome is added only from a named price source, and whether it fell inside the
+// range is worked out by the page, never typed in.
+// YAML reads an unquoted 2026-10-09 as a date, so accept that as well as text.
+const isoDay = z.preprocess(
+  (value) => (value instanceof Date ? value.toISOString().slice(0, 10) : value),
+  z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD'),
+);
+const views = defineCollection({
+  loader: file('src/content/views.yaml'),
+  schema: z
+    .object({
+      id: z.string(),
+      report: z.string(),
+      // 'report': stated in the report's text. 'call': a call card published with the report.
+      source: z.enum(['report', 'call']),
+      view: z.string(),
+      // When the view was formed (the report's data date) and when it is due to be judged.
+      formed: isoDay,
+      due: isoDay,
+      // A call can be one-sided ("at or below 115"), so either end may be left out.
+      range: z.object({ low: z.number().optional(), high: z.number().optional(), unit: z.string() }),
+      // Endpoint: the price on the due date. Average: the average over the period.
+      basis: z.enum(['endpoint', 'average']),
+      instrument: z.string(),
+      outcome: z
+        .object({ value: z.number(), date: isoDay, source: z.string() })
+        .optional(),
+      context: z.string().optional(),
+    })
+    .refine((view) => view.range.low !== undefined || view.range.high !== undefined, 'A range needs a low or a high end')
+    .refine(
+      (view) => view.range.low === undefined || view.range.high === undefined || view.range.low < view.range.high,
+      'The low end of a range must be below the high end',
+    ),
+});
+
+export const collections = { research, projects, profile, about, experience, education, capabilities, views };

@@ -19,6 +19,15 @@ publicationStatus: published
 visibility: public
 originalUrl: https://605-markets.com/report/oil-gas-hormuz-under-fire-uae-fujairah/
 fullReportMinutes: 11
+viewChangers:
+  - condition: "Strikes on the Fujairah area stop and de-escalation follows; the report then expects crude to give back its jump of about US$6 quickly and stabilise between US$95 and US$105."
+    direction: weaken
+  - condition: "Iran pulls back, or the US and Gulf states credibly secure Fujairah and the surrounding sea routes, restoring the security of Gulf exports."
+    direction: weaken
+  - condition: "Iranian attacks continue or the UAE joins US operations more directly. The report names these as upside risks: consistent with its view that Brent stays elevated, but able to push it above its near-term range of about US$110–125 a barrel."
+    direction: either
+  - condition: "Iran strikes the ADCOP pipeline directly or successfully enforces a wider maritime control zone around Fujairah, the only routes the report saw to a complete collapse of UAE export capacity. That would go beyond its contained base case, but bear out its argument that the risk had widened to the infrastructure that bypasses Hormuz."
+    direction: either
 keyFindings:
   - >-
     Attacking the bypass route is a different risk from threatening the strait. Even partial

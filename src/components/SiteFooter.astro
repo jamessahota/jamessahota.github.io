@@ -46,7 +46,7 @@ const year = new Date().getFullYear();
       <div class="footer-contact__actions" data-reveal>
         <ButtonLink href={`mailto:${profile.email}`} label={profile.email} variant="on-dark" icon="mail" />
         <CopyEmail email={profile.email} />
-        <ButtonLink href="/cv/" label="View CV" variant="outline-dark" icon="arrow-up-right" />
+        {!Astro.url.pathname.startsWith('/cv') && <ButtonLink href="/cv/" label="View CV" variant="outline-dark" icon="arrow-up-right" />}
         <ButtonLink href={profile.linkedin} label="LinkedIn" variant="outline-dark" icon="arrow-up-right" />
       </div>
     </div>
@@ -65,7 +65,7 @@ const year = new Date().getFullYear();
           <li><a class="quiet-link" href="/cv/">CV</a></li>
         </ul>
       </nav>
-      <div>
+      <div class="footer-grid__contact">
         <p class="label">Contact</p>
         <ul>
           <li><a class="quiet-link" href={`mailto:${profile.email}`}>{profile.email}</a></li>
@@ -162,7 +162,7 @@ const year = new Date().getFullYear();
   .footer-grid > * { min-width: 0; }
   .footer-line { margin-top: var(--space-3); font-size: var(--text-lg); letter-spacing: -0.02em; line-height: 1.25; max-width: 19rem; }
   .site-footer ul { margin-top: var(--space-2); }
-  .site-footer li a { display: inline-flex; align-items: center; gap: 0.35em; padding-block: 0.3rem; overflow-wrap: anywhere; }
+  .site-footer li a { display: inline-flex; align-items: center; gap: 0.35em; min-height: 2.5rem; overflow-wrap: anywhere; }
   .footer-word { container-type: inline-size; margin-top: clamp(3rem, 5vw, 5rem); overflow: hidden; user-select: none; }
   .footer-word span {
     display: block;
@@ -184,7 +184,13 @@ const year = new Date().getFullYear();
     .footer-contact__actions { max-width: 24rem; }
     .footer-contact__actions :global(.btn) { flex: 1 1 auto; }
     .footer-routes { right: -100%; opacity: 0.5; }
+    .footer-grid__identity, .footer-grid__contact { grid-column: 1 / -1; }
+    /* The name and line are repeated by the wordmark just below. */
+    .footer-grid__identity { display: none; }
+    .footer-grid__contact { order: 1; }
+    .footer-grid { gap: 1.5rem 2rem; }
   }
   @media (prefers-reduced-motion: reduce) { .footer-routes__pulses path { animation: none; } .footer-routes { transform: none; } }
+  :global([data-theme='dark']) .footer-contact { background: #181b1e; border-top: 1px solid var(--line); }
   @media print { .footer-contact { display: none; } }
 </style>

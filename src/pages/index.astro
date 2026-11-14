@@ -1,7 +1,7 @@
 ---
 import ButtonLink from '../components/ButtonLink.astro';
-import AboutSculpture from '../components/AboutSculpture.astro';
 import FlowPanel from '../components/FlowPanel.astro';
+import LookingFor from '../components/LookingFor.astro';
 import Icon from '../components/Icon.astro';
 import ResearchCard from '../components/ResearchCard.astro';
 import ProjectFlow from '../components/ProjectFlow.astro';
@@ -87,44 +87,18 @@ const jsonLd = {
           <ButtonLink href="/research/" label={`All ${researchCount} pieces`} variant="secondary" icon="arrow-right" />
         </div>
 
-        <div class="cells selected">
+        <div class="cells selected" data-carousel>
           {selected.map((entry, position) => (
             <ResearchCard entry={entry} index={position + 1} />
           ))}
         </div>
+        <p class="selected__count label numeric" aria-hidden="true" data-carousel-count hidden>
+          <span data-carousel-now>1</span> / {selected.length}
+          <span class="selected__hint">Swipe for more</span>
+        </p>
       </section>
     )
   }
-
-  <section class="section container" aria-labelledby="experience-heading" data-reveal data-reveal-style="mask">
-    <div class="panel panel--night home-experience">
-      <div class="section-head" data-reveal>
-        <div>
-          <p class="label">
-            <span class="on-panel-accent">02</span> / Experience
-          </p>
-          <h2 id="experience-heading">Experience and leadership</h2>
-        </div>
-        <ButtonLink href="/experience/" label="Full experience" variant="outline-dark" icon="arrow-right" />
-      </div>
-
-      <ol class="roles">
-        {
-          roles.map((role, position) => (
-            <li class="roles__item" data-reveal={position + 1}>
-              <span class="roles__index numeric" aria-hidden="true">{String(position + 1).padStart(2, '0')}</span>
-              <p class="roles__period label numeric">{formatPeriod(role.data.start, role.data.end)}</p>
-              <div class="roles__who">
-                <h3>{role.data.organisation}</h3>
-                <p class="muted">{role.data.role}</p>
-              </div>
-              <p class="roles__summary">{role.data.homeSummary}</p>
-            </li>
-          ))
-        }
-      </ol>
-    </div>
-  </section>
 
   {
     project && (
@@ -132,7 +106,7 @@ const jsonLd = {
         <div class="panel panel--surface project">
           <div class="project__text" data-reveal>
             <p class="label">
-              <span class="label--accent">03</span> / {project.data.kind}
+              <span class="label--accent">02</span> / {project.data.kind}
             </p>
             <h2 id="project-heading"><span style={`view-transition-name: project-title-${project.id.replace(/[^a-zA-Z0-9_-]/g, '-')}`}>{project.data.title}</span></h2>
             <p class="project__summary">{project.data.summary}</p>
@@ -159,6 +133,36 @@ const jsonLd = {
     )
   }
 
+  <section class="section container" aria-labelledby="experience-heading" data-reveal data-reveal-style="mask">
+    <div class="panel panel--night home-experience">
+      <div class="section-head" data-reveal>
+        <div>
+          <p class="label">
+            <span class="on-panel-accent">03</span> / Experience
+          </p>
+          <h2 id="experience-heading">Experience and leadership</h2>
+        </div>
+        <ButtonLink href="/experience/" label="Full experience" variant="outline-dark" icon="arrow-right" />
+      </div>
+
+      <ol class="roles">
+        {
+          roles.map((role, position) => (
+            <li class="roles__item" data-reveal={position + 1}>
+              <span class="roles__index numeric" aria-hidden="true">{String(position + 1).padStart(2, '0')}</span>
+              <p class="roles__period label numeric">{formatPeriod(role.data.start, role.data.end)}</p>
+              <div class="roles__who">
+                <h3>{role.data.organisation}</h3>
+                <p class="muted">{role.data.role}</p>
+              </div>
+              <p class="roles__summary">{role.data.homeSummary}</p>
+            </li>
+          ))
+        }
+      </ol>
+    </div>
+  </section>
+
   <section class="section container home-about" aria-label="About James Sahota">
       <div class="closing__about" data-reveal>
         <p class="label">
@@ -170,9 +174,44 @@ const jsonLd = {
           <Icon name="arrow-right" />
         </a>
       </div>
-      <AboutSculpture />
+      <LookingFor />
   </section>
 </BaseLayout>
+
+<script>
+  // The phone carousel of selected research: shows which card is in view.
+  const carousel = document.querySelector<HTMLElement>('[data-carousel]');
+  const counter = document.querySelector<HTMLElement>('[data-carousel-count]');
+  const now = counter?.querySelector<HTMLElement>('[data-carousel-now]');
+  if (carousel && counter && now) {
+    const cards = [...carousel.children] as HTMLElement[];
+    const hint = counter.querySelector<HTMLElement>('.selected__hint');
+    const phone = window.matchMedia('(max-width: 47.99rem)');
+    let live: HTMLElement | undefined;
+    // The row is as tall as the card in view, so a short card leaves no gap below it.
+    const fit = () => {
+      carousel.style.height = phone.matches && live ? `${live.offsetHeight}px` : '';
+    };
+    counter.hidden = false;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          entry.target.classList.toggle('is-live', entry.isIntersecting);
+          if (!entry.isIntersecting) continue;
+          live = entry.target as HTMLElement;
+          const index = cards.indexOf(live);
+          now.textContent = String(index + 1);
+          if (hint) hint.hidden = index === cards.length - 1;
+          fit();
+        }
+      },
+      { root: carousel, threshold: 0.6 },
+    );
+    cards.forEach((card) => observer.observe(card));
+    phone.addEventListener('change', fit);
+    window.addEventListener('resize', fit, { passive: true });
+  }
+</script>
 
 <style>
   /* Introduction */
@@ -265,8 +304,11 @@ const jsonLd = {
   }
 
   .route-bridge { height:6.5rem; overflow:hidden; }
+  /* On a phone the facts are stacked, so lines fanning out to three columns point at nothing. */
+  @media(max-width:51.99rem) { .route-bridge { display:none; } .glance { margin-top:var(--gutter) !important; } }
   .route-bridge svg { width:100%; height:100%; stroke:var(--accent); stroke-width:1; }
-  .glance { margin-top:0 !important; }
+  @media(min-width:52rem) { .glance { margin-top:0 !important; } }
+  :global([data-theme='dark']) .home-experience { box-shadow: inset 0 0 0 1px var(--line); }
   .selected-section { padding-top:clamp(4rem,7vw,7rem); }
   .home-experience { position:relative; overflow:hidden; padding:clamp(1.5rem,5vw,4.5rem); background:radial-gradient(ellipse at 100% 100%,#3c251d,transparent 70%),#111719; }
   .roles__index { font-family:var(--display); font-size:3rem; color:#ff6a33; line-height:1; }
@@ -308,9 +350,98 @@ const jsonLd = {
     letter-spacing: -0.02em;
   }
 
-  /* Selected research: four cells, two by two */
+  /* Selected research: four cells, two by two. On a phone, one card at a time in a
+     row that is swiped sideways, with the next card peeking in from the right. */
   .selected {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  @media (max-width: 47.99rem) {
+    .selected {
+      display: flex;
+      gap: 0.75rem;
+      overflow-x: auto;
+      overscroll-behavior-x: contain;
+      scroll-snap-type: x mandatory;
+      scrollbar-width: none;
+      margin-inline: calc(-1 * var(--gutter));
+      padding-inline: var(--gutter);
+      scroll-padding-inline: var(--gutter);
+      border: 0;
+      border-radius: 0;
+    }
+
+    .selected::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* The row takes the height of the card in view (set by the script), so a short card
+       leaves no gap above the counter. */
+    .selected {
+      overflow-y: hidden;
+      transition: height 0.4s var(--ease-out);
+    }
+
+    /* Each card keeps its own height, so a short summary leaves no gap inside the card. */
+    .selected {
+      align-items: flex-start;
+    }
+
+    .selected > :global(.rcard) {
+      flex: 0 0 min(86%, 24rem);
+      scroll-snap-align: start;
+      outline: 0;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+    }
+
+    /* Here the card in view is the live one, set by the script below as cards are swiped,
+       in place of the scroll-linked version used elsewhere (all four share one row). */
+    .selected > :global(.rcard)::before,
+    .selected > :global(.rcard) :global(.go) {
+      animation: none;
+    }
+
+    .selected > :global(.rcard.is-live)::before {
+      transform: scaleX(1);
+    }
+
+    .selected > :global(.rcard.is-live) :global(.go) {
+      transform: rotate(-45deg);
+      background: var(--accent);
+      border-color: var(--accent);
+      color: var(--on-accent);
+    }
+
+    .selected__count {
+      display: flex;
+      gap: 0.6em;
+      margin-top: var(--space-4);
+    }
+
+    .selected__count[hidden] {
+      display: none;
+    }
+
+    .selected__hint {
+      margin-left: auto;
+    }
+  }
+
+  @media (min-width: 48rem) {
+    .selected__count {
+      display: none !important;
+    }
+
+    .selected {
+      height: auto !important;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .selected {
+      transition: none;
+    }
   }
 
   @media (min-width: 48rem) {

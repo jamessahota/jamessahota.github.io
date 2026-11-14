@@ -6,36 +6,30 @@ interface Props {
 }
 
 const { figure } = Astro.props;
-const coinStacks = [{ x: 107, y: 117 }, { x: 280, y: 111 }, { x: 453, y: 117 }];
+// Bars share one scale from zero, so their lengths compare the two amounts directly.
+const largest = figure.kind === 'cash-returns' ? Math.max(...figure.numbers.map((item) => item.amount)) : 1;
 ---
 
 <div class:list={['report-figure', `report-figure--${figure.kind}`]}>
   <p class="report-figure__caption label">{figure.title}</p>
 
   {figure.kind === 'cash-returns' ? (
-    <>
-      <svg class="report-figure__drawing" viewBox="0 0 560 144" width="560" height="144" fill="none" aria-hidden="true" focusable="false">
-        {coinStacks.map((stack, stackIndex) => (
-          <g transform={`translate(${stack.x} ${stack.y})`}>
-            <ellipse class="report-figure__coin-shadow" cx="0" cy="9" rx="62" ry="15" />
-            {Array.from({ length: 5 }, (_, layer) => (
-              <g transform={`translate(0 ${-layer * 12})`}>
-                <g class="report-figure__coin" data-loop style={`--coin-delay:${stackIndex * -1.6 - layer * 0.14}s;--coin-lift:${4 + layer * 3}px`}>
-                  <path class="report-figure__coin-edge" d="M-48-5A48 15 0 0 0 48-5V4A48 15 0 0 1-48 4Z" />
-                  <ellipse class="report-figure__coin-face" cx="0" cy="-5" rx="48" ry="15" />
-                  <ellipse class="report-figure__coin-rim" cx="0" cy="-5" rx="38" ry="10" />
-                  <path class="report-figure__coin-mark" d="M-7-5H7M0-10V0" />
-                  <path class="report-figure__coin-grooves" d="M-33 7V13M-20 11V17M-6 13V19M8 13V19M22 11V17M35 7V13" />
-                </g>
-              </g>
-            ))}
-          </g>
-        ))}
-      </svg>
-      <div class="report-figure__legend" aria-hidden="true">
-        <span>Cash generation</span><span>Capital returns</span>
-      </div>
-    </>
+    <dl class="report-figure__bars">
+      {figure.numbers.map((item, index) => (
+        <div style={`--bar-order:${index}`}>
+          <dt>{item.label}</dt>
+          <dd>
+            <span class="report-figure__bar-track">
+              <span
+                class:list={['report-figure__bar', { 'report-figure__bar--second': index === 1 }]}
+                style={`width:${((item.amount / largest) * 100).toFixed(1)}%`}
+              />
+            </span>
+            <span class="report-figure__bar-value numeric">{item.value}</span>
+          </dd>
+        </div>
+      ))}
+    </dl>
   ) : (
     <div class="report-figure__power" aria-hidden="true">
       <svg class="report-figure__connection" viewBox="0 0 560 144" width="560" height="144" fill="none" focusable="false">
@@ -59,14 +53,18 @@ const coinStacks = [{ x: 107, y: 117 }, { x: 280, y: 111 }, { x: 453, y: 117 }];
     </div>
   )}
 
-  <dl class="report-figure__numbers">
-    {figure.numbers.map((item) => (
-      <div>
-        <dt class="numeric">{item.value}</dt>
-        <dd>{item.label}</dd>
-      </div>
-    ))}
-  </dl>
+  {figure.kind === 'cash-returns' ? (
+    <p class="report-figure__scale">Both bars on one scale from zero, {figure.unit}.</p>
+  ) : (
+    <dl class="report-figure__numbers">
+      {figure.numbers.map((item) => (
+        <div>
+          <dt class="numeric">{item.value}</dt>
+          <dd>{item.label}</dd>
+        </div>
+      ))}
+    </dl>
+  )}
 </div>
 
 <style>
@@ -77,13 +75,70 @@ const coinStacks = [{ x: 107, y: 117 }, { x: 280, y: 111 }, { x: 453, y: 117 }];
     line-height: 1.6;
     min-height: 2.2em;
   }
-  .report-figure__drawing {
-    display: block;
-    width: 100%;
-    height: 8.5rem;
-    margin-block: 0.5rem 0;
-    overflow: visible;
+  /* Cash generated against cash returned: two bars on one scale. */
+  .report-figure__bars {
+    display: grid;
+    gap: 1.6rem;
+    margin-block: 1.25rem 1.5rem;
   }
+
+  .report-figure__bars dt {
+    color: #a2a9b0;
+    font-family: var(--mono);
+    font-size: 0.6875rem;
+    line-height: 1.4;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .report-figure__bars dd {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 0.6rem;
+  }
+
+  .report-figure__bar-track {
+    display: block;
+    height: 1.1rem;
+    background: linear-gradient(90deg, #eef0f114 1px, transparent 1px) 0 0 / 10% 100%;
+    border-bottom: 1px solid #eef0f12b;
+  }
+
+  .report-figure__bar {
+    display: block;
+    height: 100%;
+    background: linear-gradient(90deg, #f04400, #ff8c5e);
+    transform-origin: left center;
+    transition: transform 1.1s var(--ease-out, ease) calc(0.15s + var(--bar-order, 0) * 120ms);
+  }
+
+  .report-figure__bar--second {
+    background: #ffb28b;
+  }
+
+  :global(.rcard.reveal-wait) .report-figure__bar {
+    transform: scaleX(0);
+  }
+
+  .report-figure__bar-value {
+    min-width: 5.5ch;
+    color: #eef0f1;
+    font-size: clamp(1.35rem, 1.1rem + 1vw, 2.1rem);
+    font-weight: 560;
+    letter-spacing: -0.045em;
+    line-height: 1;
+    text-align: right;
+  }
+
+  .report-figure__scale {
+    color: #8f9aa4;
+    font-family: var(--mono);
+    font-size: 0.625rem;
+    line-height: 1.5;
+  }
+
   .report-figure__wire { stroke: #eef0f13b; stroke-width: 1; }
   .report-figure__signal {
     stroke: #ff6a33;
@@ -91,24 +146,6 @@ const coinStacks = [{ x: 107, y: 117 }, { x: 280, y: 111 }, { x: 453, y: 117 }];
     stroke-dasharray: 64 1000;
     stroke-dashoffset: -330;
     filter: drop-shadow(0 0 4px #ff6a3366);
-  }
-  .report-figure__coin-shadow { fill: #000; opacity: 0.28; }
-  .report-figure__coin-edge { fill: #9a3c1c; stroke: #ff6a33; stroke-width: 0.9; }
-  .report-figure__coin-face { fill: #2b2724; stroke: #ff9b73; stroke-width: 1.2; }
-  .report-figure__coin-rim { stroke: #ff6a336e; stroke-width: 0.8; }
-  .report-figure__coin-mark { stroke: #ffd0b8; stroke-width: 1.2; }
-  .report-figure__coin-grooves { stroke: #ff9b736b; stroke-width: 0.8; }
-  .report-figure__legend {
-    display: flex;
-    justify-content: space-between;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-    color: #a2a9b0;
-    font-family: var(--mono);
-    font-size: 0.625rem;
-    line-height: 1.4;
-    text-transform: uppercase;
-    letter-spacing: 0.035em;
   }
   .report-figure__power {
     position: relative;
@@ -152,24 +189,23 @@ const coinStacks = [{ x: 107, y: 117 }, { x: 280, y: 111 }, { x: 453, y: 117 }];
   .report-figure__numbers dd { margin-top: var(--space-2); color: #a2a9b0; font-size: var(--text-sm); line-height: 1.4; }
   :global(.rcard.reveal-in) .report-figure__signal { animation: report-signal 6s linear infinite; }
   :global(.rcard.reveal-in) .report-figure__sweep { animation: report-sweep 6s linear infinite; }
-  :global(.rcard.reveal-in) .report-figure__coin { animation: cash-stack 7s var(--ease-in-out, ease-in-out) var(--coin-delay) infinite; }
 
   @keyframes report-signal { from { stroke-dashoffset: 64; } to { stroke-dashoffset: -1000; } }
   @keyframes report-sweep { to { stroke-dashoffset: -120; } }
-  @keyframes cash-stack {
-    0%, 15%, 85%, 100% { transform: translateY(0); }
-    42%, 58% { transform: translateY(calc(-1 * var(--coin-lift))); }
-  }
 
   @media (max-width: 35.99rem) {
     .report-figure__numbers { gap: var(--space-3); }
     .report-figure__numbers dd { font-size: 0.8125rem; }
-    .report-figure__legend { font-size: 0.5625rem; }
   }
   @media (max-width: 22.99rem) {
     .report-figure__numbers { grid-template-columns: 1fr; gap: 1.25rem; }
   }
+  @media print {
+    .report-figure__bar { transform: none !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    .report-figure__caption, .report-figure__bars dt, .report-figure__scale, .report-figure__numbers dd { color: #30353a; }
+    .report-figure__bar-value, .report-figure__numbers dt { color: #101214; }
+  }
   @media (prefers-reduced-motion: reduce) {
-    .report-figure__signal, .report-figure__sweep, .report-figure__coin { animation: none !important; }
+    .report-figure__signal, .report-figure__sweep { animation: none !important; }
   }
 </style>

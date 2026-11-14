@@ -36,8 +36,8 @@ const sections = headings.filter((heading) => heading.depth === 2);
       <h1 style={`view-transition-name: project-title-${entry.id.replace(/[^a-zA-Z0-9_-]/g, '-')}`}>{data.title}</h1>
       <p class="lede">{data.summary}</p>
       {sections.length > 0 && (
-        <nav class="project-jumps" aria-label="Jump to project section">
-          {sections.slice(0, 4).map((section) => (
+        <nav class="project-jumps side-scroll" aria-label="Jump to project section">
+          {sections.map((section) => (
             <a class="arrow-link" href={`#${section.slug}`}>{section.text}<Icon name="arrow-down" /></a>
           ))}
         </nav>
@@ -128,6 +128,13 @@ const sections = headings.filter((heading) => heading.depth === 2);
       background: var(--surface);
       border: 1px solid var(--line);
       border-top: 3px solid var(--accent);
+    }
+  }
+
+  /* Below the two-column layout the sideways row of section links does this job. */
+  @media (max-width: 63.99rem) {
+    .contents {
+      display: none;
     }
   }
 

@@ -1,5 +1,5 @@
 ---
-import { render } from 'astro:content';
+import { getCollection, render } from 'astro:content';
 import BarChart from '../../components/BarChart.astro';
 import ButtonLink from '../../components/ButtonLink.astro';
 import CurveChart from '../../components/CurveChart.astro';
@@ -9,6 +9,8 @@ import Icon from '../../components/Icon.astro';
 import KeyNumbers from '../../components/KeyNumbers.astro';
 import ResearchCard from '../../components/ResearchCard.astro';
 import ResearchVisual from '../../components/ResearchVisual.astro';
+import ViewChangers from '../../components/ViewChangers.astro';
+import ViewsRecord from '../../components/ViewsRecord.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import {
   getPublicResearch,
@@ -27,7 +29,11 @@ export async function getStaticPaths() {
   return pages.map((entry, position) => ({
     params: { slug: entry.id },
     // "Up next" is the piece published before this one; the oldest hands over to the newest.
-    props: { entry, related: getRelated(entry, all), next: pages.length > 1 ? pages[(position + 1) % pages.length] : undefined },
+    props: (() => {
+      const next = pages.length > 1 ? pages[(position + 1) % pages.length] : undefined;
+      // The piece shown as Up next is not shown again among the related cards just below it.
+      return { entry, next, related: getRelated(entry, all).filter((item) => item.id !== next?.id) };
+    })(),
   }));
 }
 
@@ -40,6 +46,7 @@ interface Props {
 const { entry, related, next } = Astro.props;
 const { data } = entry;
 const { Content } = await render(entry);
+const hasViews = (await getCollection('views')).some((view) => view.data.report === entry.id);
 const hasBody = Boolean(entry.body?.trim());
 const hasExhibits = Boolean(data.charts?.length || data.tables?.length || data.figures?.length);
 
@@ -91,10 +98,13 @@ const jsonLd = {
       </div>
       <div class="report-header__visual"><ResearchVisual entry={entry} compact /></div>
       </div>
-      <nav class="report-sections" aria-label="On this page">
+      <nav class="report-sections side-scroll" aria-label="On this page">
         {hasBody && <a href="#summary-heading">Summary</a>}
         {data.keyFindings.length > 0 && <a href="#findings-heading">Key findings</a>}
+        {hasViews && <a href="#views">How the views have held up</a>}
+        {data.viewChangers && <a href="#changers-heading">What would change the view</a>}
         {hasExhibits && <a href="#exhibits-heading">From the report</a>}
+        {data.approach && <a href="#approach-heading">Data and approach</a>}
         {data.sources && <a href="#sources-heading">Principal sources</a>}
       </nav>
     </header>
@@ -138,6 +148,25 @@ const jsonLd = {
                   </li>
                 ))}
               </ol>
+            </section>
+          )
+        }
+
+        {
+          hasViews && (
+            <div class="block">
+              <ViewsRecord report={entry.id} heading="How the views have held up" />
+            </div>
+          )
+        }
+
+        {
+          data.viewChangers && (
+            <section class="block" aria-labelledby="changers-heading">
+              <h2 id="changers-heading" class="block__title label label--marked">
+                What would change the view
+              </h2>
+              <ViewChangers items={data.viewChangers} />
             </section>
           )
         }
@@ -400,6 +429,7 @@ const jsonLd = {
   .report-sections { display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--line); }
   .report-sections a { padding: .4rem 0; font-family: var(--mono); font-size: .7rem; text-transform: uppercase; letter-spacing: .04em; text-decoration: none; }
   .report-sections a:hover, .report-sections a:focus-visible { color: var(--accent-text); }
+  @media (pointer: coarse) { .report-sections a { display: inline-flex; align-items: center; min-height: 2.75rem; padding-block: 0; } }
 
   .report-header h1 {
     margin-top: var(--space-4);
@@ -705,8 +735,17 @@ const jsonLd = {
   }
 
   .sources li {
-    padding-block: 0.65rem;
     border-bottom: 1px solid var(--line);
+  }
+
+  /* A source that is a link is a full-row target; one that is not keeps the same height. */
+  .sources li:not(:has(a)) {
+    padding-block: 0.65rem;
+  }
+
+  .sources a {
+    display: block;
+    padding-block: 0.65rem;
   }
 
   .closing {
@@ -809,6 +848,19 @@ const jsonLd = {
       border-color 0.4s var(--ease),
       color 0.4s var(--ease),
       transform 0.6s var(--ease-out);
+  }
+
+  @media (max-width: 47.99rem) {
+    .upnext__title {
+      grid-column: 1 / -1;
+      max-width: none;
+      font-size: clamp(1.65rem, 1.2rem + 2vw, 2.1rem);
+    }
+
+    .upnext__go {
+      grid-row: 3;
+      align-self: center;
+    }
   }
 
   .upnext__band:hover .upnext__go,

@@ -1,6 +1,7 @@
 ---
 import Icon from '../../components/Icon.astro';
 import ResearchTape from '../../components/ResearchTape.astro';
+import ViewsRecord from '../../components/ViewsRecord.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getPublicResearch, hasDetailPage, researchPath } from '../../lib/content';
 import { formatDateShort } from '../../lib/dates';
@@ -82,7 +83,7 @@ const description =
 
       <!-- The filter controls are switched on by JavaScript. Without it the full list below is shown. -->
       <form class="filters" data-filters hidden role="search" aria-label="Filter research">
-        <div class="filters__topics" role="group" aria-label="Topic">
+        <div class="filters__topics side-scroll" role="group" aria-label="Topic">
           <button type="button" class="chip" data-topic="" aria-pressed="true">All</button>
           {
             topicIds.map((id) => (
@@ -170,6 +171,9 @@ const description =
         <button type="button" class="btn btn--secondary" data-reset><span>Show all research</span></button>
       </div>
     </section>
+
+    <ViewsRecord />
+
   </div>
 </BaseLayout>
 
@@ -385,6 +389,9 @@ const description =
   }
 
   .chip {
+    /* Keeps the hidden screen-reader words inside the chip, so a scrolling row of chips
+       cannot widen the page. */
+    position: relative;
     min-height: 2.5rem;
     padding: 0.35rem 1rem;
     font-family: var(--mono);
@@ -427,6 +434,23 @@ const description =
   .filters__search {
     flex: 1 1 15rem;
     max-width: 22rem;
+  }
+
+  @media (max-width: 47.99rem) {
+    .filters {
+      gap: var(--space-3);
+    }
+
+    /* A full-width row that scrolls inside itself, rather than one as wide as all its chips. */
+    .filters__topics {
+      flex: 1 1 100%;
+      min-width: 0;
+    }
+
+    .filters__search {
+      flex-basis: 100%;
+      max-width: none;
+    }
   }
 
   .filters__search input {
@@ -530,6 +554,18 @@ const description =
 
   .item__meta {
     margin-top: var(--space-4);
+  }
+
+  /* On a phone the arrow sits beside the date row only, so the text can use the full width. */
+  @media (max-width: 55.99rem) {
+    .item {
+      padding-right: clamp(1.1rem, 0.8rem + 1.2vw, 1.75rem);
+    }
+
+    .item__aside {
+      min-height: 2.75rem;
+      padding-right: 3.75rem;
+    }
   }
 
   .empty {

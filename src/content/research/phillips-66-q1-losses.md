@@ -19,6 +19,13 @@ publicationStatus: published
 visibility: public
 originalUrl: https://605-markets.com/report/energy-phillips66-q1-losses/
 fullReportMinutes: 8
+viewChangers:
+  - condition: "Full first-quarter results, scheduled for 29 April, show the loss was the start of a broader, longer-lasting earnings problem rather than a temporary valuation hit."
+    direction: weaken
+  - condition: "The full results show the mark-to-market damage fed into weaker operational performance, rather than being mostly accounting-driven."
+    direction: weaken
+  - condition: "Commodity conditions stabilise; because the losses were spread across segments, the report expects earnings to recover across the portfolio rather than depend on a turnaround in one damaged division."
+    direction: strengthen
 keyFindings:
   - >-
     The expected losses were spread across refining, marketing and specialties, and renewable

@@ -1,0 +1,159 @@
+---
+// What James is looking for next, beside the homepage About paragraph.
+// The words live in src/content/profile.yaml (lookingFor), not here.
+import { getProfile } from '../lib/content';
+import Icon from './Icon.astro';
+
+const profile = await getProfile();
+const { label, title, text, markets } = profile.lookingFor;
+---
+
+<section class="looking" id="looking-for" aria-labelledby="looking-for-title" data-reveal>
+  <svg class="looking__ticks" viewBox="0 0 400 120" preserveAspectRatio="none" fill="none" aria-hidden="true" focusable="false">
+    <path class="looking__line" pathLength="1" d="M0 92 L40 86 L72 96 L104 70 L140 78 L176 52 L212 64 L248 40 L284 50 L320 26 L356 36 L400 14" />
+  </svg>
+  <p class="looking__label label"><span class="looking__dot" aria-hidden="true"></span>{label}</p>
+  <h2 class="looking__title" id="looking-for-title">{title}</h2>
+  <ul class="looking__markets" aria-label="Markets">
+    {markets.map((market, index) => <li style={`--i:${index}`}>{market}</li>)}
+  </ul>
+  <p class="looking__text">{text}</p>
+  <a class="looking__link arrow-link" href="/research/#views">
+    Views and how they held up
+    <Icon name="arrow-right" />
+  </a>
+</section>
+
+<style>
+  .looking {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-5);
+    min-width: 0;
+    min-height: 100%;
+    padding: clamp(1.5rem, 1rem + 2.5vw, 3rem) clamp(1.5rem, 1rem + 2.5vw, 3rem) clamp(4rem, 3rem + 4vw, 7rem);
+    border: 1px solid #343a3f;
+    border-radius: var(--radius);
+    background-color: #171b1e;
+    background-image:
+      radial-gradient(ellipse at 100% 0%, #ff6a3318, transparent 60%),
+      linear-gradient(#eef0f106 1px, transparent 1px),
+      linear-gradient(90deg, #eef0f106 1px, transparent 1px);
+    background-size: auto, 32px 32px, 32px 32px;
+    color: #eef0f1;
+    scroll-margin-top: calc(var(--header-height) + var(--space-5));
+  }
+
+  /* A price line that draws itself once, behind the words. It is decoration, not data. */
+  .looking__ticks {
+    position: absolute;
+    z-index: -1;
+    right: 0;
+    bottom: 0;
+    width: 70%;
+    height: 28%;
+    opacity: 0.5;
+  }
+
+  .looking__line {
+    stroke: #ff6a33;
+    stroke-width: 1.5;
+    vector-effect: non-scaling-stroke;
+    stroke-dasharray: 1;
+  }
+
+  .looking:global(.reveal-wait) .looking__line {
+    stroke-dashoffset: 1;
+  }
+
+  .looking:global(.reveal-in) .looking__line {
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 2s var(--ease-out) 0.3s;
+  }
+
+  .looking__label {
+    display: flex;
+    align-items: center;
+    gap: 0.7em;
+    color: #a2a9b0;
+  }
+
+  .looking__dot {
+    width: 0.55em;
+    height: 0.55em;
+    background: #ff6a33;
+  }
+
+  .looking__title {
+    font-family: var(--display);
+    font-size: clamp(2.6rem, 1.6rem + 3.6vw, 4.6rem);
+    font-weight: 400;
+    line-height: 0.98;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+  }
+
+  .looking__markets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .looking__markets li {
+    padding: 0.4rem 0.8rem;
+    border: 1px solid #ff6a3380;
+    border-radius: var(--radius-sm);
+    color: #ffb28b;
+    font-family: var(--mono);
+    font-size: var(--text-xs);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .looking:global(.reveal-wait) .looking__markets li {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+
+  .looking:global(.reveal-in) .looking__markets li {
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity 0.5s var(--ease) calc(0.35s + var(--i) * 90ms),
+      transform 0.6s var(--ease-out) calc(0.35s + var(--i) * 90ms);
+  }
+
+  .looking__text {
+    max-width: 34rem;
+    color: #c7ccd1;
+    font-size: var(--text-lg);
+    line-height: 1.5;
+  }
+
+  .looking__link {
+    color: #ffb28b;
+  }
+
+  /* On a phone the price line stays low, clear of the link above it. */
+  @media (max-width: 47.99rem) {
+    .looking__ticks {
+      height: 3rem;
+    }
+  }
+
+  .looking :focus-visible {
+    outline-color: #ff6a33;
+  }
+
+  @media print {
+    .looking { background: none; color: #101214; border-color: #cfd4d8; }
+    .looking__ticks { display: none; }
+    .looking__markets li { opacity: 1 !important; transform: none !important; color: #30353a; }
+    .looking__text, .looking__label { color: #30353a; }
+    .looking__link { color: #101214; }
+  }
+</style>

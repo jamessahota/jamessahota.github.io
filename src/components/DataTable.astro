@@ -53,21 +53,27 @@ const bar = (cell: string, index: number) => {
 <figure class="data-table" data-reveal>
   <figcaption id={id} class="data-table__title">{title}</figcaption>
   <div class="data-table__scroll" role="region" aria-labelledby={id} tabindex="0">
-    <table>
-      <thead>
-        <tr>
-          {columns.map((column, index) => <th scope="col" class:list={{ num: numericColumn[index] }}>{column}</th>)}
+    <!-- The roles keep the table's meaning for screen readers on phones, where the rows are
+         restyled as stacked blocks and some browsers would otherwise drop the table semantics. -->
+    <table role="table">
+      <thead role="rowgroup">
+        <tr role="row">
+          {columns.map((column, index) => <th role="columnheader" scope="col" class:list={{ num: numericColumn[index] }}>{column}</th>)}
         </tr>
       </thead>
-      <tbody>
+      <tbody role="rowgroup">
         {
           rows.map((row, position) => (
-            <tr class:list={{ 'is-base': /base case/i.test(row[0] ?? '') }} style={`--row:${position}`}>
+            <tr role="row" class:list={{ 'is-base': /base case/i.test(row[0] ?? '') }} style={`--row:${position}`}>
               {row.map((cell, index) => {
-                if (index === 0) return <th scope="row">{cell}</th>;
+                if (index === 0) return <th role="rowheader" scope="row">{cell}</th>;
                 const drawn = bar(cell, index);
                 return (
-                  <td class:list={{ num: numericColumn[index], numeric: numericColumn[index], 'has-bar': drawn }}>
+                  <td
+                    role="cell"
+                    data-label={columns[index]}
+                    class:list={{ num: numericColumn[index], numeric: numericColumn[index], 'has-bar': drawn }}
+                  >
                     {cell}
                     {drawn && (
                       <span class="range" aria-hidden="true">
@@ -180,6 +186,8 @@ const bar = (cell: string, index: number) => {
     min-width: 7.5rem;
   }
 
+
+
   /* The bar under a figure: a hairline track with the range, or share, marked on it. */
   .range {
     position: relative;
@@ -246,6 +254,88 @@ const bar = (cell: string, index: number) => {
     transition:
       transform 0.6s var(--ease-out) calc(0.3s + var(--row) * 120ms),
       opacity 0.25s var(--ease);
+  }
+
+  /* On a phone each row becomes a block: its name, then each figure beside its column name,
+     so no figure is hidden off to the side. */
+  @media (max-width: 47.99rem) {
+    .data-table__scroll {
+      overflow: visible;
+      background: none;
+    }
+
+    table {
+      min-width: 0;
+    }
+
+    thead {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+
+    tbody tr {
+      display: block;
+      padding-block: 0.85rem;
+      border-bottom: 1px solid var(--line);
+    }
+
+    tbody tr:last-child {
+      border-bottom: 0;
+    }
+
+    tbody th {
+      display: block;
+      min-width: 0;
+      padding: 0 0 0.4rem;
+      border: 0;
+    }
+
+    td {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: baseline;
+      column-gap: 1rem;
+      min-width: 0;
+      padding: 0.3rem 0;
+      border: 0;
+      text-align: right;
+    }
+
+    td:not(.num) {
+      grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+      text-align: left;
+    }
+
+    td.has-bar {
+      min-width: 0;
+    }
+
+    td::before {
+      content: attr(data-label);
+      font-family: var(--mono);
+      font-size: var(--text-xs);
+      letter-spacing: 0.04em;
+      line-height: 1.5;
+      text-transform: uppercase;
+      text-align: left;
+      color: var(--muted);
+      white-space: normal;
+    }
+
+    .range {
+      grid-column: 1 / -1;
+      margin-top: 0.35rem;
+    }
+
+    /* The crosshair is a pointer effect; on a phone it would only flicker. */
+    tbody tr:hover > *,
+    tbody tr:hover td:hover {
+      background: none;
+    }
   }
 
   .data-table__note {

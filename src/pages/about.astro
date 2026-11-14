@@ -29,7 +29,7 @@ const jsonLd = {
     <div class="about-header__grid">
       <div>
         <p class="lede">{data.lede}</p>
-        <nav class="about-jumps" aria-label="On this page">
+        <nav class="about-jumps side-scroll" aria-label="On this page">
           <a class="arrow-link" href="#biography">Biography <Icon name="arrow-down" /></a>
           <a class="arrow-link" href="#approach-heading">Research approach <Icon name="arrow-down" /></a>
           <a class="arrow-link" href="#beyond-heading">Beyond work <Icon name="arrow-down" /></a>
@@ -288,6 +288,10 @@ const jsonLd = {
 
   @media (prefers-reduced-motion: reduce) {
     .about-route__signal { animation: none; stroke-dasharray: none; opacity: 0.7; }
+  }
+
+  @media (max-width: 47.99rem) {
+    .approach__item { min-height: 0; }
   }
 
   @media print {

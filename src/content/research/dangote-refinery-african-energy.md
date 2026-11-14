@@ -19,6 +19,13 @@ publicationStatus: published
 visibility: public
 originalUrl: https://605-markets.com/report/oil-gas-dangote-effect-african-energy/
 fullReportMinutes: 8
+viewChangers:
+  - condition: "Domestic crude supply stays restricted, capping the refinery’s upside through higher feedstock costs and operational inefficiency."
+    direction: weaken
+  - condition: "Fuel marketers’ argument that Dangote is trying to monopolise Nigeria’s petroleum industry becomes politicised and future Nigerian governments prioritise anti-monopoly policy, which could force Dangote to share a significant portion of its refining capacity or divest certain assets."
+    direction: weaken
+  - condition: "Dangote wins its legal battles against fuel importers and the NNPC, securing a greater share of Nigerian-produced crude."
+    direction: strengthen
 keyFindings:
   - >-
     Crude access is the main constraint. If domestic supply stays restricted, higher feedstock

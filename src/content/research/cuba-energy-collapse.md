@@ -18,6 +18,11 @@ publicationStatus: published
 visibility: public
 originalUrl: https://605-markets.com/report/oil-gas-cuba-energy-collapse-economic-survival/
 fullReportMinutes: 6
+viewChangers:
+  - condition: "Cuba secures consistent Russian shipments or Chinese-backed financing, so fuel stocks rebuild, generation stabilises and blackouts become less frequent by early 2027."
+    direction: weaken
+  - condition: "Emergency shipments fail, major thermoelectric units stay offline and outages become prolonged multi-day grid failures. The report said this bear case would likely trigger emergency spot buying across the Caribbean, lifting regional fuel oil and diesel premiums towards US$8–12 a barrel."
+    direction: either
 keyFindings:
   - >-
     The effect on markets is regional. The base case had Caribbean fuel oil and diesel

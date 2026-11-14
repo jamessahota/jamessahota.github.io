@@ -17,6 +17,11 @@ publicationStatus: published
 visibility: public
 originalUrl: https://605-markets.com/report/renewables-european-wind-power-energy-security/
 fullReportMinutes: 10
+viewChangers:
+  - condition: "EU member states significantly fast-track permits, increase investment and resolve grid bottlenecks, letting the EU close in on its 2030 target."
+    direction: strengthen
+  - condition: "Permitting worsens or stays the same and bottlenecks remain unresolved, leaving EU wind output well below its target."
+    direction: weaken
 keyFindings:
   - >-
     Energy sovereignty now includes supply chains. France’s tender limits how many strategic

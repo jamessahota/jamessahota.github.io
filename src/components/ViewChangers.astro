@@ -1,0 +1,144 @@
+---
+// "What would change my view": the conditions a report set out in advance, sorted into
+// those that would count against its view and those that would count for it.
+interface Props {
+  items: { condition: string; direction: 'weaken' | 'strengthen' | 'either' }[];
+}
+
+const { items } = Astro.props;
+const groups = [
+  { key: 'weaken', title: 'Would weaken the view', items: items.filter((item) => item.direction === 'weaken') },
+  { key: 'strengthen', title: 'Would strengthen it', items: items.filter((item) => item.direction === 'strengthen') },
+  { key: 'either', title: 'Would move it either way', items: items.filter((item) => item.direction === 'either') },
+].filter((group) => group.items.length);
+---
+
+<div class="changers" data-reveal>
+  {
+    groups.map((group) => (
+      <div class:list={['changers__group', `changers__group--${group.key}`]}>
+        <h3 class="changers__title label">
+          <span class="changers__mark" aria-hidden="true" />
+          {group.title}
+        </h3>
+        <ul>
+          {group.items.map((item, index) => (
+            <li style={`--i:${index}`}>{item.condition}</li>
+          ))}
+        </ul>
+      </div>
+    ))
+  }
+  <p class="changers__note">Conditions as set out in the report when it was published.</p>
+</div>
+
+<style>
+  .changers {
+    display: grid;
+    gap: 1px;
+    max-width: 50rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--line);
+    overflow: hidden;
+  }
+
+  @media (min-width: 40rem) {
+    .changers:has(.changers__group + .changers__group) {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .changers__note {
+      grid-column: 1 / -1;
+    }
+
+    .changers__group:nth-of-type(odd):last-of-type {
+      grid-column: 1 / -1;
+    }
+  }
+
+  .changers__group,
+  .changers__note {
+    background: var(--surface);
+    padding: clamp(1.1rem, 0.8rem + 1.2vw, 1.6rem);
+  }
+
+  .changers__title {
+    display: flex;
+    align-items: center;
+    gap: 0.7em;
+    color: var(--ink);
+  }
+
+  /* Down for what would count against the view, up for what would count for it. */
+  .changers__mark {
+    width: 0;
+    height: 0;
+    border-inline: 0.36em solid transparent;
+    border-top: 0.55em solid var(--accent);
+  }
+
+  .changers__group--strengthen .changers__mark {
+    border-top: 0;
+    border-bottom: 0.55em solid var(--ink);
+  }
+
+  .changers__group--either .changers__mark {
+    width: 0.55em;
+    height: 0.55em;
+    border: 0;
+    background: var(--muted);
+  }
+
+  .changers ul {
+    display: grid;
+    gap: var(--space-3);
+    margin-top: var(--space-4);
+  }
+
+  .changers li {
+    position: relative;
+    padding-left: 1.1rem;
+    color: var(--ink-2);
+    font-size: var(--text-sm);
+    line-height: 1.55;
+  }
+
+  .changers li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.62em;
+    width: 0.45rem;
+    height: 1px;
+    background: var(--muted);
+  }
+
+  .changers__note {
+    font-family: var(--mono);
+    font-size: var(--text-xs);
+    line-height: 1.5;
+    color: var(--muted);
+    padding-block: 0.75rem;
+  }
+
+  .changers:global(.reveal-wait) li {
+    opacity: 0;
+    transform: translateX(-0.5rem);
+  }
+
+  .changers:global(.reveal-in) li {
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity 0.5s var(--ease) calc(0.2s + var(--i) * 90ms),
+      transform 0.6s var(--ease-out) calc(0.2s + var(--i) * 90ms);
+  }
+
+  @media print {
+    .changers li {
+      opacity: 1 !important;
+      transform: none !important;
+    }
+  }
+</style>
