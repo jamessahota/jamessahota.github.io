@@ -1,0 +1,171 @@
+---
+interface Props {
+  compact?: boolean;
+}
+
+const { compact = false } = Astro.props;
+const stages = [
+  { title: 'Information', text: 'Gather the release and related data, and record when each item became available.' },
+  { title: 'Interpretation', text: 'Compare the release with what the market expected and identify the mechanism by which it should matter.' },
+  { title: 'Forecasting', text: 'Produce scenario forecasts with explicit assumptions.' },
+  { title: 'Evaluation', text: 'Build a hypothetical position and test it against historical prices.' },
+];
+---
+
+<figure class:list={['project-flow', { 'project-flow--compact': compact }]} data-project-flow data-loop-host aria-label="Research workflow">
+  <div class="project-flow__field" aria-hidden="true">
+    <svg viewBox="0 0 1000 260" width="1000" height="260" fill="none" focusable="false">
+      <g class="project-flow__wires">
+        <path d="M-30 130H110C210 130 185 50 275 50H390C475 50 470 130 515 130H650C730 130 735 210 820 210H1030" />
+        <path d="M-30 130H110C210 130 185 210 275 210H390C475 210 470 130 515 130H650C730 130 735 50 820 50H1030" />
+        <path d="M-30 118H1030M-30 142H1030M-30 130H1030" />
+      </g>
+      <path class="project-flow__signal" data-loop="3" pathLength="1000" d="M-30 130H1030" />
+      {[125, 375, 625, 875].map((x, index) => (
+        <g class="project-flow__node" style={`--stage:${index};--node-x:${x}px`}>
+          <circle cx={x} cy="130" r="47" class="project-flow__orbit" />
+          <circle cx={x} cy="130" r="34" class="project-flow__ring" data-loop="3" />
+          <circle cx={x} cy="130" r="22" class="project-flow__core" data-loop="3" />
+          <path d={`M${x - 7} 130H${x + 7}M${x} 123V137`} class="project-flow__cross" />
+          <path d={`M${x} 177V218`} class="project-flow__stem" />
+          <circle cx={x} cy="222" r="2" class="project-flow__point" />
+        </g>
+      ))}
+    </svg>
+  </div>
+  <ol class="project-flow__stages">
+    {stages.map((stage, index) => (
+      <li class="project-flow__stage" style={`--stage:${index}`}>
+        <span class="project-flow__index numeric" aria-hidden="true">0{index + 1}</span>
+        <span class="project-flow__name">{stage.title}</span>
+        {!compact && <p>{stage.text}</p>}
+      </li>
+    ))}
+  </ol>
+</figure>
+
+<script>
+  for (const field of document.querySelectorAll<HTMLElement>('[data-project-flow]')) {
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(([entry]) => field.classList.toggle('is-visible', entry.isIntersecting), { threshold: 0.15 }).observe(field);
+    } else field.classList.add('is-visible');
+    field.addEventListener('pointermove', (event) => {
+      if (event.pointerType === 'touch' || window.matchMedia('(prefers-reduced-motion: reduce)').matches || document.documentElement.dataset.motion === 'paused') return;
+      const box = field.getBoundingClientRect();
+      field.style.setProperty('--light-x', `${((event.clientX - box.left) / box.width) * 100}%`);
+      field.style.setProperty('--light-y', `${((event.clientY - box.top) / box.height) * 100}%`);
+    });
+  }
+</script>
+
+<style>
+  .project-flow {
+    --light-x: 60%;
+    --light-y: 30%;
+    position: relative;
+    overflow: hidden;
+    margin: 0;
+    color: #eef0f1;
+    background: radial-gradient(ellipse at var(--light-x) var(--light-y), #ff6a331a, transparent 60%), #111518;
+    border: 1px solid #353a3e;
+    border-radius: var(--radius);
+    isolation: isolate;
+    view-transition-name: project-workflow;
+  }
+
+  .project-flow::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background: linear-gradient(#eef0f106 1px, transparent 1px), linear-gradient(90deg, #eef0f106 1px, transparent 1px);
+    background-size: 36px 36px;
+    mask-image: linear-gradient(#000, transparent);
+  }
+
+  .project-flow__field { padding-top: 1rem; }
+  .project-flow__field svg { display: block; width: 100%; height: auto; }
+  .project-flow__wires { stroke: #657079; stroke-width: 1; opacity: 0.45; }
+  .project-flow__signal {
+    stroke: #ff6a33;
+    stroke-width: 3;
+    stroke-dasharray: 60 1000;
+    stroke-dashoffset: 60;
+    filter: drop-shadow(0 0 7px #ff6a33);
+    animation: project-signal 6s linear infinite;
+  }
+
+  .project-flow__orbit { stroke: #41494f; stroke-width: 1; stroke-dasharray: 2 7; }
+  .project-flow__ring { fill: #171c20; stroke: #66717a; stroke-width: 1; }
+  .project-flow__core { fill: #242b30; stroke: #56616a; stroke-width: 1; }
+  .project-flow__cross { stroke: #e5e8ea; stroke-width: 1.5; }
+  .project-flow__stem { stroke: #58616a; stroke-width: 1; }
+  .project-flow__point { fill: #ff6a33; }
+
+  .project-flow__node .project-flow__ring,
+  .project-flow__node .project-flow__core {
+    animation: project-node 6s var(--ease-out, ease-out) infinite;
+    animation-delay: calc(var(--stage) * 1.4s);
+  }
+
+  .project-flow__signal,
+  .project-flow__node .project-flow__ring,
+  .project-flow__node .project-flow__core { animation-play-state: paused; }
+  .is-visible .project-flow__signal,
+  .is-visible .project-flow__node .project-flow__ring,
+  .is-visible .project-flow__node .project-flow__core { animation-play-state: running; }
+
+  .project-flow__stages {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    padding: 0 1.25rem 2rem;
+  }
+
+  .project-flow__stage {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 0 1.1rem;
+    border-right: 1px solid #30383e;
+  }
+  .project-flow__stage:last-child { border: 0; }
+  .project-flow__index { font-family: var(--mono); font-size: 0.65rem; color: #ff8a5c; }
+  .project-flow__name { font-size: clamp(0.9rem, 0.8rem + 0.6vw, 1.25rem); font-weight: 550; letter-spacing: -0.02em; }
+  .project-flow__stage p { max-width: 23ch; color: #aeb7bd; font-size: 0.875rem; line-height: 1.5; }
+  .project-flow--compact .project-flow__stages { padding-bottom: 1.5rem; }
+  .project-flow--compact .project-flow__stage { gap: 0.4rem; padding-inline: 0.5rem; }
+  .project-flow--compact .project-flow__name { font-size: clamp(0.75rem, 0.65rem + 0.5vw, 1rem); }
+
+  @keyframes project-signal { to { stroke-dashoffset: -1000; } }
+  @keyframes project-node {
+    0%, 23%, 100% { stroke: #66717a; fill: #171c20; }
+    8%, 14% { stroke: #ff8856; fill: #62321f; }
+  }
+
+  @media (max-width: 40rem) {
+    .project-flow__stages { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 0 1rem 1.5rem; gap: 1.5rem 0; }
+    .project-flow__stage { padding-inline: 0.75rem; }
+    .project-flow__stage:nth-child(2) { border: 0; }
+    .project-flow__stage p { font-size: 0.8125rem; }
+    .project-flow--compact .project-flow__stages { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; padding-inline: 0.4rem; }
+    .project-flow--compact .project-flow__name { font-size: 0.65rem; letter-spacing: -0.035em; }
+    .project-flow--compact .project-flow__stage:nth-child(2) { border-right: 1px solid #30383e; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .project-flow__signal,
+    .project-flow__node .project-flow__ring,
+    .project-flow__node .project-flow__core { animation: none; }
+    .project-flow__signal { stroke-dasharray: none; opacity: 0.6; }
+  }
+
+  @media print {
+    .project-flow { background: #fff; color: #101214; break-inside: avoid; }
+    .project-flow__field { display: none; }
+    .project-flow__stages { padding-top: 1rem; }
+    .project-flow__stage p { color: #30353a; }
+  }
+</style>

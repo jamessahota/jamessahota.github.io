@@ -3,7 +3,7 @@ title: "Panama Canal: El Niño Risks Raising Asia’s Energy Import Costs"
 subtitle: LNG, LPG and Oil Price Outlook
 summary: >-
   Would drought restrictions at the Panama Canal raise Asian LNG and LPG delivery costs? The
-  report argues that the restrictions would compound an existing energy shortage.
+  report argues that they would amplify an already tight energy system, not cause the shortage.
 standfirst: >-
   The Iran war had already tightened two vital chokepoints. This report examines what a third
   constraint would do: renewed El Niño restrictions on the Panama Canal, and how they would

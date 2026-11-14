@@ -1,6 +1,11 @@
 ---
 // A data table. On narrow screens it scrolls sideways inside its own frame,
 // so the page itself never scrolls horizontally.
+//
+// A column in which every cell is a range ("US$95–115", "27–31") or a percentage
+// draws a thin bar under each figure, on one scale shared down the column and
+// starting at zero. The bars are derived from the printed figures and add nothing
+// to them. A row whose first cell says "base case" is drawn solid.
 interface Props {
   title: string;
   columns: string[];
@@ -14,6 +19,35 @@ const id = `table-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|
 // Right-align a column when every cell in it is a figure.
 const isNumeric = (cell: string) => /^[\s\dUS$£€.,%–−+-]+$/.test(cell) && /\d/.test(cell);
 const numericColumn = columns.map((_, index) => index > 0 && rows.every((row) => isNumeric(row[index] ?? '')));
+
+const figure = '([\\d,]+(?:\\.\\d+)?)';
+const currency = '(?:US\\$|£|€)?\\s*';
+const rangePattern = new RegExp(`^${currency}${figure}\\s*[–-]\\s*${currency}${figure}$`);
+const percentPattern = new RegExp(`^${figure}%$`);
+const toNumber = (text: string) => Number(text.replace(/,/g, ''));
+const span = (cell: string): { low: number; high: number } | undefined => {
+  const range = cell.trim().match(rangePattern);
+  if (range) return { low: toNumber(range[1]!), high: toNumber(range[2]!) };
+  const percent = cell.trim().match(percentPattern);
+  return percent ? { low: 0, high: toNumber(percent[1]!) } : undefined;
+};
+
+// One scale per column, from zero to the largest figure in it (100 for percentages up to 100%).
+const scales = columns.map((_, index) => {
+  if (index === 0) return undefined;
+  const spans = rows.map((row) => span(row[index] ?? ''));
+  if (!spans.every(Boolean)) return undefined;
+  const top = Math.max(...spans.map((item) => item!.high));
+  const percent = rows.every((row) => percentPattern.test((row[index] ?? '').trim()));
+  return { top: percent && top <= 100 ? 100 : top, percent };
+});
+const hasBars = scales.some(Boolean);
+const bar = (cell: string, index: number) => {
+  const scale = scales[index];
+  const item = span(cell);
+  if (!scale || !item || scale.top <= 0) return undefined;
+  return { from: (item.low / scale.top) * 100, to: (item.high / scale.top) * 100, percent: scale.percent };
+};
 ---
 
 <figure class="data-table" data-reveal>
@@ -27,21 +61,32 @@ const numericColumn = columns.map((_, index) => index > 0 && rows.every((row) =>
       </thead>
       <tbody>
         {
-          rows.map((row) => (
-            <tr>
-              {row.map((cell, index) =>
-                index === 0 ? (
-                  <th scope="row">{cell}</th>
-                ) : (
-                  <td class:list={{ num: numericColumn[index], numeric: numericColumn[index] }}>{cell}</td>
-                ),
-              )}
+          rows.map((row, position) => (
+            <tr class:list={{ 'is-base': /base case/i.test(row[0] ?? '') }} style={`--row:${position}`}>
+              {row.map((cell, index) => {
+                if (index === 0) return <th scope="row">{cell}</th>;
+                const drawn = bar(cell, index);
+                return (
+                  <td class:list={{ num: numericColumn[index], numeric: numericColumn[index], 'has-bar': drawn }}>
+                    {cell}
+                    {drawn && (
+                      <span class="range" aria-hidden="true">
+                        <span
+                          class:list={['range__fill', { 'range__fill--share': drawn.percent }]}
+                          style={`left:${drawn.from.toFixed(2)}%;width:${Math.max(drawn.to - drawn.from, 1.5).toFixed(2)}%`}
+                        />
+                      </span>
+                    )}
+                  </td>
+                );
+              })}
             </tr>
           ))
         }
       </tbody>
     </table>
   </div>
+  {hasBars && <p class="data-table__note">Bars share one scale within each column, starting at zero.</p>}
   {note && <p class="data-table__note">{note}</p>}
   {source && <p class="data-table__note">Source: {source}</p>}
 </figure>
@@ -61,10 +106,18 @@ const numericColumn = columns.map((_, index) => index > 0 && rows.every((row) =>
     line-height: 1.25;
   }
 
+  /* A soft shadow appears at whichever edge has more table to scroll to. */
   .data-table__scroll {
     margin-top: var(--space-4);
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    background:
+      linear-gradient(to right, var(--surface) 40%, transparent) left center / 2.5rem 100% no-repeat local,
+      linear-gradient(to left, var(--surface) 40%, transparent) right center / 2.5rem 100% no-repeat local,
+      linear-gradient(to right, color-mix(in srgb, var(--ink) 14%, transparent), transparent) left center / 0.9rem 100%
+        no-repeat scroll,
+      linear-gradient(to left, color-mix(in srgb, var(--ink) 14%, transparent), transparent) right center / 0.9rem 100%
+        no-repeat scroll;
   }
 
   table {
@@ -81,6 +134,7 @@ const numericColumn = columns.map((_, index) => index > 0 && rows.every((row) =>
     text-align: left;
     vertical-align: top;
     border-bottom: 1px solid var(--line);
+    transition: background-color 0.2s var(--ease);
   }
 
   tbody tr:last-child th,
@@ -112,14 +166,6 @@ const numericColumn = columns.map((_, index) => index > 0 && rows.every((row) =>
     color: var(--ink-2);
   }
 
-  tbody tr {
-    transition: background-color 0.2s var(--ease);
-  }
-
-  tbody tr:hover {
-    background: color-mix(in srgb, var(--accent) 7%, transparent);
-  }
-
   .num {
     text-align: right;
     white-space: nowrap;
@@ -128,6 +174,78 @@ const numericColumn = columns.map((_, index) => index > 0 && rows.every((row) =>
   td.num {
     font-family: var(--mono);
     font-size: 0.8125rem;
+  }
+
+  td.has-bar {
+    min-width: 7.5rem;
+  }
+
+  /* The bar under a figure: a hairline track with the range, or share, marked on it. */
+  .range {
+    position: relative;
+    display: block;
+    height: 6px;
+    margin-top: 0.5rem;
+    background: linear-gradient(var(--line), var(--line)) center / 100% 1px no-repeat;
+  }
+
+  .range__fill {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    border: 1px solid var(--ink-2);
+    transform-origin: left center;
+    transition: opacity 0.25s var(--ease);
+  }
+
+  .range__fill--share,
+  .is-base .range__fill {
+    border-color: var(--accent);
+    background: var(--accent);
+  }
+
+  /* Pointing at a cell puts it at a crosshair: its row and its column are tinted,
+     and the bars in the other rows step back. */
+  tbody tr:hover > * {
+    background: color-mix(in srgb, var(--accent) 7%, transparent);
+  }
+
+  table:has(td:nth-child(2):hover) :is(th, td):nth-child(2),
+  table:has(td:nth-child(3):hover) :is(th, td):nth-child(3),
+  table:has(td:nth-child(4):hover) :is(th, td):nth-child(4),
+  table:has(td:nth-child(5):hover) :is(th, td):nth-child(5),
+  table:has(td:nth-child(6):hover) :is(th, td):nth-child(6) {
+    background: color-mix(in srgb, var(--accent) 7%, transparent);
+  }
+
+  tbody tr:hover td:hover {
+    background: color-mix(in srgb, var(--accent) 16%, transparent);
+    color: var(--ink);
+  }
+
+  tbody:has(tr:hover) tr:not(:hover) .range__fill {
+    opacity: 0.3;
+  }
+
+  /* Rows arrive one after another, and each bar extends from its low end to its high end. */
+  .data-table:global(.reveal-wait) tbody tr {
+    opacity: 0;
+  }
+
+  .data-table:global(.reveal-in) tbody tr {
+    opacity: 1;
+    transition: opacity 0.5s var(--ease) calc(0.15s + var(--row) * 120ms);
+  }
+
+  .data-table:global(.reveal-wait) .range__fill {
+    transform: scaleX(0);
+  }
+
+  .data-table:global(.reveal-in) .range__fill {
+    transform: none;
+    transition:
+      transform 0.6s var(--ease-out) calc(0.3s + var(--row) * 120ms),
+      opacity 0.25s var(--ease);
   }
 
   .data-table__note {
@@ -141,5 +259,17 @@ const numericColumn = columns.map((_, index) => index > 0 && rows.every((row) =>
 
   .data-table__note + .data-table__note {
     margin-top: var(--space-2);
+  }
+
+  @media print {
+    .data-table tbody tr {
+      opacity: 1 !important;
+    }
+
+    .data-table .range__fill {
+      transform: none !important;
+      print-color-adjust: exact;
+      -webkit-print-color-adjust: exact;
+    }
   }
 </style>

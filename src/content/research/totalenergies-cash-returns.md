@@ -19,6 +19,8 @@ publicationStatus: published
 visibility: public
 originalUrl: https://605-markets.com/report/oil-gas-totalenergies-cash-returns-volatile-energy-market/
 fullReportMinutes: 12
+featured: true
+order: 3
 keyFindings:
   - >-
     First-quarter cash flow from operations was reported at US$8.6 billion and net income at

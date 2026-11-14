@@ -1,0 +1,194 @@
+/* One motion language for routes, headlines and the controls that connect them. */
+.section-head h2,
+.list-head h2 {
+  overflow: clip;
+  padding-bottom: 0.08em;
+  margin-bottom: -0.08em;
+}
+
+.motion-line {
+  display: block;
+  transform: none;
+  transition: transform 1050ms var(--ease-out) var(--reveal-delay, 0s);
+}
+
+.reveal-wait .motion-line { transform: translateY(115%); }
+.reveal-in .motion-line { transform: none; }
+
+.page-header h1 { view-transition-name: page-heading; }
+
+/* ==========================================================================
+   Page changes
+   The head script in BaseLayout.astro sets data-vt on <html> for the length of
+   a transition, so each kind of change can move in its own direction:
+     down   into a report or case study (the default)
+     up     back out to the list
+     right  to a section later in the navigation
+     left   to a section earlier in the navigation
+     filter the research list re-ordering in place
+     theme  the light and dark switch
+   ========================================================================== */
+
+::view-transition-group(*) {
+  animation-duration: 620ms;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+::view-transition-old(root) { animation: vt-old-rise 620ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+::view-transition-new(root) { animation: vt-new-from-below 620ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+html[data-vt='up']::view-transition-old(root) { animation-name: vt-old-sink; }
+html[data-vt='up']::view-transition-new(root) { animation-name: vt-new-from-above; }
+html[data-vt='right']::view-transition-old(root) { animation-name: vt-old-left; }
+html[data-vt='right']::view-transition-new(root) { animation-name: vt-new-from-right; }
+html[data-vt='left']::view-transition-old(root) { animation-name: vt-old-right; }
+html[data-vt='left']::view-transition-new(root) { animation-name: vt-new-from-left; }
+
+@keyframes vt-old-rise { to { transform: translateY(-1rem); } }
+@keyframes vt-old-sink { to { transform: translateY(1rem); } }
+@keyframes vt-old-left { to { transform: translateX(-2rem); opacity: 0.4; } }
+@keyframes vt-old-right { to { transform: translateX(2rem); opacity: 0.4; } }
+
+@keyframes vt-new-from-below {
+  from { clip-path: inset(100% 0 0); transform: translateY(1.5rem); }
+  to { clip-path: inset(0); transform: none; }
+}
+
+@keyframes vt-new-from-above {
+  from { clip-path: inset(0 0 100%); transform: translateY(-1.5rem); }
+  to { clip-path: inset(0); transform: none; }
+}
+
+@keyframes vt-new-from-right {
+  from { clip-path: inset(0 0 0 100%); transform: translateX(2rem); }
+  to { clip-path: inset(0); transform: none; }
+}
+
+@keyframes vt-new-from-left {
+  from { clip-path: inset(0 100% 0 0); transform: translateX(-2rem); }
+  to { clip-path: inset(0); transform: none; }
+}
+
+/* The header holds still while the page changes beneath it. */
+::view-transition-group(site-header) { z-index: 100; animation-duration: 0s; }
+::view-transition-old(site-header),
+::view-transition-new(site-header) { animation: none; }
+
+/* The orange underline travels along the bar from the old section to the new one. */
+::view-transition-group(nav-underline) { z-index: 101; animation-duration: 520ms; }
+::view-transition-old(nav-underline),
+::view-transition-new(nav-underline) { height: 100%; }
+
+/* --- The research filter: rows move, nothing else does -------------------- */
+html[data-vt='filter']::view-transition-group(*) { animation-duration: 380ms; }
+html[data-vt='filter']::view-transition-old(root),
+html[data-vt='filter']::view-transition-new(root) { animation: none; }
+html[data-vt='filter']::view-transition-old(root) { display: none; }
+/* Rows that no longer match leave quickly; rows that return fade in after the others settle. */
+html[data-vt='filter']::view-transition-old(*):only-child { animation: vt-row-out 180ms ease both; }
+html[data-vt='filter']::view-transition-new(*):only-child { animation: vt-row-in 300ms ease 120ms both; }
+/* The count rolls like a figure on a price board. */
+html[data-vt='filter']::view-transition-old(filter-count) { animation: vt-roll-out 260ms var(--ease-in-out) both; }
+html[data-vt='filter']::view-transition-new(filter-count) { animation: vt-roll-in 320ms var(--ease-out) 80ms both; }
+html[data-vt='filter']::view-transition-old(filter-chip),
+html[data-vt='filter']::view-transition-new(filter-chip) { height: 100%; }
+
+@keyframes vt-row-out { to { opacity: 0; } }
+@keyframes vt-row-in { from { opacity: 0; } }
+@keyframes vt-roll-out { to { opacity: 0; transform: translateY(-90%); } }
+@keyframes vt-roll-in { from { opacity: 0; transform: translateY(90%); } }
+
+/* --- Light and dark: one ruled edge crosses the page ---------------------- */
+html[data-vt='theme'] *,
+html[data-vt='theme'] *::before,
+html[data-vt='theme'] *::after {
+  /* Everything is captured in one picture, already in its final colours. */
+  view-transition-name: none !important;
+  transition: none !important;
+}
+
+html[data-vt='theme'] .theme-edge { view-transition-name: theme-edge !important; }
+html[data-vt='theme']::view-transition-group(root) { animation-duration: 0s; }
+html[data-vt='theme']::view-transition-old(root) { animation: none; z-index: 0; }
+html[data-vt='theme']::view-transition-new(root) { animation: vt-sweep-from-right 560ms var(--ease-in-out) both; z-index: 1; mix-blend-mode: normal; }
+html[data-vt='theme'][data-vt-dir='back']::view-transition-new(root) { animation-name: vt-sweep-from-left; }
+html[data-vt='theme']::view-transition-group(theme-edge) { z-index: 2; animation: none; }
+html[data-vt='theme']::view-transition-new(theme-edge) { animation: vt-edge-to-left 560ms var(--ease-in-out) both; }
+html[data-vt='theme'][data-vt-dir='back']::view-transition-new(theme-edge) { animation-name: vt-edge-to-right; }
+
+@keyframes vt-sweep-from-right { from { clip-path: inset(0 0 0 100%); } to { clip-path: inset(0); } }
+@keyframes vt-sweep-from-left { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0); } }
+@keyframes vt-edge-to-left { from { transform: translateX(0); } to { transform: translateX(-100vw); } }
+@keyframes vt-edge-to-right { from { transform: translateX(-100vw); } to { transform: translateX(0); } }
+
+/* The line that rides the edge. It exists only for the length of the sweep. */
+.theme-edge {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 200;
+  width: 2px;
+  height: 100vh;
+  background: var(--accent);
+  pointer-events: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .btn > span:first-child {
+    translate: var(--magnetic-x, 0px) var(--magnetic-y, 0px);
+    transition: translate 300ms var(--ease-out);
+  }
+  .cell--link .go {
+    translate: var(--magnetic-x, 0px) var(--magnetic-y, 0px);
+  }
+}
+
+/* ==========================================================================
+   Decoration that rests
+   A decorative loop marked data-loop runs a few times when it comes into view
+   and then stops. It runs again while its card or panel is hovered or focused.
+   The script in BaseLayout.astro adds and removes .is-running.
+   ========================================================================== */
+[data-loop]:not(.is-running) { animation-play-state: paused !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  .motion-line,
+  .reveal-wait .motion-line { transform: none; }
+  .btn > span:first-child,
+  .cell--link .go { translate: none !important; }
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) { animation: none !important; }
+}
+
+@media print {
+  .motion-line { transform: none !important; }
+  .btn > span:first-child,
+  .cell--link .go { translate: none !important; }
+}
+
+/* A persisted pause settles entrance effects and freezes decorative loops without
+   stranding headings or controls in an intermediate, invisible animation frame. */
+html[data-motion='paused'] *,
+html[data-motion='paused'] *::before,
+html[data-motion='paused'] *::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+
+html[data-motion='paused'] .reveal-wait,
+html[data-motion='paused'] [data-reveal-style='mask'] > *,
+html[data-motion='paused'] .motion-line,
+html[data-motion='paused'] .reveal-wait .motion-line {
+  opacity: 1 !important;
+  transform: none !important;
+  clip-path: none !important;
+}
+
+html[data-motion='paused'] .btn > span:first-child,
+html[data-motion='paused'] .cell--link .go { translate: none !important; }
+
+html[data-motion='paused']::view-transition-group(*),
+html[data-motion='paused']::view-transition-old(*),
+html[data-motion='paused']::view-transition-new(*) { animation: none !important; }

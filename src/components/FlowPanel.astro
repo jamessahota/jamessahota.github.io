@@ -3,8 +3,9 @@
 // chokepoint. The lines bend around the pointer. It is an illustration of an
 // idea, not a chart of data, and it is labelled as such.
 //
-// The drawing stops when it is off screen, can be paused with the button, and
-// shows a still frame for visitors who ask their device for reduced motion.
+// The drawing stops when it is off screen and shows a still frame for visitors who
+// ask their device for reduced motion. Its Pause button and the motion switch in
+// the header are the same setting, so pausing here stills the whole site.
 import Icon from './Icon.astro';
 ---
 
@@ -59,24 +60,40 @@ import Icon from './Icon.astro';
     let ratio = 1;
     let lines: number[] = [];
     let pulses: { line: number; u: number; speed: number; length: number; accent: boolean }[] = [];
-    let colours = { line: '', bright: '', accent: '', land: '', shore: '' };
+    let colours = { line: '', bright: '', accent: '', land: '', shore: '', brightClear: '', accentClear: '' };
     let time = 0;
     let last = 0;
     let frame = 0;
     let visible = true;
-    let paused = reduceMotion.matches;
+    const motionPaused = () => document.documentElement.dataset.motion === 'paused';
+    let paused = reduceMotion.matches || motionPaused();
 
     // The pointer, eased so the lines part smoothly.
     const pointer = { x: 0, y: 0, tx: 0, ty: 0, force: 0, target: 0 };
 
+    // The same colour with no opacity, for the tail end of a pulse. The browser
+    // resolves the colour, so any CSS colour in the tokens below works.
+    const clear = (colour: string) => {
+      const probe = document.createElement('span');
+      probe.style.color = colour;
+      root.append(probe);
+      const [red = 255, green = 255, blue = 255] = (getComputedStyle(probe).color.match(/[\d.]+/g) ?? []).map(Number);
+      probe.remove();
+      return `rgba(${red}, ${green}, ${blue}, 0)`;
+    };
+
     const readColours = () => {
       const style = getComputedStyle(root);
+      const bright = style.getPropertyValue('--flow-bright').trim() || 'rgba(238, 240, 241, 0.92)';
+      const accent = style.getPropertyValue('--flow-accent').trim() || '#ff6a33';
       colours = {
         line: style.getPropertyValue('--flow-line').trim() || 'rgba(238, 240, 241, 0.2)',
-        bright: style.getPropertyValue('--flow-bright').trim() || 'rgba(238, 240, 241, 0.92)',
-        accent: style.getPropertyValue('--flow-accent').trim() || '#ff6a33',
+        bright,
+        accent,
         land: style.getPropertyValue('--flow-land').trim() || '#1a1d20',
         shore: style.getPropertyValue('--flow-shore').trim() || 'rgba(238, 240, 241, 0.28)',
+        brightClear: clear(bright),
+        accentClear: clear(accent),
       };
     };
 
@@ -168,27 +185,35 @@ import Icon from './Icon.astro';
         context.stroke();
       }
 
-      // Pulses travelling along the lines, fading towards the tail
+      // Pulses travelling along the lines, fading towards the tail. Each is one path
+      // with a gradient along it, drawn twice: a wide soft pass for the glow and a
+      // thin sharp one. This looks the same as a blurred shadow and costs far less,
+      // which is what keeps the motion even on a phone.
+      const segments = 7;
       for (const pulse of pulses) {
         const s = lines[pulse.line] ?? 0;
-        const segments = 7;
-        context.strokeStyle = pulse.accent ? colours.accent : colours.bright;
-        context.lineWidth = pulse.accent ? 2 : 1.5;
-        context.shadowColor = pulse.accent ? colours.accent : colours.bright;
-        context.shadowBlur = pulse.accent ? 9 : 4;
-        for (let segment = 0; segment < segments; segment += 1) {
-          const from = pulse.u - pulse.length * (1 - segment / segments);
-          const to = pulse.u - pulse.length * (1 - (segment + 1) / segments);
-          if (to < 0 || from > 1) continue;
-          context.globalAlpha = ((segment + 1) / segments) ** 1.6;
-          context.beginPath();
-          context.moveTo(from * width, yAt(from, s));
-          context.lineTo(to * width, yAt(to, s));
-          context.stroke();
+        const tail = Math.max(0, pulse.u - pulse.length);
+        const head = Math.min(1, pulse.u);
+        if (head <= tail) continue;
+        const colour = pulse.accent ? colours.accent : colours.bright;
+        const fade = context.createLinearGradient(tail * width, yAt(tail, s), head * width, yAt(head, s));
+        fade.addColorStop(0, pulse.accent ? colours.accentClear : colours.brightClear);
+        fade.addColorStop(1, colour);
+        context.beginPath();
+        for (let segment = 0; segment <= segments; segment += 1) {
+          const u = tail + ((head - tail) * segment) / segments;
+          if (segment === 0) context.moveTo(u * width, yAt(u, s));
+          else context.lineTo(u * width, yAt(u, s));
         }
+        context.strokeStyle = fade;
+        context.globalAlpha = pulse.accent ? 0.22 : 0.14;
+        context.lineWidth = pulse.accent ? 7 : 5;
+        context.stroke();
+        context.globalAlpha = 1;
+        context.lineWidth = pulse.accent ? 2 : 1.5;
+        context.stroke();
       }
       context.globalAlpha = 1;
-      context.shadowBlur = 0;
 
       // The two headlands that form the strait, drawn over the lines
       drawLand(-1);
@@ -236,11 +261,20 @@ import Icon from './Icon.astro';
         toggle.dataset.paused = String(paused);
         toggleLabel.textContent = paused ? 'Play' : 'Pause';
       }
-      if (paused) stop();
-      else start();
+      if (paused) {
+        stop();
+        // Settle on a clean picture: no half-open gap left around the pointer.
+        pointer.force = 0;
+        pointer.target = 0;
+        draw();
+      } else {
+        start();
+      }
     };
 
-    // --- Pointer -------------------------------------------------------------
+    // --- Pointer and touch ---------------------------------------------------
+    // The lines part around a mouse pointer, and around a finger for as long as it
+    // is down. Listening on the whole panel means the text and buttons do not block it.
     const moveTo = (event: PointerEvent) => {
       // Visitors who ask for reduced motion get a picture that does not move at all.
       if (reduceMotion.matches) return;
@@ -261,21 +295,45 @@ import Icon from './Icon.astro';
       }
     };
 
-    root.addEventListener('pointermove', moveTo);
-    root.addEventListener('pointerdown', moveTo);
-    root.addEventListener('pointerleave', () => {
+    const release = () => {
       if (reduceMotion.matches) return;
       pointer.target = 0;
       if (paused) {
         pointer.force = 0;
         draw();
       }
+    };
+
+    root.addEventListener('pointermove', moveTo, { passive: true });
+    root.addEventListener('pointerdown', moveTo, { passive: true });
+    root.addEventListener('pointerleave', release);
+    // A finger that lifts, or that the browser takes over to scroll the page, lets go.
+    root.addEventListener('pointerup', (event) => {
+      if (event.pointerType !== 'mouse') release();
     });
+    root.addEventListener('pointercancel', release);
 
     // --- Lifecycle -----------------------------------------------------------
     // The caption and the pause button only make sense once the drawing is running.
     root.querySelector<HTMLElement>('[data-flow-foot]')?.removeAttribute('hidden');
-    toggle?.addEventListener('click', () => setPaused(!paused));
+    toggle?.addEventListener('click', () => {
+      const next = !paused;
+      // With reduced motion the header switch is hidden, so Play is a choice for this panel alone.
+      if (reduceMotion.matches) {
+        setPaused(next);
+        return;
+      }
+      // Otherwise this button and the switch in the header are one setting.
+      if (next) document.documentElement.dataset.motion = 'paused';
+      else delete document.documentElement.dataset.motion;
+      try {
+        localStorage.setItem('motion', next ? 'paused' : 'running');
+      } catch {}
+      document.dispatchEvent(new CustomEvent('motionchange', { detail: { paused: next } }));
+    });
+    document.addEventListener('motionchange', () => {
+      if (!reduceMotion.matches) setPaused(motionPaused());
+    });
 
     new ResizeObserver(resize).observe(root);
     new IntersectionObserver((entries) => {
@@ -287,25 +345,29 @@ import Icon from './Icon.astro';
 
     document.addEventListener('visibilitychange', () => (document.hidden ? stop() : start()));
     window.addEventListener('pagehide', stop);
-    window.addEventListener('pageshow', () => {
+    // A page restored by the Back button picks up where it left off.
+    window.addEventListener('pageshow', (event) => {
+      if (!event.persisted) return;
       readColours();
       resize();
       const box = root.getBoundingClientRect();
       visible = box.bottom > 0 && box.top < window.innerHeight;
-      start();
+      setPaused(reduceMotion.matches || motionPaused());
     });
     document.addEventListener('themechange', () => {
       readColours();
       draw();
     });
     const hint = root.querySelector<HTMLElement>('[data-flow-hint]');
+    // On a touch screen there is no pointer to move.
+    if (hint && window.matchMedia('(hover: none)').matches) hint.textContent = 'Touch it to disturb it.';
     const applyMotionPreference = () => {
       if (hint) hint.hidden = reduceMotion.matches;
       if (reduceMotion.matches) {
         pointer.force = 0;
         pointer.target = 0;
       }
-      setPaused(reduceMotion.matches);
+      setPaused(reduceMotion.matches || motionPaused());
       draw();
     };
     reduceMotion.addEventListener('change', applyMotionPreference);

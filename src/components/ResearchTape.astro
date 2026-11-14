@@ -1,0 +1,363 @@
+---
+// The publication record at a glance: one square per piece, stacked in the month it
+// was published. Built from the dates in the content files, so it is always current.
+// It is a picture of the list below it, so assistive technology gets a sentence
+// instead and reads the list itself.
+import { researchPath, type Research } from '../lib/content';
+import { formatDateShort } from '../lib/dates';
+import { RESEARCH_TYPES } from '../site.config';
+
+interface Props {
+  entries: Research[];
+  /** Pieces still in progress, drawn as open squares to the right of the ruler. */
+  pending?: Research[];
+}
+
+const { entries, pending = [] } = Astro.props;
+const dated = entries
+  .filter((entry) => entry.data.date)
+  .sort((a, b) => a.data.date!.localeCompare(b.data.date!));
+
+const monthIndex = (date: string) => Number(date.slice(0, 4)) * 12 + Number(date.slice(5, 7)) - 1;
+const firstMonth = dated.length ? monthIndex(dated[0]!.data.date!) : 0;
+const lastMonth = dated.length ? monthIndex(dated.at(-1)!.data.date!) : 0;
+const SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const monthName = (index: number, style: 'short' | 'long') =>
+  style === 'short'
+    ? SHORT[index % 12]!
+    : new Date(Date.UTC(Math.floor(index / 12), index % 12, 1)).toLocaleString('en-GB', { month: 'long', timeZone: 'UTC' });
+
+let order = 0;
+const months = Array.from({ length: lastMonth - firstMonth + 1 }, (_, offset) => {
+  const index = firstMonth + offset;
+  return {
+    index,
+    label: monthName(index, 'short'),
+    year: Math.floor(index / 12),
+    pieces: dated
+      .filter((entry) => monthIndex(entry.data.date!) === index)
+      .map((entry) => ({ entry, order: order++ })),
+  };
+});
+
+const types = [...new Set(dated.map((entry) => entry.data.type))];
+const range = dated.length
+  ? `${monthName(firstMonth, 'long')} ${Math.floor(firstMonth / 12)} to ${monthName(lastMonth, 'long')} ${Math.floor(lastMonth / 12)}`
+  : '';
+const summary = `${dated.length} pieces published from ${range}. By month: ${months
+  .map((month) => `${monthName(month.index, 'long')} ${month.pieces.length}`)
+  .join(', ')}.`;
+const idle = `${dated.length} pieces · ${range}`;
+---
+
+{
+  dated.length > 1 && (
+    <div class="tape" data-tape data-reveal>
+      <p class="visually-hidden">{summary}</p>
+      <div class="tape__frame" aria-hidden="true">
+        <div class="tape__head">
+          <p class="label">Publication record</p>
+          <p class="tape__readout label" data-tape-readout data-idle={idle}>
+            {idle}
+          </p>
+        </div>
+        <div class="tape__plot">
+          <ol class="tape__months" style={`--months:${months.length}`}>
+            {months.map((month, position) => (
+              <li class="tape__month">
+                <div class="tape__stack">
+                  {month.pieces.map(({ entry, order }) => (
+                    <a
+                      class:list={['tape__sq', 'tape__sq--' + entry.data.type]}
+                      href={researchPath(entry)}
+                      tabindex="-1"
+                      style={`--n:${order}`}
+                      data-tape-key={entry.id}
+                      data-readout={`${formatDateShort(entry.data.date!)} · ${RESEARCH_TYPES[entry.data.type]} · ${entry.data.title}`}
+                    />
+                  ))}
+                </div>
+                <span class="tape__label numeric">
+                  {month.label}
+                  {(position === 0 || month.index % 12 === 0) && <b>{month.year}</b>}
+                </span>
+              </li>
+            ))}
+          </ol>
+          {pending.length > 0 && (
+            <div class="tape__pending">
+              <div class="tape__stack">
+                {pending.map((entry) => (
+                  <span class="tape__sq tape__sq--pending" data-readout={`In progress · ${entry.data.venue.name}`} />
+                ))}
+              </div>
+              <span class="tape__label">To come</span>
+            </div>
+          )}
+        </div>
+        <ul class="tape__legend">
+          {types.map((type) => (
+            <li>
+              <span class:list={['tape__sq', 'tape__sq--' + type]} />
+              {RESEARCH_TYPES[type]}
+            </li>
+          ))}
+          {pending.length > 0 && (
+            <li>
+              <span class="tape__sq tape__sq--pending" />
+              In progress
+            </li>
+          )}
+        </ul>
+      </div>
+    </div>
+  )
+}
+
+<script>
+  // Pointing at a square names the piece and marks its row in the list below.
+  const tape = document.querySelector<HTMLElement>('[data-tape]');
+  const readout = tape?.querySelector<HTMLElement>('[data-tape-readout]');
+  if (tape && readout) {
+    const row = (key?: string) =>
+      key ? document.querySelector<HTMLElement>(`[data-item][data-vt-key="${CSS.escape(key)}"]`) : null;
+    const show = (square: HTMLElement | null) => {
+      for (const marked of document.querySelectorAll('.is-traced')) marked.classList.remove('is-traced');
+      readout.textContent = square?.dataset.readout ?? readout.dataset.idle ?? '';
+      readout.classList.toggle('is-live', Boolean(square));
+      if (!square) return;
+      square.classList.add('is-traced');
+      row(square.dataset.tapeKey)?.classList.add('is-traced');
+    };
+    tape.addEventListener('pointerover', (event) => {
+      const square = (event.target as Element).closest<HTMLElement>('.tape__sq[data-readout]');
+      if (square && tape.contains(square)) show(square);
+    });
+    tape.addEventListener('pointerleave', () => show(null));
+
+    // And the other way round: a row in the list lights its square.
+    const list = document.querySelector<HTMLElement>('[data-list]');
+    const light = (key?: string) => {
+      for (const lit of tape.querySelectorAll('.is-lit')) lit.classList.remove('is-lit');
+      if (key) tape.querySelector(`[data-tape-key="${CSS.escape(key)}"]`)?.classList.add('is-lit');
+    };
+    list?.addEventListener('pointerover', (event) => light((event.target as Element).closest<HTMLElement>('[data-item]')?.dataset.vtKey));
+    list?.addEventListener('pointerleave', () => light());
+    list?.addEventListener('focusin', (event) => light((event.target as Element).closest<HTMLElement>('[data-item]')?.dataset.vtKey));
+    list?.addEventListener('focusout', () => light());
+  }
+</script>
+
+<style>
+  .tape {
+    margin-top: clamp(2rem, 1.4rem + 2.6vw, 3.5rem);
+  }
+
+  .tape__frame {
+    padding: clamp(1rem, 0.8rem + 1vw, 1.5rem);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+  }
+
+  .tape__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-2) var(--space-5);
+  }
+
+  .tape__readout {
+    min-height: 1.4em;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--muted);
+    transition: color 0.2s var(--ease);
+  }
+
+  .tape__readout.is-live {
+    color: var(--ink);
+  }
+
+  .tape__plot {
+    display: flex;
+    align-items: flex-end;
+    gap: clamp(0.75rem, 2vw, 1.5rem);
+    margin-top: var(--space-5);
+  }
+
+  .tape__months {
+    position: relative;
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(var(--months), minmax(0, 1fr));
+    min-width: 0;
+  }
+
+  /* The ruler the squares stand on. */
+  .tape__months::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 1.55rem;
+    height: 1px;
+    background: var(--ink);
+    transform-origin: left center;
+  }
+
+  .tape__month,
+  .tape__pending {
+    display: grid;
+    grid-template-rows: 1fr auto;
+    justify-items: start;
+    min-width: 0;
+  }
+
+  .tape__month {
+    border-left: 1px solid var(--line);
+    padding-left: clamp(0.25rem, 0.8vw, 0.6rem);
+  }
+
+  .tape__stack {
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 3px;
+    min-height: 5.6rem;
+    padding-bottom: 0.4rem;
+  }
+
+  .tape__label {
+    display: flex;
+    gap: 0.5em;
+    height: 1.55rem;
+    padding-top: 0.5rem;
+    font-family: var(--mono);
+    font-size: 0.625rem;
+    line-height: 1;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .tape__label b {
+    font-weight: 500;
+    color: var(--ink);
+  }
+
+  .tape__sq {
+    display: block;
+    width: 0.7rem;
+    height: 0.7rem;
+    flex: none;
+    border: 1.5px solid var(--ink);
+    background: var(--ink);
+    transition:
+      transform 0.25s var(--ease-out),
+      background-color 0.25s var(--ease),
+      border-color 0.25s var(--ease),
+      opacity 0.25s var(--ease);
+  }
+
+  .tape__sq--report {
+    border-color: var(--accent);
+    background: var(--accent);
+  }
+
+  .tape__sq--company-note {
+    background: transparent;
+  }
+
+  .tape__sq--commentary {
+    background: repeating-linear-gradient(-45deg, var(--ink) 0 1.5px, transparent 1.5px 4px);
+  }
+
+  .tape__sq--pending {
+    border-style: dashed;
+    border-color: var(--accent-text);
+    background: transparent;
+  }
+
+  /* A piece outside the current filter is emptied, not removed, so the record stays whole. */
+  .tape__sq.is-out {
+    opacity: 0.28;
+  }
+
+  a.tape__sq:hover,
+  .tape__sq.is-traced,
+  .tape__sq.is-lit {
+    transform: scale(1.45);
+    opacity: 1;
+  }
+
+  .tape__legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-5);
+    margin-top: var(--space-4);
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--line);
+    font-family: var(--mono);
+    font-size: 0.625rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .tape__legend li {
+    display: flex;
+    align-items: center;
+    gap: 0.6em;
+  }
+
+  .tape__legend .tape__sq {
+    width: 0.55rem;
+    height: 0.55rem;
+  }
+
+  /* On arrival the ruler draws, then the squares drop into place in date order.
+     These are animations, not transitions, so hovering a square is never delayed. */
+  .tape:global(.reveal-in) .tape__months::before {
+    animation: tape-rule 0.9s var(--ease-out) backwards;
+  }
+
+  .tape:global(.reveal-in) .tape__stack .tape__sq {
+    animation: tape-drop 0.5s var(--ease-out) calc(0.35s + var(--n, 16) * 45ms) backwards;
+  }
+
+  @keyframes tape-rule {
+    from {
+      transform: scaleX(0);
+    }
+  }
+
+  @keyframes tape-drop {
+    from {
+      opacity: 0;
+      transform: translateY(-0.9rem);
+    }
+  }
+
+  /* On narrow screens the months sit close together, so the year is left to the line above. */
+  @media (max-width: 35.99rem) {
+    .tape__label b {
+      display: none;
+    }
+
+    .tape__readout {
+      white-space: normal;
+    }
+  }
+
+  @media print {
+    .tape .tape__sq {
+      opacity: 1 !important;
+      transform: none !important;
+      print-color-adjust: exact;
+      -webkit-print-color-adjust: exact;
+    }
+  }
+</style>

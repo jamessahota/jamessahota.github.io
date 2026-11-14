@@ -1,0 +1,348 @@
+---
+// A futures curve drawn from contract prices stated in the report.
+// Points are spaced by the real gap between contract months. The line only joins
+// printed prices: nothing is interpolated, and every value is listed beneath the plot.
+// The line draws from left to right when the chart scrolls into view, and each
+// marker switches on as the line reaches it.
+import { curveGeometry, type CurveItem } from '../lib/curve';
+
+interface Props {
+  title: string;
+  unit: string;
+  items: CurveItem[];
+  caption?: string;
+  source: string;
+}
+
+const { title, unit, items, caption, source } = Astro.props;
+// Plotted in percentages of the plot area, so labels stay at reading size on any screen.
+const { points, line, ticks, shape } = curveGeometry(items, { left: 0, right: 100, top: 8, bottom: 92 });
+const decimals = items.some((item) => !Number.isInteger(item.value)) ? 2 : 0;
+const format = (value: number) =>
+  value.toLocaleString('en-GB', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+const first = points[0]!;
+const last = points.at(-1)!;
+// The space between the first contract's price and the curve.
+const gap = [`0% ${first.y}%`, `100% ${first.y}%`, ...[...points].reverse().map((point) => `${point.x}% ${point.y}%`)].join(', ');
+const shapeLabel =
+  shape === 'backwardation'
+    ? 'Backwardation: later contracts priced below the first'
+    : shape === 'contango'
+      ? 'Contango: later contracts priced above the first'
+      : undefined;
+const summary = `${title}. ${items.map((item) => `${item.label}: ${format(item.value)}`).join('; ')}. ${unit}.`;
+---
+
+<figure class="curve" data-reveal>
+  <figcaption class="curve__head">
+    <h3 class="curve__title">{title}</h3>
+    <p class="label">{unit}</p>
+  </figcaption>
+
+  <div class="curve__plot" role="img" aria-label={summary}>
+    <div class="curve__axis" aria-hidden="true">
+      {ticks.map((tick) => <span class="numeric" style={`top:${tick.y}%`}>{tick.value}</span>)}
+    </div>
+    <div class="curve__area" aria-hidden="true">
+      {ticks.map((tick) => <i class="curve__rule" style={`top:${tick.y}%`} />)}
+      <div class="curve__draw">
+        {shapeLabel && <div class="curve__gap" style={`clip-path:polygon(${gap})`} />}
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" fill="none" focusable="false">
+          <path class="curve__front" d={`M0,${first.y}H100`} vector-effect="non-scaling-stroke" />
+          <path class="curve__line" d={line} vector-effect="non-scaling-stroke" />
+        </svg>
+      </div>
+      {
+        points.map((point, index) => (
+          <span
+            class:list={['curve__point', { 'curve__point--first': index === 0, 'curve__point--last': index === points.length - 1 }]}
+            style={`left:${point.x}%;top:${point.y}%;--at:${(point.x / 100).toFixed(3)}`}
+          >
+            <b class="numeric">{format(point.value)}</b>
+          </span>
+        ))
+      }
+      {
+        shapeLabel && (
+          <p class="curve__shape label" style={`top:${(first.y + last.y) / 2}%`}>
+            {shape}
+          </p>
+        )
+      }
+    </div>
+  </div>
+
+  <dl class="curve__values">
+    {
+      items.map((item, index) => (
+        <div style={`--at:${(points[index]!.x / 100).toFixed(3)}`}>
+          <dt class="label">{item.label}</dt>
+          <dd class="numeric">{format(item.value)}</dd>
+        </div>
+      ))
+    }
+  </dl>
+
+  {shapeLabel && <p class="curve__key"><span class="curve__key-swatch" aria-hidden="true" />{shapeLabel}.</p>}
+  {caption && <p class="curve__caption">{caption}</p>}
+  <p class="curve__source">Source: {source}</p>
+</figure>
+
+<style>
+  .curve {
+    --draw: 1.4s;
+    padding: clamp(1.1rem, 0.8rem + 1.2vw, 1.75rem);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--surface);
+  }
+
+  .curve__title {
+    font-size: var(--text-lg);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.25;
+  }
+
+  .curve__head .label {
+    margin-top: var(--space-2);
+  }
+
+  .curve__plot {
+    display: grid;
+    grid-template-columns: 2.75rem minmax(0, 1fr);
+    margin-top: var(--space-5);
+    height: clamp(13rem, 9rem + 16vw, 19rem);
+  }
+
+  .curve__axis,
+  .curve__area {
+    position: relative;
+  }
+
+  .curve__axis span {
+    position: absolute;
+    left: 0;
+    transform: translateY(-50%);
+    font-family: var(--mono);
+    font-size: 0.6875rem;
+    color: var(--muted);
+  }
+
+  .curve__rule {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: var(--line);
+  }
+
+  .curve__draw,
+  .curve__draw svg,
+  .curve__gap {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .curve__draw svg {
+    overflow: visible;
+  }
+
+  .curve__line {
+    stroke: var(--accent);
+    stroke-width: 2.5px;
+    stroke-linejoin: round;
+  }
+
+  .curve__front {
+    stroke: var(--muted);
+    stroke-width: 1px;
+    stroke-dasharray: 4 5;
+  }
+
+  /* Hatching between the first contract's price and the curve. */
+  .curve__gap {
+    background: repeating-linear-gradient(
+      -45deg,
+      color-mix(in srgb, var(--accent) 34%, transparent) 0 1px,
+      transparent 1px 7px
+    );
+  }
+
+  .curve__point {
+    position: absolute;
+    width: 0.6rem;
+    height: 0.6rem;
+    margin: -0.3rem 0 0 -0.3rem;
+    background: var(--surface);
+    border: 2px solid var(--accent);
+  }
+
+  .curve__point b {
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 0.45rem);
+    transform: translateX(-50%);
+    padding: 0 0.2rem;
+    background: var(--surface);
+    font-family: var(--mono);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    line-height: 1.3;
+    white-space: nowrap;
+  }
+
+  /* The end labels sit inside the plot, so they are never cut off at its edges. */
+  .curve__point--first b {
+    left: -0.2rem;
+    transform: none;
+  }
+
+  .curve__point--last b {
+    left: auto;
+    right: -0.2rem;
+    transform: none;
+  }
+
+  .curve__shape {
+    position: absolute;
+    right: 0.5rem;
+    transform: translateY(-50%);
+    padding: 0.1rem 0.4rem;
+    background: var(--surface);
+    color: var(--accent-text);
+    font-size: 0.625rem;
+  }
+
+  .curve__values {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(4.5rem, 1fr));
+    gap: var(--space-3);
+    margin-top: var(--space-5);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--line);
+  }
+
+  .curve__values dd {
+    margin-top: 0.3rem;
+    font-family: var(--mono);
+    font-size: var(--text-sm);
+    font-weight: 500;
+  }
+
+  .curve__key,
+  .curve__source {
+    font-family: var(--mono);
+    font-size: var(--text-xs);
+    line-height: 1.6;
+    color: var(--muted);
+  }
+
+  .curve__key {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: var(--space-4);
+  }
+
+  .curve__key-swatch {
+    flex: none;
+    width: 1.1rem;
+    height: 0.7rem;
+    border: 1px solid var(--line);
+    background: repeating-linear-gradient(
+      -45deg,
+      color-mix(in srgb, var(--accent) 45%, transparent) 0 1px,
+      transparent 1px 5px
+    );
+  }
+
+  .curve__caption {
+    margin-top: var(--space-4);
+    font-size: var(--text-sm);
+    line-height: 1.55;
+    color: var(--ink-2);
+    max-width: var(--measure);
+  }
+
+  .curve__source {
+    margin-top: var(--space-2);
+  }
+
+  /* On narrow screens the prices are read from the row beneath the plot. */
+  @media (max-width: 35.99rem) {
+    .curve__point b {
+      display: none;
+    }
+  }
+
+  /* The line is uncovered from left to right at a steady pace, so each marker
+     can switch on at the moment the line reaches it. */
+  .curve:global(.reveal-wait) .curve__draw {
+    clip-path: inset(-1rem 100% -1rem 0);
+  }
+
+  .curve:global(.reveal-in) .curve__draw {
+    clip-path: inset(-1rem 0 -1rem 0);
+    transition: clip-path var(--draw) linear 0.25s;
+  }
+
+  .curve:global(.reveal-wait) .curve__point,
+  .curve:global(.reveal-wait) .curve__values > div {
+    opacity: 0;
+  }
+
+  .curve:global(.reveal-wait) .curve__point {
+    transform: scale(0.3);
+  }
+
+  .curve:global(.reveal-in) .curve__point,
+  .curve:global(.reveal-in) .curve__values > div {
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity 0.3s var(--ease),
+      transform 0.5s var(--ease-out);
+    transition-delay: calc(0.25s + var(--at) * var(--draw));
+  }
+
+  .curve:global(.reveal-wait) .curve__gap,
+  .curve:global(.reveal-wait) .curve__shape,
+  .curve:global(.reveal-wait) .curve__key {
+    opacity: 0;
+  }
+
+  .curve:global(.reveal-in) .curve__gap,
+  .curve:global(.reveal-in) .curve__shape,
+  .curve:global(.reveal-in) .curve__key {
+    opacity: 1;
+    transition: opacity 0.7s var(--ease) calc(0.4s + var(--draw));
+  }
+
+  @media print {
+    .curve__line,
+    .curve__point {
+      print-color-adjust: exact;
+      -webkit-print-color-adjust: exact;
+    }
+
+    /* A chart that was never scrolled to must still print complete. */
+    .curve .curve__draw {
+      clip-path: none !important;
+    }
+
+    .curve .curve__point,
+    .curve .curve__values > div,
+    .curve .curve__gap,
+    .curve .curve__shape,
+    .curve .curve__key {
+      opacity: 1 !important;
+    }
+
+    .curve .curve__point {
+      transform: none !important;
+    }
+  }
+</style>

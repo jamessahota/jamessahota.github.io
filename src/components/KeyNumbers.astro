@@ -12,9 +12,11 @@ const { items, note, heading = 'Key numbers' } = Astro.props;
 <section class="key-numbers" aria-label={heading} data-reveal>
   <dl class="cells key-numbers__grid" data-count={items.length}>
     {
-      items.map((item) => (
-        <div class="cell">
-          <dt class="key-numbers__value numeric">{item.value}</dt>
+      items.map((item, position) => (
+        <div class="cell" style={`--i:${position}`}>
+          <dt class="key-numbers__value numeric">
+            <span>{item.value}</span>
+          </dt>
           <dd class="key-numbers__label">{item.label}</dd>
         </div>
       ))
@@ -57,6 +59,69 @@ const { items, note, heading = 'Key numbers' } = Astro.props;
     letter-spacing: -0.05em;
     /* Keep a figure such as US$105.26 in one piece. */
     overflow-wrap: normal;
+  }
+
+  /* Each figure lands whole: it rises from behind a mask, already correct on its
+     first visible frame, and an orange tick is drawn under it. It never counts up,
+     because a count would pass through values that were never true. */
+  .key-numbers__value {
+    position: relative;
+    overflow: clip;
+    padding-bottom: 0.55rem;
+  }
+
+  .key-numbers__value span {
+    display: block;
+    padding-bottom: 0.04em;
+  }
+
+  .key-numbers__value::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 1.5rem;
+    height: 2px;
+    background: var(--accent);
+    transform-origin: left center;
+  }
+
+  .key-numbers:global(.reveal-wait) .key-numbers__value span {
+    transform: translateY(115%);
+  }
+
+  .key-numbers:global(.reveal-wait) .key-numbers__value::after {
+    transform: scaleX(0);
+  }
+
+  .key-numbers:global(.reveal-wait) .key-numbers__label {
+    opacity: 0;
+  }
+
+  .key-numbers:global(.reveal-in) .key-numbers__value span {
+    transform: none;
+    transition: transform 0.9s var(--ease-out) calc(0.15s + var(--i) * 90ms);
+  }
+
+  .key-numbers:global(.reveal-in) .key-numbers__value::after {
+    transform: none;
+    transition: transform 0.6s var(--ease-out) calc(0.55s + var(--i) * 90ms);
+  }
+
+  .key-numbers:global(.reveal-in) .key-numbers__label {
+    opacity: 1;
+    transition: opacity 0.6s var(--ease) calc(0.45s + var(--i) * 90ms);
+  }
+
+  @media print {
+    .key-numbers .key-numbers__value span,
+    .key-numbers .key-numbers__value::after {
+      transform: none !important;
+    }
+
+    .key-numbers .key-numbers__label {
+      opacity: 1 !important;
+    }
   }
 
   .key-numbers__label {

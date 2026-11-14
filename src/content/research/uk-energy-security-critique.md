@@ -17,6 +17,8 @@ publicationStatus: published
 visibility: public
 originalUrl: https://605-markets.com/report/policy-uk-energy-security-critique/
 fullReportMinutes: 12
+featured: true
+order: 4
 keyFindings:
   - >-
     Execution risk has a commodity-market consequence. Delays to grids, storage and generation

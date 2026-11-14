@@ -1,9 +1,9 @@
 ---
 import ButtonLink from '../components/ButtonLink.astro';
-import CopyEmail from '../components/CopyEmail.astro';
 import FlowPanel from '../components/FlowPanel.astro';
 import Icon from '../components/Icon.astro';
 import ResearchCard from '../components/ResearchCard.astro';
+import ProjectFlow from '../components/ProjectFlow.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import {
   getExperience,
@@ -17,7 +17,7 @@ import {
 import { formatPeriod } from '../lib/dates';
 
 const profile = await getProfile();
-const [lead, ...secondary] = await getFeaturedResearch(3);
+const selected = await getFeaturedResearch(4);
 const researchCount = (await getPublicResearch()).filter(hasDetailPage).length;
 const roles = (await getExperience()).filter((role) => role.data.showOnHome);
 const project = (await getPublicProjects()).find((entry) => entry.data.featured);
@@ -52,8 +52,8 @@ const jsonLd = {
         </div>
       </div>
     </FlowPanel>
-
-    <dl class="cells glance container" aria-label="At a glance">
+    <div class="route-bridge container" aria-hidden="true"><svg viewBox="0 0 1200 104" preserveAspectRatio="none" fill="none"><path d="M580 0V25Q580 52 540 52H120Q80 52 80 80V104"/><path d="M600 0V104"/><path d="M620 0V25Q620 52 660 52H1080Q1120 52 1120 80V104"/></svg></div>
+    <dl class="cells glance container" aria-label="At a glance" data-reveal>
       {
         profile.atAGlance.map((fact) => (
           <div class="cell">
@@ -74,8 +74,8 @@ const jsonLd = {
   </section>
 
   {
-    lead && (
-      <section class="section container" aria-labelledby="research-heading">
+    selected.length > 0 && (
+      <section class="section container selected-section" aria-labelledby="research-heading">
         <div class="section-head" data-reveal>
           <div>
             <p class="label">
@@ -87,17 +87,16 @@ const jsonLd = {
         </div>
 
         <div class="cells selected">
-          <ResearchCard entry={lead} self={profile.name} index={1} size="lead" />
-          {secondary.map((entry, position) => (
-            <ResearchCard entry={entry} self={profile.name} index={position + 2} />
+          {selected.map((entry, position) => (
+            <ResearchCard entry={entry} self={profile.name} index={position + 1} />
           ))}
         </div>
       </section>
     )
   }
 
-  <section class="section container" aria-labelledby="experience-heading">
-    <div class="panel panel--night">
+  <section class="section container" aria-labelledby="experience-heading" data-reveal data-reveal-style="mask">
+    <div class="panel panel--night home-experience">
       <div class="section-head" data-reveal>
         <div>
           <p class="label">
@@ -112,6 +111,7 @@ const jsonLd = {
         {
           roles.map((role, position) => (
             <li class="roles__item" data-reveal={position + 1}>
+              <span class="roles__index numeric" aria-hidden="true">{String(position + 1).padStart(2, '0')}</span>
               <p class="roles__period label numeric">{formatPeriod(role.data.start, role.data.end)}</p>
               <div class="roles__who">
                 <h3>{role.data.organisation}</h3>
@@ -133,16 +133,18 @@ const jsonLd = {
             <p class="label">
               <span class="label--accent">03</span> / {project.data.kind}
             </p>
-            <h2 id="project-heading">{project.data.title}</h2>
+            <h2 id="project-heading"><span style={`view-transition-name: project-title-${project.id.replace(/[^a-zA-Z0-9_-]/g, '-')}`}>{project.data.title}</span></h2>
             <p class="project__summary">{project.data.summary}</p>
             <ButtonLink href={projectPath(project)} label="Read the case study" icon="arrow-right" />
           </div>
+          <div class="project__system">
+            <ProjectFlow compact />
           {project.data.facts && (
             <div class="project__facts" data-reveal="2">
               <dl>
-                {project.data.facts.map((fact) => (
-                  <div>
-                    <dt class="numeric">{fact.value}</dt>
+                {project.data.facts.map((fact, position) => (
+                  <div style={`--i:${position}`}>
+                    <dt class="numeric"><span>{fact.value}</span></dt>
                     <dd>{fact.label}</dd>
                   </div>
                 ))}
@@ -150,13 +152,13 @@ const jsonLd = {
               {project.data.factsNote && <p class="project__note">{project.data.factsNote}</p>}
             </div>
           )}
+          </div>
         </div>
       </section>
     )
   }
 
-  <section class="section container" id="contact" aria-labelledby="contact-heading">
-    <div class="closing">
+  <section class="section container home-about" aria-label="About James Sahota">
       <div class="closing__about" data-reveal>
         <p class="label">
           <span class="label--accent">04</span> / About
@@ -167,32 +169,11 @@ const jsonLd = {
           <Icon name="arrow-right" />
         </a>
       </div>
-      <div class="closing__contact" data-reveal="2">
-        <p class="label">
-          <span class="label--accent">05</span> / Contact
-        </p>
-        <p class="closing__text">{profile.contactInvite}</p>
-      </div>
-    </div>
-
-    <h2 id="contact-heading" class="talk" data-reveal>
-      <a href={`mailto:${profile.email}`}>
-        <span class="talk__words display">Get in touch</span>
-        <span class="talk__arrow" aria-hidden="true"><Icon name="arrow-up-right" /></span>
-      </a>
-    </h2>
-
-    <div class="closing__actions" data-reveal>
-      <ButtonLink href={`mailto:${profile.email}`} label={profile.email} icon="mail" />
-      <CopyEmail email={profile.email} />
-      <ButtonLink href={profile.linkedin} label="LinkedIn" variant="secondary" icon="arrow-up-right" />
-    </div>
   </section>
 </BaseLayout>
 
 <style>
   /* Introduction */
-
   .hero__title {
     font-size: inherit;
     letter-spacing: 0;
@@ -281,20 +262,38 @@ const jsonLd = {
     .hero__name, .hero__line-text, .hero__intro, .hero__actions { animation: none; }
   }
 
+  .route-bridge { height:6.5rem; overflow:hidden; }
+  .route-bridge svg { width:100%; height:100%; stroke:var(--accent); stroke-width:1; }
+  .glance { margin-top:0 !important; }
+  .selected-section { padding-top:clamp(4rem,7vw,7rem); }
+  .home-experience { position:relative; overflow:hidden; padding:clamp(1.5rem,5vw,4.5rem); background:radial-gradient(ellipse at 100% 100%,#3c251d,transparent 70%),#111719; }
+  .roles__index { font-family:var(--display); font-size:3rem; color:#ff6a33; line-height:1; }
+  .project__system { min-width:0; display:grid; gap:2rem; }
+  .project__text h2 { font-family:var(--display); font-size:clamp(2.5rem,4.5vw,4.8rem); font-weight:400; line-height:1.05; text-transform:uppercase; letter-spacing:-.02em; }
+  .project__text h2 span { display:block; }
+  .home-about .closing__text { max-width:42rem; font-size:clamp(1.6rem,2.8vw,2.8rem); line-height:1.2; }
+  @media(min-width:56rem) { .roles__item { grid-template-columns:3rem minmax(8rem,2fr) minmax(0,4fr) minmax(0,5fr) !important; } }
+  @media(max-width:47.99rem) {
+    .roles__index { font-size:2.5rem; }
+  }
+  /* The project's figures land whole, one after another, like the key numbers in a report. */
+  .project__facts dt { overflow:clip; }
+  .project__facts dt span { display:block; padding-bottom:.06em; }
+  .project__facts:global(.reveal-wait) dt span { transform:translateY(115%); }
+  .project__facts:global(.reveal-in) dt span { transform:none; transition:transform .9s var(--ease-out) calc(.2s + var(--i)*110ms); }
+  .project__facts:global(.reveal-wait) dd { opacity:0; }
+  .project__facts:global(.reveal-in) dd { opacity:1; transition:opacity .6s var(--ease) calc(.5s + var(--i)*110ms); }
+  @media print { .project__facts dt span { transform:none !important; } .project__facts dd { opacity:1 !important; } }
+
   .glance {
     margin-top: var(--gutter);
     grid-template-columns: minmax(0, 1fr);
   }
 
-  @media (min-width: 36rem) {
+  /* Three facts, side by side once there is room for them. */
+  @media (min-width: 52rem) {
     .glance {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-  }
-
-  @media (min-width: 68rem) {
-    .glance {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
     }
   }
 
@@ -305,7 +304,7 @@ const jsonLd = {
     letter-spacing: -0.02em;
   }
 
-  /* Selected research: one large cell, two beside it */
+  /* Selected research: four cells, two by two */
   .selected {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -313,10 +312,6 @@ const jsonLd = {
   @media (min-width: 48rem) {
     .selected {
       grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .selected > :global(.rcard--lead) {
-      grid-column: 1 / -1;
     }
   }
 

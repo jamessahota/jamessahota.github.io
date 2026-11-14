@@ -2,44 +2,48 @@
 import { render } from 'astro:content';
 import BarChart from '../../components/BarChart.astro';
 import ButtonLink from '../../components/ButtonLink.astro';
+import CurveChart from '../../components/CurveChart.astro';
 import DataTable from '../../components/DataTable.astro';
 import Figure from '../../components/Figure.astro';
 import Icon from '../../components/Icon.astro';
 import KeyNumbers from '../../components/KeyNumbers.astro';
 import ResearchCard from '../../components/ResearchCard.astro';
+import ResearchVisual from '../../components/ResearchVisual.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import {
-  formatAuthors,
   getProfile,
   getPublicResearch,
   getRelated,
   hasDetailPage,
+  researchPath,
   type Research,
 } from '../../lib/content';
-import { formatDate } from '../../lib/dates';
+import { formatDate, formatDateShort } from '../../lib/dates';
 import { RESEARCH_TYPES, STATUS_LABELS, TOPICS } from '../../site.config';
 
 // One page per public piece of research. Private entries never reach this list.
 export async function getStaticPaths() {
   const all = await getPublicResearch();
-  return all.filter(hasDetailPage).map((entry) => ({
+  const pages = all.filter(hasDetailPage);
+  return pages.map((entry, position) => ({
     params: { slug: entry.id },
-    props: { entry, related: getRelated(entry, all) },
+    // "Up next" is the piece published before this one; the oldest hands over to the newest.
+    props: { entry, related: getRelated(entry, all), next: pages.length > 1 ? pages[(position + 1) % pages.length] : undefined },
   }));
 }
 
 interface Props {
   entry: Research;
   related: Research[];
+  next?: Research;
 }
 
-const { entry, related } = Astro.props;
+const { entry, related, next } = Astro.props;
 const { data } = entry;
 const profile = await getProfile();
 const { Content } = await render(entry);
 const hasBody = Boolean(entry.body?.trim());
 const hasExhibits = Boolean(data.charts?.length || data.tables?.length || data.figures?.length);
-const coAuthored = data.authors.length > 1;
 
 const fullPieceLabel = `Read the full ${RESEARCH_TYPES[data.type].toLowerCase()} at ${data.venue.name}`;
 
@@ -51,7 +55,6 @@ const jsonLd = {
   mainEntity: {
     '@type': 'Report',
     headline: data.title,
-    author: data.authors.map((name) => ({ '@type': 'Person', name })),
     ...(data.date ? { datePublished: data.date } : {}),
     publisher: { '@type': 'Organization', name: data.venue.name },
     ...(data.originalUrl ? { url: data.originalUrl } : {}),
@@ -69,6 +72,8 @@ const jsonLd = {
         <Icon name="arrow-left" />
         All research
       </a>
+      <div class="report-header__layout">
+      <div class="report-header__copy">
       <p class="label label--marked report-header__kicker">
         {RESEARCH_TYPES[data.type]} · {data.topics.map((topic) => TOPICS[topic]).join(' · ')}
       </p>
@@ -77,7 +82,6 @@ const jsonLd = {
       <p class="lede">{data.standfirst ?? data.summary}</p>
       <div class="report-header__mobile">
         <p class="report-header__byline">
-          <span>{formatAuthors(data.authors)}</span>
           {data.date && <time datetime={data.date}>{formatDate(data.date)}</time>}
         </p>
         <div class="report-header__actions">
@@ -86,6 +90,15 @@ const jsonLd = {
         </div>
         {data.fullReportMinutes && <p class="details__note">The full piece is about a {data.fullReportMinutes}-minute read.</p>}
       </div>
+      </div>
+      <div class="report-header__visual"><ResearchVisual entry={entry} compact /></div>
+      </div>
+      <nav class="report-sections" aria-label="On this page">
+        {hasBody && <a href="#summary-heading">Summary</a>}
+        {data.keyFindings.length > 0 && <a href="#findings-heading">Key findings</a>}
+        {hasExhibits && <a href="#exhibits-heading">From the report</a>}
+        {data.sources && <a href="#sources-heading">Principal sources</a>}
+      </nav>
     </header>
 
     <div class="container report-body">
@@ -119,7 +132,7 @@ const jsonLd = {
               </h2>
               <ol class="findings">
                 {data.keyFindings.map((finding, position) => (
-                  <li data-reveal={position + 1}>
+                  <li data-reveal={Math.min(position + 1, 3)}>
                     <span class="findings__index numeric" aria-hidden="true">
                       {String(position + 1).padStart(2, '0')}
                     </span>
@@ -138,7 +151,7 @@ const jsonLd = {
                 From the report
               </h2>
               <div class="exhibits">
-                {data.charts?.map((chart) => <BarChart {...chart} />)}
+                {data.charts?.map((chart) => (chart.kind === 'futures-curve' ? <CurveChart {...chart} /> : <BarChart {...chart} />))}
                 {data.figures?.map((figure) => <Figure {...figure} />)}
                 {data.tables?.map((table) => <DataTable {...table} />)}
               </div>
@@ -154,25 +167,6 @@ const jsonLd = {
               </h2>
               <div class="prose">
                 <p>{data.approach}</p>
-              </div>
-            </section>
-          )
-        }
-
-        {
-          (coAuthored || data.authorshipNote) && (
-            <section class="block" aria-labelledby="authorship-heading">
-              <h2 id="authorship-heading" class="block__title label label--marked">
-                Authorship
-              </h2>
-              <div class="prose">
-                {coAuthored && (
-                  <p>
-                    Written by {formatAuthors(data.authors)} and published by {data.venue.name}.
-                  </p>
-                )}
-                {data.authorshipNote && <p>{data.authorshipNote}</p>}
-                {data.contribution && <p>{data.contribution}</p>}
               </div>
             </section>
           )
@@ -219,10 +213,6 @@ const jsonLd = {
 
       <aside class="details" aria-label="About this piece">
         <dl class="cells details__list">
-          <div class="cell">
-            <dt class="label">{coAuthored ? 'Authors' : 'Author'}</dt>
-            <dd>{formatAuthors(data.authors)}</dd>
-          </div>
           {
             data.date && (
               <div class="cell">
@@ -284,6 +274,30 @@ const jsonLd = {
   </article>
 
   {
+    next && (
+      <section class="container upnext" aria-labelledby="upnext-heading" data-reveal data-reveal-style="mask">
+        <a class="upnext__band" href={researchPath(next)} data-vt-key={next.id}>
+          <span class="upnext__rule" aria-hidden="true" />
+          <span class="upnext__label label" id="upnext-heading">
+            Up next
+          </span>
+          <span class="upnext__title" data-vt-title>
+            {next.data.title}
+          </span>
+          <span class="upnext__meta label">
+            {next.data.date && <time datetime={next.data.date}>{formatDateShort(next.data.date)}</time>}
+            <span>{RESEARCH_TYPES[next.data.type]}</span>
+            <span>{TOPICS[next.data.topics[0]!]}</span>
+          </span>
+          <span class="upnext__go" aria-hidden="true">
+            <Icon name="arrow-right" />
+          </span>
+        </a>
+      </section>
+    )
+  }
+
+  {
     related.length > 0 && (
       <section class="container related" aria-labelledby="related-heading">
         <div class="section-head">
@@ -293,7 +307,7 @@ const jsonLd = {
             Back to all research
           </a>
         </div>
-        <div class="cells related__list" data-reveal>
+        <div class="cells related__list">
           {related.map((other) => <ResearchCard entry={other} self={profile.name} size="compact" />)}
         </div>
       </section>
@@ -382,6 +396,13 @@ const jsonLd = {
     margin-top: clamp(1.5rem, 1rem + 2vw, 3rem);
   }
 
+  .report-header__layout { display: grid; min-width: 0; gap: 3rem; }
+  .report-header__copy { min-width: 0; }
+  .report-header__visual { display: none; min-width: 0; align-self: center; padding-top: 2rem; }
+  .report-sections { display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--line); }
+  .report-sections a { padding: .4rem 0; font-family: var(--mono); font-size: .7rem; text-transform: uppercase; letter-spacing: .04em; text-decoration: none; }
+  .report-sections a:hover, .report-sections a:focus-visible { color: var(--accent-text); }
+
   .report-header h1 {
     margin-top: var(--space-4);
     max-width: 19ch;
@@ -432,6 +453,10 @@ const jsonLd = {
   }
 
   @media (min-width: 64rem) {
+    .report-header__layout { grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); gap: clamp(2rem, 4vw, 5rem); }
+    .report-header__visual { display: block; }
+    .report-header h1 { font-size: clamp(2.5rem, 3.5vw, 4rem); line-height: 1.02; }
+    .report-header .lede { font-size: clamp(1.1rem, 1.35vw, 1.3rem); }
     .report-header__mobile {
       display: none;
     }
@@ -548,6 +573,116 @@ const jsonLd = {
     padding-left: var(--space-3);
   }
 
+  /* A rail down the findings that fills as they are read, with a node at each one.
+     Driven by the scroll position where the browser supports it; otherwise the
+     list simply has no rail. Nothing is pinned or delayed. */
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      .findings {
+        position: relative;
+        padding-left: 1.5rem;
+        /* Progress is measured against a narrow band across the middle of the window,
+           so the fill's leading edge stays level with what is being read. The rail and
+           the nodes are pseudo-elements, which take their timeline from a named one. */
+        view-timeline: --findings block;
+        view-timeline-inset: 48%;
+      }
+
+      .findings::before,
+      .findings::after {
+        content: '';
+        position: absolute;
+        left: 0.25rem;
+        top: 0;
+        bottom: 0;
+        width: 1px;
+        background: var(--line);
+      }
+
+      .findings::after {
+        width: 2px;
+        margin-left: -0.5px;
+        background: var(--accent);
+        transform-origin: center top;
+        animation: rail-fill linear both;
+      }
+
+      .findings li {
+        position: relative;
+        view-timeline: --finding block;
+        view-timeline-inset: 48%;
+        animation: finding-read linear both;
+      }
+
+      /* The node beside each finding turns solid as the fill reaches it. */
+      .findings li::before {
+        content: '';
+        position: absolute;
+        left: calc(-1.25rem - 3.5px);
+        top: calc(var(--space-5) + 0.55rem);
+        z-index: 1;
+        width: 8px;
+        height: 8px;
+        border: 1.5px solid var(--muted);
+        background: var(--bg);
+        animation: node-on linear both;
+      }
+
+      .findings li:hover {
+        padding-left: 0;
+      }
+    }
+  }
+
+  /* The timelines are set in a block of their own, after the animations. The build
+     otherwise folds a timeline into the animation shorthand, which browsers reject,
+     and the rail would silently never move. */
+  @media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: view()) {
+      .findings::after {
+        animation-timeline: --findings;
+        animation-range: cover 0% cover 100%;
+      }
+
+      .findings li {
+        animation-timeline: view(block 22% 22%);
+        animation-range: cover 0% cover 100%;
+      }
+
+      .findings li::before {
+        animation-timeline: --finding;
+        animation-range: entry 0% entry 30%;
+      }
+    }
+  }
+
+  @keyframes rail-fill {
+    from {
+      transform: scaleY(0);
+    }
+    to {
+      transform: scaleY(1);
+    }
+  }
+
+  @keyframes finding-read {
+    0%,
+    100% {
+      color: var(--muted);
+    }
+    22%,
+    78% {
+      color: var(--ink);
+    }
+  }
+
+  @keyframes node-on {
+    to {
+      border-color: var(--accent);
+      background: var(--accent);
+    }
+  }
+
   .findings__index {
     font-family: var(--mono);
     font-size: var(--text-sm);
@@ -599,6 +734,109 @@ const jsonLd = {
     line-height: 1.6;
     color: var(--panel-muted);
     max-width: 38rem;
+  }
+
+  /* Up next: the reader who finishes one piece is handed the next, behind a lifting gate. */
+  .upnext {
+    margin-top: var(--section);
+  }
+
+  .upnext__band {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: var(--space-4) var(--space-6);
+    padding: clamp(1.5rem, 0.8rem + 3.4vw, 3.75rem);
+    border-radius: var(--radius);
+    background: radial-gradient(ellipse at 100% 100%, #3c251d, transparent 70%), #111719;
+    color: #eef0f1;
+    text-decoration: none;
+    overflow: hidden;
+  }
+
+  .upnext__band:focus-visible {
+    outline-color: var(--accent-on-panel);
+  }
+
+  /* The lip of the gate: an orange edge that draws across as the band is uncovered. */
+  .upnext__rule {
+    position: absolute;
+    inset: 0 0 auto;
+    height: 2px;
+    background: var(--accent-on-panel);
+    transform-origin: left center;
+    transition: transform 1.2s var(--ease-out) 0.3s;
+  }
+
+  .upnext:global(.reveal-wait) .upnext__rule {
+    transform: scaleX(0);
+  }
+
+  .upnext__label {
+    grid-column: 1 / -1;
+    color: var(--accent-on-panel);
+  }
+
+  .upnext__title {
+    max-width: 22ch;
+    font-size: var(--text-3xl);
+    font-weight: 560;
+    line-height: 0.98;
+    letter-spacing: -0.045em;
+    text-wrap: balance;
+    transition: transform 0.6s var(--ease-out);
+  }
+
+  .upnext__meta {
+    grid-column: 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-4);
+    color: #a2a9b0;
+  }
+
+  .upnext__go {
+    grid-column: 2;
+    grid-row: 2 / span 2;
+    display: grid;
+    place-items: center;
+    width: clamp(3rem, 2rem + 4vw, 5rem);
+    height: clamp(3rem, 2rem + 4vw, 5rem);
+    border: 1px solid #eef0f14d;
+    border-radius: 50%;
+    font-size: clamp(1.1rem, 0.8rem + 1vw, 1.6rem);
+    transition:
+      background-color 0.4s var(--ease),
+      border-color 0.4s var(--ease),
+      color 0.4s var(--ease),
+      transform 0.6s var(--ease-out);
+  }
+
+  .upnext__band:hover .upnext__go,
+  .upnext__band:focus-visible .upnext__go {
+    background: var(--accent-on-panel);
+    border-color: var(--accent-on-panel);
+    color: #101214;
+    transform: translateX(0.5rem);
+  }
+
+  .upnext__band:hover .upnext__title,
+  .upnext__band:focus-visible .upnext__title {
+    transform: translateX(0.5rem);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .upnext__title,
+    .upnext__go {
+      transform: none !important;
+    }
+  }
+
+  @media print {
+    .upnext {
+      display: none;
+    }
   }
 
   /* Related */

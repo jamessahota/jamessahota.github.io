@@ -23,14 +23,43 @@ const jsonLd = {
 ---
 
 <BaseLayout title={data.title} description={data.description} jsonLd={jsonLd}>
-  <header class="page-header container">
+  <header class="page-header container about-header">
     <p class="label label--marked">About</p>
     <h1 class="display">{profile.name}</h1>
-    <p class="lede">{data.lede}</p>
+    <div class="about-header__grid">
+      <div>
+        <p class="lede">{data.lede}</p>
+        <nav class="about-jumps" aria-label="On this page">
+          <a class="arrow-link" href="#biography">Biography <Icon name="arrow-down" /></a>
+          <a class="arrow-link" href="#approach-heading">Research approach <Icon name="arrow-down" /></a>
+          <a class="arrow-link" href="#beyond-heading">Beyond work <Icon name="arrow-down" /></a>
+        </nav>
+      </div>
+      <figure class="about-route" aria-label="Milan, London, Singapore and Chicago" data-loop-host>
+        <svg viewBox="0 0 720 230" width="720" height="230" fill="none" aria-hidden="true" focusable="false">
+          <g class="about-route__grid">
+            <ellipse cx="360" cy="115" rx="295" ry="90" />
+            <ellipse cx="360" cy="115" rx="210" ry="90" />
+            <ellipse cx="360" cy="115" rx="105" ry="90" />
+            <path d="M65 115H655M90 78H630M90 152H630M360 25V205" />
+          </g>
+          <path class="about-route__track" d="M87 133C127 133 135 60 245 60S337 179 465 179S575 87 633 87" />
+          <path class="about-route__signal" data-loop="2" pathLength="1000" d="M87 133C127 133 135 60 245 60S337 179 465 179S575 87 633 87" />
+          {[[87, 133], [245, 60], [465, 179], [633, 87]].map(([x, y], index) => (
+            <g class="about-route__node" style={`--node:${index}`}>
+              <circle cx={x} cy={y} r="16" class="about-route__halo" />
+              <circle cx={x} cy={y} r="5" />
+              <path d={`M${x - 25} ${y}H${x - 20}M${x + 20} ${y}H${x + 25}M${x} ${y - 25}V${y - 20}M${x} ${y + 20}V${y + 25}`} />
+            </g>
+          ))}
+        </svg>
+        <figcaption><ol>{['Milan', 'London', 'Singapore', 'Chicago'].map((city, index) => <li><span aria-hidden="true">0{index + 1}</span>{city}</li>)}</ol></figcaption>
+      </figure>
+    </div>
   </header>
 
   <div class="container about">
-    <section class="about__bio" aria-label="Biography">
+    <section class="about__bio" id="biography" aria-label="Biography">
       <div class="prose">
         <Content />
       </div>
@@ -71,7 +100,7 @@ const jsonLd = {
     <ol class="cells approach" data-reveal>
       {
         data.approach.map((point, position) => (
-          <li class="cell approach__item">
+          <li class="cell approach__item" data-reveal={position + 1}>
             <p class="label numeric approach__index">{String(position + 1).padStart(2, '0')}</p>
             <h3>{point.title}</h3>
             <p class="approach__text">{point.text}</p>
@@ -105,6 +134,39 @@ const jsonLd = {
     border-top: 1px solid var(--ink);
   }
 
+  .about-header h1 {
+    font-family: var(--display, var(--sans));
+    font-size: clamp(4.5rem, 14vw, 13rem);
+    line-height: 0.98;
+    font-weight: 400;
+    letter-spacing: -0.015em;
+    text-transform: uppercase;
+  }
+
+  .about-header__grid { display: grid; gap: var(--space-6); margin-top: var(--space-7); align-items: center; }
+  .about-header__grid .lede { margin: 0; max-width: 27ch; font-size: clamp(1.5rem, 1.1rem + 1.5vw, 2.4rem); }
+  .about-jumps { display: flex; flex-wrap: wrap; gap: 0.2rem 1.25rem; margin-top: var(--space-5); }
+  .about-jumps .arrow-link { font-size: 0.65rem; }
+
+  .about-route { overflow: hidden; background: #111518; border: 1px solid #353c42; border-radius: var(--radius); color: #eef0f1; }
+  .about-route svg { display: block; width: 100%; height: auto; background: radial-gradient(ellipse at 65% 50%, #ff6a3317, transparent 65%); }
+  .about-route__grid { stroke: #7b8993; opacity: 0.2; stroke-width: 1; }
+  .about-route__track { stroke: #667580; stroke-width: 1.5; }
+  .about-route__signal { stroke: #ff7e49; stroke-width: 2.5; stroke-dasharray: 90 1000; animation: route-travel 9s linear infinite; animation-play-state: paused; filter: drop-shadow(0 0 7px #ff6a33); }
+  :global(.has-nav-toggle) .about-route__signal { animation-play-state: running; }
+  .about-route__node { fill: #ff7e49; stroke: #ff7e49; stroke-width: 1; }
+  .about-route__halo { fill: #171d21; stroke: #6d7e89; }
+  .about-route figcaption { border-top: 1px solid #353c42; padding: 1rem; }
+  .about-route ol { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.5rem; }
+  .about-route li { display: flex; flex-direction: column; gap: 0.4rem; font-size: 0.8125rem; letter-spacing: -0.025em; }
+  .about-route li span { font-family: var(--mono); font-size: 0.625rem; color: #ff8a5c; }
+
+  @keyframes route-travel { to { stroke-dashoffset: -1000; } }
+
+  @media (min-width: 60rem) {
+    .about-header__grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: var(--space-8); }
+  }
+
   @media (min-width: 64rem) {
     .about {
       grid-template-columns: minmax(0, 1fr) 21rem;
@@ -129,6 +191,9 @@ const jsonLd = {
     letter-spacing: -0.02em;
     color: var(--ink);
   }
+
+  .about__bio { scroll-margin-top: calc(var(--header-height) + 2rem); }
+  .about__bio .prose { max-width: 43rem; }
 
   .about__facts {
     grid-template-columns: minmax(0, 1fr);
@@ -178,10 +243,22 @@ const jsonLd = {
     flex-direction: column;
     align-items: flex-start;
     gap: var(--space-3);
+    padding: clamp(1.5rem, 1rem + 2.5vw, 3rem);
+    min-height: 23rem;
+    transition: background-color 500ms var(--ease-out, ease), color 500ms var(--ease-out, ease);
   }
+
+  .approach__item:hover { background: var(--panel); color: var(--panel-ink); }
+  .approach__item:hover .approach__text { color: #c3cbd0; }
+  .approach__item h3 { max-width: 20ch; font-size: clamp(1.5rem, 1.2rem + 1vw, 2rem); }
 
   .approach__index {
     color: var(--accent-text) !important;
+    font-family: var(--display, var(--sans));
+    font-size: clamp(3rem, 6vw, 5rem);
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    line-height: 1;
   }
 
   .approach__text {
@@ -199,11 +276,23 @@ const jsonLd = {
     font-size: var(--text-lg);
     line-height: 1.55;
     color: var(--ink-2);
+    border-top: 1px solid var(--line);
+    padding-top: var(--space-6);
   }
 
   @media (min-width: 56rem) {
     .beyond {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .about-route__signal { animation: none; stroke-dasharray: none; opacity: 0.7; }
+  }
+
+  @media print {
+    .about-route { display: none; }
+    .about-jumps { display: none; }
+    .approach__item { min-height: 0; }
   }
 </style>

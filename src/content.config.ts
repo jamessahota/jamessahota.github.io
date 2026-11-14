@@ -103,9 +103,21 @@ const research = defineCollection({
           z.object({
             title: z.string(),
             unit: z.string(),
+            // 'bars' compares values from zero. 'futures-curve' plots contract prices as a
+            // line, spaced by each item's `period` (the contract month, YYYY-MM).
+            kind: z.enum(['bars', 'futures-curve']).default('bars'),
             // Bars start at zero, so values cannot be negative and one must be above zero.
             items: z
-              .array(z.object({ label: z.string(), value: z.number().nonnegative() }))
+              .array(
+                z.object({
+                  label: z.string(),
+                  value: z.number().nonnegative(),
+                  period: z
+                    .string()
+                    .regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Use YYYY-MM')
+                    .optional(),
+                }),
+              )
               .min(2)
               .refine((items) => items.some((item) => item.value > 0), 'A chart needs at least one value above zero'),
             caption: z.string().optional(),

@@ -3,26 +3,23 @@
 name: James Sahota
 positioning: Research across energy and markets
 intro: >-
-  I study mathematics and economics at the University of Chicago and research energy and
-  commodity markets. I co-founded 6:05 Markets, where I help lead research and editorial
-  development.
+  I study mathematics and economics at the University of Chicago and co-founded 6:05 Markets,
+  where I help lead research and editorial development.
 
 location: Chicago, IL
 email: jsahota@uchicago.edu
 linkedin: https://www.linkedin.com/in/james-sahota/
 
 # The short facts beside the homepage introduction.
+# Each fact should add something the introduction above it does not already say.
 atAGlance:
-  - label: Now
-    value: Co-Founder & Co-President, 6:05 Markets
-    href: https://605-markets.com/
+  - label: Research focus
+    value: Oil, natural gas and LNG, refined products, and the routes that carry them
+  - label: Degree
+    value: B.S. Mathematics and B.A. Economics, expected 2029
   - label: Also
     value: Research Contributor, Energy Flux
     href: https://www.energyflux.news/
-  - label: Studying
-    value: Mathematics and Economics at the University of Chicago, expected 2029
-  - label: Research focus
-    value: Oil, natural gas and LNG, refined products, and the routes that carry them
 
 contactInvite: >-
   I’m glad to hear from people working in energy and commodity markets, from other researchers,
@@ -30,9 +27,9 @@ contactInvite: >-
 
 # The short personal paragraph on the homepage. The full biography is in about.md.
 homeAbout: >-
-  I was born in Milan, went to school in London and now study mathematics and economics in
-  Chicago. I speak English and Italian fluently, studied philosophy at A-level and am vice
-  president of the university judo club.
+  I was born in Milan, went to school in London and am now based in Chicago. I speak English
+  and Italian fluently, studied philosophy at A-level and am vice president of the university
+  judo club.
 
 languages:
   - name: English

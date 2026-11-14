@@ -19,11 +19,11 @@ const { entry, self, index, size = 'regular' } = Astro.props;
 const { data } = entry;
 const chart = size !== 'compact' ? data.charts?.[0] : undefined;
 const numbers = !chart && size !== 'compact' ? data.keyNumbers?.slice(0, 2) : undefined;
-const max = chart ? Math.max(1, ...chart.items.map((item) => item.value)) : 1;
+const max = chart ? Math.max(...chart.items.map((item) => item.value)) : 1;
 const decimals = chart?.items.some((item) => !Number.isInteger(item.value)) ? 2 : 0;
 ---
 
-<article class:list={['rcard', `rcard--${size}`, 'cell', 'cell--link']} data-reveal>
+<article class:list={['rcard', `rcard--${size}`, 'cell', 'cell--link']} data-reveal data-vt-key={entry.id} data-loop-host>
   <header class="rcard__top">
     <p class="label">
       {index !== undefined && <span class="rcard__index numeric">{String(index).padStart(2, '0')}</span>}
@@ -35,14 +35,14 @@ const decimals = chart?.items.some((item) => !Number.isInteger(item.value)) ? 2 
 
   <div class="rcard__body">
     <h3 class="rcard__title">
-      <a class="stretched" href={researchPath(entry)}><span class="research-title" style={`view-transition-name: research-${entry.id.replace(/[^a-zA-Z0-9_-]/g, '-')}`}>{data.title}</span></a>
+      <a class="stretched" href={researchPath(entry)}><span class="research-title" data-vt-title>{data.title}</span></a>
     </h3>
     {size !== 'compact' && <p class="rcard__summary">{data.summary}</p>}
   </div>
 
   {
     chart && (
-      <div class="rcard__visual rcard__exhibit">
+      <div class="rcard__visual rcard__exhibit" data-vt-visual>
         <p class="label">
           {chart.title} · {chart.unit}
         </p>
@@ -63,7 +63,7 @@ const decimals = chart?.items.some((item) => !Number.isInteger(item.value)) ? 2 
 
   {
     numbers && (
-      <div class="rcard__visual rcard__exhibit rcard__exhibit--route">
+      <div class="rcard__visual rcard__exhibit rcard__exhibit--route" data-vt-visual>
         <svg class="rcard__route" viewBox="0 0 560 132" width="560" height="132" fill="none" aria-hidden="true" focusable="false">
           <g class="rcard__route-lines">
             <path d="M-20 12C110 12 124 61 245 61H325C427 61 437 12 580 12" />
@@ -73,7 +73,7 @@ const decimals = chart?.items.some((item) => !Number.isInteger(item.value)) ? 2 
             <path d="M-20 101C112 101 144 81 245 81H325C427 81 452 101 580 101" />
             <path d="M-20 123C110 123 141 86 245 86H325C421 86 447 123 580 123" />
           </g>
-          <path class="rcard__route-pulse" d="M-20 33C108 33 137 66 245 66H325C427 66 452 33 580 33" />
+          <path class="rcard__route-pulse" data-loop="3" d="M-20 33C108 33 137 66 245 66H325C427 66 452 33 580 33" />
           <g class="rcard__route-gates">
             <path d="M247 43V105M323 43V105" />
             <circle cx="247" cy="66" r="4" />
@@ -163,10 +163,6 @@ const decimals = chart?.items.some((item) => !Number.isInteger(item.value)) ? 2 
   }
 
   .rcard__summary {
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 3;
-    overflow: hidden;
     margin-top: var(--space-4);
     max-width: 38rem;
     color: var(--cell-muted);
@@ -183,7 +179,6 @@ const decimals = chart?.items.some((item) => !Number.isInteger(item.value)) ? 2 
   }
 
   .rcard--lead .rcard__summary {
-    -webkit-line-clamp: 4;
     margin-top: var(--space-5);
     font-size: var(--text-lg);
     line-height: 1.5;
@@ -451,6 +446,62 @@ const decimals = chart?.items.some((item) => !Number.isInteger(item.value)) ? 2 
     .rcard__route {
       width: calc(100% + 2rem);
       margin-inline: -1rem;
+    }
+  }
+
+  /* Touch screens have no hover, so the card crossing the middle of the screen is the
+     live one: its line loads and its arrow turns in step with the scroll. */
+  @media (hover: none) and (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: view()) {
+      .rcard {
+        view-timeline: --rcard block;
+      }
+
+      .rcard::before {
+        animation: rcard-bar linear both;
+        transition: none;
+      }
+
+      .rcard .go {
+        animation: rcard-go linear both;
+      }
+    }
+  }
+
+  /* The timelines sit in their own block, after the animations: the build otherwise folds
+     a timeline into the animation shorthand, which browsers reject. */
+  @supports (animation-timeline: view()) {
+    @media (hover: none) and (prefers-reduced-motion: no-preference) {
+      .rcard::before,
+      .rcard .go {
+        animation-timeline: --rcard;
+        animation-range: cover 30% cover 70%;
+      }
+    }
+  }
+
+  @keyframes rcard-bar {
+    0%,
+    100% {
+      transform: scaleX(0);
+    }
+    35%,
+    65% {
+      transform: scaleX(1);
+    }
+  }
+
+  @keyframes rcard-go {
+    0%,
+    100% {
+      transform: none;
+    }
+    35%,
+    65% {
+      transform: rotate(-45deg);
+      background: var(--accent);
+      border-color: var(--accent);
+      color: var(--on-accent);
     }
   }
 

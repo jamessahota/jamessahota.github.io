@@ -84,11 +84,11 @@ Rules the build enforces: published work needs a `date` and either an `originalU
 
 **A PDF of a report.** Put the approved file in `public/research/`, with no spaces in its name, and add `pdf: /research/the-file.pdf`. An "Open the PDF" button appears.
 
-**A chart or figure from a report.** Put the image in `public/research/` and add it under `figures` with `src`, `alt`, `width`, `height`, `caption` and `credit`. For simple comparisons, `charts` draws a bar chart from numbers you type in; use only figures stated in the report. The first chart also appears as a small chart on the report's card.
+**A chart or figure from a report.** Put the image in `public/research/` and add it under `figures` with `src`, `alt`, `width`, `height`, `caption` and `credit`. For simple comparisons, `charts` draws a bar chart from numbers you type in; use only figures stated in the report. For futures prices, add `kind: futures-curve` to the chart and a `period` (the contract month, as `2027-03`) to each item: the prices are then drawn as a curve, spaced by the real gap between contracts, as in `oil-above-100-supply-shock.md`. The first chart also appears on the report's card.
 
 ### Choose the featured research on the homepage
 
-In each report's front matter, `featured: true` puts it on the homepage and `order` sets the position (1 is the large lead card). The homepage shows the first three.
+In each report's front matter, `featured: true` puts it on the homepage and `order` sets the position. The homepage shows the first four, two by two: 1 and 2 on the top row, 3 and 4 beneath them.
 
 ### Update the biography
 
@@ -139,8 +139,8 @@ To use a custom domain later: change `SITE_URL` in `astro.config.mjs`, add a `pu
 
 ## Design notes
 
-- Graphite and steel grey with a flame-orange accent. Nearly square corners, hairline grids and monospaced labels. A light theme by default, with a dark theme behind the switch in the header; the choice is remembered on that device.
-- Geist for text and headings, Geist Mono for labels and figures. Both are bundled with the site through `@fontsource-variable`, so no request goes to a third party.
+- Graphite and warm ivory with a flame-orange accent. Nearly square corners, hairline grids and monospaced labels. A light theme by default, with a dark theme behind the switch in the header; the choice is remembered on that device.
+- Anton for display headlines, Geist for reading text and Geist Mono for labels and figures. All fonts are bundled locally through Fontsource, so font requests stay on the site.
 - No analytics, cookies or tracking, so there is no cookie banner.
 
 ### The interactive pieces
@@ -149,13 +149,22 @@ All of these are additions on top of plain HTML. With JavaScript off, every page
 
 | Piece | Where | Notes |
 | --- | --- | --- |
-| Flow illustration | Homepage hero, `src/components/FlowPanel.astro` | Streamlines squeezing through a chokepoint. They part around the pointer. It is an illustration, not a chart of data. It stops when off screen and has a Pause button. Visitors who ask for reduced motion get a still picture that does not respond to the pointer |
-| Hover inversions | Research cards and rows | A whole card is one link and turns dark when hovered or focused |
+| Flow illustration | Homepage hero, `src/components/FlowPanel.astro` | Streamlines squeezing through a chokepoint, drawn on a canvas. They part around the pointer, or around a finger on a touch screen. It is an illustration, not a chart of data. It stops when off screen. Visitors who ask for reduced motion get a still picture that does not respond to the pointer |
+| Hover inversions | Research cards and rows | A whole card is one link. When hovered or focused it turns dark, an orange line loads across its top edge and its arrow turns upwards. On touch screens the card crossing the middle of the screen does the same |
 | Scroll reveal | Elements with `data-reveal` | Only elements that start below the fold are animated, so nothing is ever left hidden |
-| Chart bars | Report pages | Bars grow in when the chart scrolls into view |
-| Research filter and search | `/research/` | The address updates (`?topic=gas-lng`), so a filtered view can be shared. Search ignores accents, so "el nino" finds "El Niño" |
+| Charts | Report pages | Bars grow in when a chart scrolls into view. A chart marked `kind: futures-curve` is drawn as a line from left to right, with each marker switching on as the line reaches it (`src/components/CurveChart.astro`) |
+| Research filter and search | `/research/` | Rows that stay slide to their new places, rows that go fade out, the selected block glides between topics and the count rolls. Each topic shows how many pieces it holds. The address updates (`?topic=gas-lng`), so a filtered view can be shared. Search ignores accents, so "el nino" finds "El Niño" |
 | Reading progress | Report pages | The thin orange bar under the header |
 | Live clock | Header, footer, About | Current time in Chicago |
 | Copy address | Homepage contact block | Copies the email address |
-| Light and dark | Header switch | |
-| Page cross-fade | Between pages | In browsers that support view transitions |
+| Light and dark | Header switch | One ruled edge crosses the page, with the new theme behind it |
+| Pause animations | The pause icon in the header, beside the theme switch, on every page; and the Pause button in the hero | One setting with two buttons: it stills decorative CSS motion and the hero on every page, and the choice is remembered. The header icon is hidden for visitors who ask for reduced motion, for whom nothing moves anyway |
+| Research exhibits | `src/components/ResearchCard.astro` (cards) and `src/components/ResearchVisual.astro` (report headers) | A card shows its report's first chart, or two key numbers above a route illustration. The title and exhibit of the piece being opened travel to its page |
+| Project workflow | `src/components/ProjectFlow.astro` | Four stages from the documented research workflow |
+| Page changes | Between pages | Pages change with a direction: sideways between sections, down into a report and up on the way back. The orange underline in the header slides to the new section, and the title and plate of the piece being opened travel to its page. The rules are in `src/styles/motion.css`; the direction is set by the script in the head of `src/layouts/BaseLayout.astro` |
+| Publication record | `/research/`, `src/components/ResearchTape.astro` | One square per piece, stacked by month, built from the dates in the content files. Pointing at a square names the piece and marks its row; filtering empties the squares outside the topic |
+| Key numbers | Report pages and the homepage project | Each figure rises into place whole, with an orange tick. Figures never count up, because a count would pass through values that were never true |
+| Range bars | Tables on report pages, `src/components/DataTable.astro` | A column made only of ranges ("US$95–115") or percentages draws a thin bar under each figure, on one scale from zero. A row whose first cell says "base case" is drawn solid. Pointing at a cell tints its row and column |
+| Findings rail | Report pages | A line beside the key findings fills as they are read. It needs a browser with scroll-driven animations; elsewhere the list is unchanged |
+| Up next | End of each report | A dark band that lifts open on the next piece (the one published before it) |
+| Loops that rest | Everywhere | A decoration marked `data-loop` runs a few times when it comes into view, then stops until its card or panel is hovered or focused |

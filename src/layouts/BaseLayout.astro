@@ -2,6 +2,7 @@
 // The frame every page shares: document head, header, main content and footer.
 import { Font } from 'astro:assets';
 import '../styles/global.css';
+import '../styles/motion.css';
 import SiteFooter from '../components/SiteFooter.astro';
 import SiteHeader from '../components/SiteHeader.astro';
 import { SITE } from '../site.config';
@@ -34,7 +35,7 @@ const safeJsonLd = jsonLd ? JSON.stringify(jsonLd).replace(/</g, '\\u003c') : un
     <meta name="description" content={description} />
     {canonical && !noindex && <link rel="canonical" href={canonical} />}
     {noindex && <meta name="robots" content="noindex" />}
-    <meta name="theme-color" content="#eef0f1" />
+    <meta name="theme-color" content="#efeee8" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
@@ -50,20 +51,95 @@ const safeJsonLd = jsonLd ? JSON.stringify(jsonLd).replace(/</g, '\\u003c') : un
     {shareImage && <meta property="og:image:height" content="630" />}
     <meta name="twitter:card" content="summary_large_image" />
 
+    <!-- Opts every page in to page transitions before any stylesheet has loaded, so the
+         choice never depends on the order in which they arrive. -->
+    <style is:inline>
+      @view-transition { navigation: auto; }
+      @media (prefers-reduced-motion: reduce) { @view-transition { navigation: none; } }
+    </style>
+
     <!-- Applies a saved light or dark choice before the page is drawn, so there is no flash. -->
     <script is:inline>
       try {
         const saved = localStorage.getItem('theme');
         if (saved === 'dark' || saved === 'light') document.documentElement.dataset.theme = saved;
         if (saved === 'dark') document.querySelector('meta[name="theme-color"]').setAttribute('content', '#101214');
+        if (localStorage.getItem('motion') === 'paused') document.documentElement.dataset.motion = 'paused';
       } catch {}
+      // Page changes move in a direction: sideways between sections, down into a
+      // report and up on the way back. The animations are in motion.css.
+      (() => {
+        const root = document.documentElement;
+        const sections = ['/', '/research/', '/experience/', '/about/', '/cv/'];
+        const section = (path) => {
+          if (path.startsWith('/projects/')) return 2;
+          const found = sections.findIndex((start, index) => index > 0 && path.startsWith(start));
+          return found < 0 ? 0 : found;
+        };
+        const depth = (path) => path.split('/').filter(Boolean).length;
+        const direction = (from, to) => {
+          if (depth(to) >= 2 && depth(to) > depth(from)) return 'down';
+          if (depth(from) >= 2 && depth(to) < depth(from)) return 'up';
+          const a = section(from);
+          const b = section(to);
+          return b < a ? 'left' : b > a ? 'right' : 'down';
+        };
+        // Only the piece being opened or closed travels between its card and its page.
+        const name = (slug, scope) => {
+          const named = [];
+          const host = scope || document.querySelector('[data-vt-key="' + CSS.escape(slug) + '"]');
+          if (!host) return named;
+          for (const [selector, prefix] of [['[data-vt-title]', 'research-'], ['[data-vt-visual]', 'research-visual-']]) {
+            const element = host.matches(selector) ? host : host.querySelector(selector);
+            if (!element) continue;
+            element.style.viewTransitionName = prefix + slug.replace(/[^a-zA-Z0-9_-]/g, '-');
+            named.push(element);
+          }
+          return named;
+        };
+        const report = (path) => (path.match(/^\/research\/([^/]+)\/$/) || [])[1];
+        let clicked;
+        addEventListener('click', (event) => {
+          clicked = event.target instanceof Element ? event.target.closest('a[href]') : undefined;
+        }, true);
+
+        addEventListener('pageswap', (event) => {
+          if (!event.viewTransition || !event.activation) return;
+          try {
+            const slug = report(new URL(event.activation.entry.url).pathname);
+            if (!slug) return;
+            const scope = clicked && clicked.closest('[data-vt-key="' + CSS.escape(slug) + '"]');
+            const named = name(slug, scope);
+            // If this page is kept for the Back button, it must not keep the names.
+            addEventListener('pageshow', () => named.forEach((element) => element.style.removeProperty('view-transition-name')), { once: true });
+          } catch {}
+        });
+
+        addEventListener('pagereveal', (event) => {
+          if (!event.viewTransition) return;
+          let named = [];
+          try {
+            const from = new URL(window.navigation.activation.from.url).pathname;
+            root.dataset.vt = direction(from, location.pathname);
+            const slug = report(from);
+            if (slug && !report(location.pathname)) named = name(slug);
+          } catch {}
+          const settle = () => {
+            delete root.dataset.vt;
+            named.forEach((element) => element.style.removeProperty('view-transition-name'));
+          };
+          // A skipped transition rejects; tidy up either way.
+          event.viewTransition.finished.then(settle, settle);
+        });
+      })();
     </script>
 
     <Font cssVariable="--font-geist" preload={[{ style: 'normal' }]} />
     <Font cssVariable="--font-geist-mono" preload />
+    <Font cssVariable="--font-display" preload />
     {safeJsonLd && <script type="application/ld+json" is:inline set:html={safeJsonLd} />}
   </head>
-  <body>
+  <body data-page={Astro.url.pathname}>
     <a class="skip-link" href="#main">Skip to content</a>
     <SiteHeader />
     <main id="main" tabindex="-1">
@@ -77,11 +153,64 @@ const safeJsonLd = jsonLd ? JSON.stringify(jsonLd).replace(/</g, '\\u003c') : un
   // Shared choreography: ruled headings, staggered groups and individual exhibits.
   // Content stays visible without JavaScript and when motion is reduced.
   const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
-  const motionOk = !motionPreference.matches;
+  const motionOk = !motionPreference.matches && document.documentElement.dataset.motion !== 'paused';
+  // The heading retains its original semantic text; the inner span supplies a mask.
+  for (const heading of document.querySelectorAll<HTMLElement>('.section-head h2, .list-head h2')) {
+    if (heading.childElementCount || heading.querySelector('.motion-line')) continue;
+    const line = document.createElement('span');
+    line.className = 'motion-line';
+    line.textContent = heading.textContent;
+    heading.replaceChildren(line);
+  }
   for (const heading of document.querySelectorAll<HTMLElement>('.section-head, .list-head')) {
     if (!heading.hasAttribute('data-reveal')) heading.setAttribute('data-reveal', '');
     heading.dataset.revealStyle = 'rule';
   }
+
+  // The pointer can move the visible label or decorative arrow, never the hit area.
+  // Keyboard focus, touch and reduced-motion visitors keep the ordinary controls.
+  const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
+  const magneticTargets = [...document.querySelectorAll<HTMLElement>('.btn, .cell--link')];
+  const resetPointer = (element: HTMLElement) => {
+    element.style.removeProperty('--magnetic-x');
+    element.style.removeProperty('--magnetic-y');
+  };
+  for (const element of magneticTargets) {
+    element.addEventListener('pointermove', (event) => {
+      if (motionPreference.matches || document.documentElement.dataset.motion === 'paused' || !finePointer.matches || event.pointerType === 'touch') return;
+      const box = element.getBoundingClientRect();
+      const x = (event.clientX - box.left) / Math.max(1, box.width) - 0.5;
+      const y = (event.clientY - box.top) / Math.max(1, box.height) - 0.5;
+      const distance = element.classList.contains('btn') ? 5 : 8;
+      element.style.setProperty('--magnetic-x', `${(x * distance).toFixed(2)}px`);
+      element.style.setProperty('--magnetic-y', `${(y * distance).toFixed(2)}px`);
+    }, { passive: true });
+    element.addEventListener('pointerleave', () => resetPointer(element));
+    element.addEventListener('focusin', () => resetPointer(element));
+  }
+  const depthPanels = [...document.querySelectorAll<HTMLElement>('[data-depth-panel]')];
+  for (const panel of depthPanels) {
+    panel.addEventListener('pointermove', (event) => {
+      if (motionPreference.matches || document.documentElement.dataset.motion === 'paused' || !finePointer.matches || event.pointerType === 'touch') return;
+      const box = panel.getBoundingClientRect();
+      panel.style.setProperty('--depth-x', `${(((event.clientX - box.left) / Math.max(1, box.width) - 0.5) * 18).toFixed(2)}px`);
+      panel.style.setProperty('--depth-y', `${(((event.clientY - box.top) / Math.max(1, box.height) - 0.5) * 12).toFixed(2)}px`);
+    }, { passive: true });
+    panel.addEventListener('pointerleave', () => {
+      panel.style.removeProperty('--depth-x');
+      panel.style.removeProperty('--depth-y');
+    });
+  }
+  const clearPointerEffects = () => {
+    magneticTargets.forEach(resetPointer);
+    depthPanels.forEach((panel) => {
+      panel.style.removeProperty('--depth-x');
+      panel.style.removeProperty('--depth-y');
+    });
+  };
+  finePointer.addEventListener('change', clearPointerEffects);
+  motionPreference.addEventListener('change', clearPointerEffects);
+  document.addEventListener('motionchange', clearPointerEffects);
   for (const group of document.querySelectorAll('.selected, .roles, .list, .approach, .capabilities')) {
     [...group.children].forEach((child, index) => {
       if (child instanceof HTMLElement && child.hasAttribute('data-reveal') && !child.dataset.reveal) {
@@ -124,6 +253,11 @@ const safeJsonLd = jsonLd ? JSON.stringify(jsonLd).replace(/</g, '\\u003c') : un
       observer.disconnect();
       targets.forEach(reveal);
     });
+    document.addEventListener('motionchange', (event) => {
+      if (!(event as CustomEvent<{ paused?: boolean }>).detail?.paused) return;
+      observer.disconnect();
+      targets.forEach(reveal);
+    });
 
     // Keyboard navigation and browser history must never land on hidden content.
     document.addEventListener('focusin', (event) => {
@@ -140,6 +274,49 @@ const safeJsonLd = jsonLd ? JSON.stringify(jsonLd).replace(/</g, '\\u003c') : un
         if (box.top < window.innerHeight && box.bottom > 0) reveal(element);
       });
     });
+  }
+
+  // --- Decoration that rests -----------------------------------------------
+  // A looping decoration marked data-loop runs a few times when it comes into view,
+  // then stops at the end of a cycle. It runs again while its host is hovered or focused.
+  const loops = [...document.querySelectorAll<HTMLElement | SVGElement>('[data-loop]')];
+  if (loops.length && 'IntersectionObserver' in window) {
+    const hosts = new Map<Element, { start: () => void; rest: () => void }[]>();
+    for (const element of loops) {
+      const host = element.closest('[data-loop-host]') ?? element;
+      const limit = Number(element.dataset.loop) || 3;
+      let cycles = 0;
+      let held = false;
+      element.addEventListener('animationiteration', () => {
+        cycles += 1;
+        if (cycles >= limit && !held) element.classList.remove('is-running');
+      });
+      const start = () => {
+        cycles = 0;
+        element.classList.add('is-running');
+      };
+      // Finish the cycle in progress, so nothing stops halfway along its route.
+      const rest = () => {
+        cycles = limit;
+      };
+      host.addEventListener('pointerenter', () => { held = true; start(); });
+      host.addEventListener('pointerleave', () => { held = false; rest(); });
+      host.addEventListener('focusin', () => { held = true; start(); });
+      host.addEventListener('focusout', () => { held = false; rest(); });
+      hosts.set(host, [...(hosts.get(host) ?? []), { start, rest }]);
+    }
+    const loopObserver = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          for (const loop of hosts.get(entry.target) ?? []) {
+            if (entry.isIntersecting) loop.start();
+            else loop.rest();
+          }
+        }
+      },
+      { threshold: 0.2 },
+    );
+    for (const host of hosts.keys()) loopObserver.observe(host);
   }
 
   // --- Live clock ----------------------------------------------------------

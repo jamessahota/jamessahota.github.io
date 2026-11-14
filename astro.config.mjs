@@ -17,6 +17,15 @@ export default defineConfig({
   fonts: [
     {
       provider: fontProviders.local(),
+      name: 'Anton',
+      cssVariable: '--font-display',
+      fallbacks: ['Impact', 'Arial Narrow', 'sans-serif'],
+      options: {
+        variants: [{ src: ['@fontsource/anton/files/anton-latin-400-normal.woff2'], weight: '400', style: 'normal' }],
+      },
+    },
+    {
+      provider: fontProviders.local(),
       name: 'Geist',
       cssVariable: '--font-geist',
       fallbacks: ['Helvetica Neue', 'Arial', 'sans-serif'],

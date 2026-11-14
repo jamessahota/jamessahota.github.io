@@ -8,7 +8,7 @@
   color-scheme: light;
 
   /* Page: steel grey and graphite */
-  --bg: #eef0f1;
+  --bg: #efeee8;
   --surface: #ffffff; /* raised cards */
   --ink: #101214; /* text */
   --ink-2: #30353a; /* long-form body text */
@@ -38,6 +38,7 @@
   /* Type */
   --sans: var(--font-geist), system-ui, -apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
   --mono: var(--font-geist-mono), ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --display: var(--font-display), Impact, 'Arial Narrow', sans-serif;
 
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
@@ -63,8 +64,8 @@
   /* Layout: squared corners throughout */
   --container: 86rem;
   --measure: 42rem; /* about 70 characters of body text */
-  --radius: 6px;
-  --radius-sm: 4px;
+  --radius: 2px;
+  --radius-sm: 2px;
   --header-height: 4rem;
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -218,35 +219,10 @@ button {
   display: none !important;
 }
 
-/* A soft cross-fade between pages in browsers that support it. */
+/* Pages change with a transition in browsers that support it.
+   The animations themselves are in motion.css. */
 @view-transition {
   navigation: auto;
-}
-
-::view-transition-group(*) {
-  animation-duration: 650ms;
-  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-::view-transition-old(root) {
-  animation: page-out 260ms cubic-bezier(0.76, 0, 0.24, 1) both;
-}
-
-::view-transition-new(root) {
-  animation: page-in 650ms cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-::view-transition-group(site-header) { z-index: 100; animation-duration: 0s; }
-::view-transition-old(site-header) { animation: none; }
-::view-transition-new(site-header) { animation: none; }
-
-@keyframes page-out {
-  to { opacity: 0; transform: translateY(-0.65rem); }
-}
-
-@keyframes page-in {
-  from { opacity: 0; transform: translateY(1.25rem); }
-  to { opacity: 1; transform: none; }
 }
 
 @supports not (view-transition-name: none) {
@@ -347,10 +323,12 @@ main > :last-child {
 }
 
 .display {
+  font-family: var(--display);
   font-size: var(--text-display);
-  font-weight: 600;
-  line-height: 0.9;
-  letter-spacing: -0.06em;
+  font-weight: 400;
+  line-height: 0.98;
+  letter-spacing: -0.025em;
+  text-transform: uppercase;
 }
 
 .lede {
@@ -654,6 +632,12 @@ main > :last-child {
 
 .section-head h2 {
   margin-top: var(--space-3);
+  font-family: var(--display);
+  font-size: clamp(2.7rem, 1.4rem + 4.8vw, 6.5rem);
+  font-weight: 400;
+  line-height: 0.98;
+  letter-spacing: -0.025em;
+  text-transform: uppercase;
 }
 
 /* ==========================================================================
@@ -742,10 +726,25 @@ main > :last-child {
   transition-delay: var(--reveal-delay, 0s);
 }
 
-[data-reveal-style='mask'].reveal-wait { clip-path: inset(0 0 100%); }
-[data-reveal-style='mask'].reveal-in {
+/* A cell keeps its own colour fade once revealed; the rule above would otherwise
+   replace it and make the hover inversion snap. */
+.cell.reveal-in {
+  transition:
+    background-color 0.3s var(--ease),
+    color 0.3s var(--ease),
+    opacity var(--motion-slow) var(--ease-out) var(--reveal-delay, 0s),
+    transform var(--motion-slow) var(--ease-out) var(--reveal-delay, 0s);
+}
+
+/* A dark band that is uncovered from its top edge, like a gate lifting.
+   The mask goes on the band inside the revealed element, never on the element
+   itself: a fully clipped element is never seen to enter the window, so it
+   would wait for ever. */
+[data-reveal-style='mask'].reveal-wait { transform: none; opacity: 1; }
+[data-reveal-style='mask'].reveal-wait > * { clip-path: inset(0 0 100%); }
+[data-reveal-style='mask'].reveal-in > * {
   clip-path: inset(0);
-  transition: clip-path 1s var(--ease-out), opacity var(--motion-slow) var(--ease-out), transform var(--motion-slow) var(--ease-out);
+  transition: clip-path 0.9s var(--ease-out) var(--reveal-delay, 0s);
 }
 
 /* Anchor scrolling should land on the settled position below the sticky header. */
@@ -796,6 +795,11 @@ main > :last-child {
   .reveal-wait {
     opacity: 1 !important;
     transform: none !important;
+    clip-path: none !important;
+  }
+
+  [data-reveal-style='mask'] > * {
+    clip-path: none !important;
   }
 
   .chart .chart__bar {

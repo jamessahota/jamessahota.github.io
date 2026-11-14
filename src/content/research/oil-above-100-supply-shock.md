@@ -63,16 +63,22 @@ keyFindings:
 charts:
   - title: The Brent futures curve sloped sharply downwards
     unit: US$ per barrel
+    kind: futures-curve
     items:
       - label: Nov 2026
+        period: 2026-11
         value: 100.45
       - label: Dec 2026
+        period: 2026-12
         value: 96.52
       - label: Mar 2027
+        period: 2027-03
         value: 87.84
       - label: Jun 2027
+        period: 2027-06
         value: 82.75
       - label: Dec 2027
+        period: 2027-12
         value: 77.87
     caption: >-
       Contract prices on 9 September 2026, the day before Brent’s intraday move to US$105.26.

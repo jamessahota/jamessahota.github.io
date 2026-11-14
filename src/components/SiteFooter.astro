@@ -1,6 +1,8 @@
 ---
 import { getProfile } from '../lib/content';
 import { NAV } from '../site.config';
+import ButtonLink from './ButtonLink.astro';
+import CopyEmail from './CopyEmail.astro';
 import Icon from './Icon.astro';
 
 const profile = await getProfile();
@@ -8,48 +10,74 @@ const year = new Date().getFullYear();
 ---
 
 <footer class="site-footer">
-  <div class="container">
-    <div class="cells footer-cells">
-      <div class="cell">
+  <section class="footer-contact" id="contact" aria-labelledby="footer-contact-heading" data-depth-panel data-loop-host>
+    <svg class="footer-routes" viewBox="0 0 1400 600" fill="none" aria-hidden="true" focusable="false">
+      <g class="footer-routes__lines">
+        <path d="M-120 12C310 12 360 300 750 300S1040 140 1520 140" />
+        <path d="M-120 80C310 80 360 314 750 314S1040 180 1520 180" />
+        <path d="M-120 148C310 148 360 328 750 328S1040 220 1520 220" />
+        <path d="M-120 216C310 216 360 342 750 342S1040 260 1520 260" />
+        <path d="M-120 284C310 284 360 356 750 356S1040 300 1520 300" />
+        <path d="M-120 352C310 352 360 370 750 370S1040 340 1520 340" />
+        <path d="M-120 420C310 420 360 384 750 384S1040 380 1520 380" />
+        <path d="M-120 488C310 488 360 398 750 398S1040 420 1520 420" />
+        <path d="M-120 556C310 556 360 412 750 412S1040 460 1520 460" />
+      </g>
+      <g class="footer-routes__pulses">
+        <path data-loop="2" d="M-120 80C310 80 360 314 750 314S1040 180 1520 180" />
+        <path data-loop="2" d="M-120 352C310 352 360 370 750 370S1040 340 1520 340" />
+        <path data-loop="2" d="M-120 556C310 556 360 412 750 412S1040 460 1520 460" />
+      </g>
+      <circle class="footer-routes__node" cx="750" cy="356" r="48" />
+      <circle class="footer-routes__node" cx="750" cy="356" r="64" />
+    </svg>
+
+    <div class="container footer-contact__inner">
+      <div class="footer-contact__intro" data-reveal>
+        <p class="label"><span class="footer-dot" aria-hidden="true"></span> Contact</p>
+        <p>{profile.contactInvite}</p>
+      </div>
+      <h2 class="footer-contact__title" id="footer-contact-heading" data-reveal>
+        <a href={`mailto:${profile.email}`}>
+          <span>Get in touch</span>
+          <span class="footer-contact__arrow" aria-hidden="true"><Icon name="arrow-up-right" /></span>
+        </a>
+      </h2>
+      <div class="footer-contact__actions" data-reveal>
+        <ButtonLink href={`mailto:${profile.email}`} label={profile.email} variant="on-dark" icon="mail" />
+        <CopyEmail email={profile.email} />
+        <ButtonLink href="/cv/" label="View CV" variant="outline-dark" icon="arrow-up-right" />
+        <ButtonLink href={profile.linkedin} label="LinkedIn" variant="outline-dark" icon="arrow-up-right" />
+      </div>
+    </div>
+  </section>
+
+  <div class="container footer-bottom">
+    <div class="footer-grid">
+      <div class="footer-grid__identity">
         <p class="label">James Sahota</p>
         <p class="footer-line">{profile.positioning}</p>
       </div>
-      <nav class="cell" aria-label="Footer">
+      <nav aria-label="Footer">
         <p class="label">Site</p>
         <ul>
-          {
-            NAV.map((item) => (
-              <li>
-                <a class="quiet-link" href={item.href}>
-                  {item.label}
-                </a>
-              </li>
-            ))
-          }
+          {NAV.map((item) => <li><a class="quiet-link" href={item.href}>{item.label}</a></li>)}
           <li><a class="quiet-link" href="/cv/">CV</a></li>
         </ul>
       </nav>
-      <div class="cell">
+      <div>
         <p class="label">Contact</p>
         <ul>
           <li><a class="quiet-link" href={`mailto:${profile.email}`}>{profile.email}</a></li>
-          <li>
-            <a class="quiet-link footer-external" href={profile.linkedin} rel="noopener">
-              LinkedIn <Icon name="arrow-up-right" />
-            </a>
-          </li>
+          <li><a class="quiet-link footer-external" href={profile.linkedin} rel="noopener">LinkedIn <Icon name="arrow-up-right" /></a></li>
         </ul>
       </div>
-      <div class="cell">
+      <div>
         <p class="label">Based in</p>
-        <p class="footer-line">
-          Chicago <span class="numeric" data-clock="America/Chicago"></span>
-        </p>
+        <p class="footer-line">Chicago <span class="numeric" data-clock="America/Chicago"></span></p>
       </div>
     </div>
-
-    <p class="footer-word" aria-hidden="true"><span>James Sahota</span></p>
-
+    <p class="footer-word" aria-hidden="true" data-reveal><span>{profile.name}</span></p>
     <p class="footer-small">
       &copy; {year} {profile.name}. Research on this site is dated analysis, shared for information. It is not investment
       advice.
@@ -58,64 +86,105 @@ const year = new Date().getFullYear();
 </footer>
 
 <style>
-  .site-footer {
-    padding-bottom: var(--space-6);
-  }
-
-  .footer-cells {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  @media (min-width: 56rem) {
-    .footer-cells {
-      grid-template-columns: minmax(0, 1.6fr) repeat(3, minmax(0, 1fr));
-    }
-  }
-
-  .footer-line {
-    margin-top: var(--space-3);
-    font-size: var(--text-lg);
-    letter-spacing: -0.02em;
-    line-height: 1.25;
-  }
-
-  .site-footer ul {
-    margin-top: var(--space-2);
-  }
-
-  .site-footer li a {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35em;
-    padding-block: 0.3rem;
-    overflow-wrap: anywhere;
-  }
-
-  /* The name, set as wide as the page. */
-  .footer-word {
-    container-type: inline-size;
-    margin-top: var(--space-6);
+  .site-footer { padding-bottom: var(--space-6); }
+  .footer-contact {
+    position: relative;
     overflow: hidden;
-    user-select: none;
+    isolation: isolate;
+    background: #101214;
+    color: #f1f0e9;
+    padding-block: clamp(3rem, 6vw, 6.5rem);
+    scroll-margin-top: var(--header-height);
   }
-
+  .footer-contact::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background: radial-gradient(ellipse at 85% 65%, #ff6a3317, transparent 60%);
+    pointer-events: none;
+  }
+  .footer-routes {
+    position: absolute;
+    z-index: 0;
+    right: -15%;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    min-width: 65rem;
+    opacity: 0.75;
+    pointer-events: none;
+    transform: translate(var(--depth-x, 0px), var(--depth-y, 0px));
+    transition: transform 900ms var(--ease-out);
+  }
+  .footer-routes__lines { stroke: #eef0f12b; stroke-width: 1; }
+  .footer-routes__pulses { stroke: #ff6a33; stroke-width: 2; stroke-dasharray: 65 1850; }
+  .footer-routes__pulses path { animation: closing-flow 10s linear infinite; animation-play-state: paused; }
+  :global(.has-nav-toggle) .footer-routes__pulses path { animation-play-state: running; }
+  .footer-routes__pulses path:nth-child(2) { animation-delay: -3.5s; }
+  .footer-routes__pulses path:nth-child(3) { animation-delay: -7s; }
+  .footer-routes__node { stroke: #ff6a334d; stroke-width: 1; }
+  .footer-contact__inner { position: relative; z-index: 1; }
+  .footer-contact__intro { display: grid; gap: 1rem; max-width: 39rem; }
+  .footer-contact__intro .label { color: #a2a9b0; }
+  .footer-contact__intro > p:last-child { font-size: var(--text-lg); line-height: 1.5; color: #c7ccd1; }
+  .footer-dot { display: inline-block; width: 0.55em; height: 0.55em; background: #ff6a33; margin-right: 0.6em; }
+  .footer-contact__title {
+    font-family: var(--display, var(--sans));
+    font-size: clamp(4rem, 9.8vw, 10rem);
+    font-weight: 400;
+    line-height: 0.98;
+    letter-spacing: -0.025em;
+    text-transform: uppercase;
+    margin-top: clamp(2rem, 4vw, 4rem);
+  }
+  .footer-contact__title a { display: flex; align-items: center; gap: 2rem; width: fit-content; max-width: 100%; text-decoration: none; }
+  .footer-contact__title a > span:first-child { transition: color var(--motion-base) var(--ease); }
+  .footer-contact__title a:hover > span:first-child { color: #ff6a33; }
+  .footer-contact__arrow {
+    display: grid;
+    place-items: center;
+    width: 0.72em;
+    height: 0.72em;
+    border-radius: 50%;
+    color: #101214;
+    background: #ff6a33;
+    font-size: 0.8em;
+    transition: transform 700ms var(--ease-out), background-color 400ms ease;
+  }
+  .footer-contact__title a:hover .footer-contact__arrow,
+  .footer-contact__title a:focus-visible .footer-contact__arrow { transform: rotate(45deg); background: #f1f0e9; }
+  .footer-contact__actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: clamp(1.5rem, 3vw, 3rem); }
+  .footer-contact :global(.copy) { --btn-ink: #f1f0e9; --btn-border: #eef0f166; --btn-fill: #f1f0e9; --btn-ink-hover: #101214; }
+  .footer-contact :global(:focus-visible) { outline-color: #ff6a33; }
+  .footer-bottom { padding-top: clamp(2rem, 4vw, 4rem); }
+  .footer-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2rem; }
+  .footer-grid > * { min-width: 0; }
+  .footer-line { margin-top: var(--space-3); font-size: var(--text-lg); letter-spacing: -0.02em; line-height: 1.25; max-width: 19rem; }
+  .site-footer ul { margin-top: var(--space-2); }
+  .site-footer li a { display: inline-flex; align-items: center; gap: 0.35em; padding-block: 0.3rem; overflow-wrap: anywhere; }
+  .footer-word { container-type: inline-size; margin-top: clamp(3rem, 5vw, 5rem); overflow: hidden; user-select: none; }
   .footer-word span {
     display: block;
-    font-size: 14.6vw;
-    font-size: 16.1cqw;
-    font-weight: 620;
-    line-height: 0.82;
-    letter-spacing: -0.065em;
+    font-family: var(--display, var(--sans));
+    font-size: 16.5vw;
+    font-size: 18cqw;
+    font-weight: 400;
+    line-height: 1;
+    letter-spacing: -0.025em;
+    text-transform: uppercase;
     white-space: nowrap;
-    padding-bottom: 0.06em;
   }
-
-  .footer-small {
-    margin-top: var(--space-4);
-    padding-top: var(--space-4);
-    border-top: 1px solid var(--line);
-    color: var(--muted);
-    font-size: var(--text-xs);
-    line-height: 1.6;
+  .footer-small { margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--line); color: var(--muted); font-size: var(--text-xs); line-height: 1.6; }
+  @keyframes closing-flow { to { stroke-dashoffset: -1915; } }
+  @media (min-width: 56rem) { .footer-grid { grid-template-columns: minmax(0, 1.6fr) repeat(3, minmax(0, 1fr)); gap: 2.5rem; } }
+  @media (max-width: 35.99rem) {
+    .footer-contact__title a { gap: 1rem; }
+    .footer-contact__title { font-size: clamp(3.2rem, 12vw, 5rem); }
+    .footer-contact__actions { max-width: 24rem; }
+    .footer-contact__actions :global(.btn) { flex: 1 1 auto; }
+    .footer-routes { right: -100%; opacity: 0.5; }
   }
+  @media (prefers-reduced-motion: reduce) { .footer-routes__pulses path { animation: none; } .footer-routes { transform: none; } }
+  @media print { .footer-contact { display: none; } }
 </style>

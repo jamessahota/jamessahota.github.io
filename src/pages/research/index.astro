@@ -1,11 +1,11 @@
 ---
 import Icon from '../../components/Icon.astro';
+import ResearchTape from '../../components/ResearchTape.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import { coAuthorLine, getProfile, getPublicResearch, hasDetailPage, researchPath } from '../../lib/content';
+import { getPublicResearch, hasDetailPage, researchPath } from '../../lib/content';
 import { formatDateShort } from '../../lib/dates';
 import { RESEARCH_TYPES, STATUS_LABELS, TOPICS, type TopicId } from '../../site.config';
 
-const profile = await getProfile();
 const all = await getPublicResearch();
 const published = all.filter(hasDetailPage);
 const inProgress = all.filter((entry) => !hasDetailPage(entry));
@@ -43,9 +43,9 @@ const description =
   <div class="container">
     {
       inProgress.length > 0 && (
-        <section class="panel panel--night in-progress" aria-labelledby="in-progress-heading">
+        <section class="panel panel--night in-progress" aria-labelledby="in-progress-heading" data-loop-host>
           <h2 id="in-progress-heading" class="label in-progress__badge">
-            <span class="in-progress__dot" aria-hidden="true" />
+            <span class="in-progress__dot" aria-hidden="true" data-loop="4" />
             In progress
           </h2>
           <ul>
@@ -70,9 +70,11 @@ const description =
       )
     }
 
+    <ResearchTape entries={published} pending={inProgress} />
+
     <section class="published" aria-labelledby="published-heading">
       <div class="list-head">
-        <h2 id="published-heading">Reports and briefs</h2>
+        <h2 id="published-heading">Browse by topic</h2>
         <p class="label numeric" data-count role="status" aria-live="polite">
           {published.length} pieces
         </p>
@@ -86,6 +88,13 @@ const description =
             topicIds.map((id) => (
               <button type="button" class="chip" data-topic={id} aria-pressed="false">
                 {TOPICS[id]}
+                <span class="chip__count numeric">
+                  <span class="visually-hidden">, </span>
+                  {published.filter((entry) => entry.data.topics.includes(id)).length}
+                  <span class="visually-hidden">
+                    {published.filter((entry) => entry.data.topics.includes(id)).length === 1 ? ' piece' : ' pieces'}
+                  </span>
+                </span>
               </button>
             ))
           }
@@ -110,13 +119,13 @@ const description =
             <li
               class="item cell cell--link"
               data-item
+              data-vt-key={entry.id}
               data-reveal={(position % 3) + 1}
               data-topics={entry.data.topics.join(' ')}
               data-search={searchable(
                 [
                   entry.data.title,
                   entry.data.summary,
-                  entry.data.authors.join(' '),
                   entry.data.venue.name,
                   entry.data.topics.map((topic) => TOPICS[topic]).join(' '),
                   RESEARCH_TYPES[entry.data.type],
@@ -137,13 +146,12 @@ const description =
               <div class="item__main">
                 <h3 class="item__title">
                   <a class="stretched" href={researchPath(entry)}>
-                    <span class="research-title" style={`view-transition-name: research-${entry.id.replace(/[^a-zA-Z0-9_-]/g, '-')}`}>{entry.data.title}</span>
+                    <span class="research-title" data-vt-title>{entry.data.title}</span>
                   </a>
                 </h3>
                 <p class="item__summary">{entry.data.summary}</p>
                 <p class="item__meta label">
                   {[
-                    coAuthorLine(entry.data.authors, profile.name),
                     entry.data.venue.name,
                     entry.data.topics.map((topic) => TOPICS[topic]).join(', '),
                   ].join(' · ')}
@@ -196,6 +204,10 @@ const description =
         const visible = matchesTopic && matchesText;
         item.hidden = !visible;
         if (visible) shown += 1;
+        // The publication record above keeps every piece and empties the ones filtered out.
+        document
+          .querySelector(`[data-tape-key="${CSS.escape(item.dataset.vtKey ?? '')}"]`)
+          ?.classList.toggle('is-out', !visible);
       }
 
       for (const chip of chips) chip.setAttribute('aria-pressed', String(chip.dataset.topic === topic));
@@ -215,14 +227,42 @@ const description =
       }
     };
 
-    // Where the browser supports it, the list re-flows with a short animation.
+    // Where the browser supports it, the list behaves like a screen being re-sorted:
+    // rows that stay slide to their new places, rows that go fade out, the selected
+    // block glides to the new topic and the count rolls. Nothing else on the page moves.
+    const root = document.documentElement;
+    const pressed = () => chips.find((chip) => chip.getAttribute('aria-pressed') === 'true');
+    const nameRows = () => {
+      items.forEach((item, index) => {
+        item.style.viewTransitionName = item.hidden ? '' : `row-${index}`;
+      });
+    };
     const animate = (change: () => void) => {
-      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      if (!reduce && 'startViewTransition' in document) {
-        (document as Document & { startViewTransition: (callback: () => void) => unknown }).startViewTransition(change);
-      } else {
+      const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches || root.dataset.motion === 'paused';
+      const start = (document as Document & { startViewTransition?: (callback: () => void) => { finished: Promise<void> } })
+        .startViewTransition;
+      if (still || !start || root.dataset.vt) {
         change();
+        return;
       }
+      root.dataset.vt = 'filter';
+      nameRows();
+      count.style.viewTransitionName = 'filter-count';
+      const from = pressed();
+      if (from) from.style.viewTransitionName = 'filter-chip';
+      const transition = start.call(document, () => {
+        if (from) from.style.viewTransitionName = '';
+        change();
+        nameRows();
+        const to = pressed();
+        if (to) to.style.viewTransitionName = 'filter-chip';
+      });
+      const settle = () => {
+        for (const element of [...items, ...chips, count]) element.style.viewTransitionName = '';
+        delete root.dataset.vt;
+      };
+      // A transition that is skipped (a second click, a hidden tab) rejects; tidy up either way.
+      transition.finished.then(settle, settle);
     };
 
     for (const chip of chips) {
@@ -238,7 +278,7 @@ const description =
     const reset = () => {
       topic = '';
       search.value = '';
-      apply();
+      animate(() => apply());
       search.focus();
     };
     clear.addEventListener('click', reset);
@@ -373,6 +413,17 @@ const description =
     color: var(--bg);
   }
 
+  /* How many pieces a topic holds. */
+  .chip__count {
+    margin-left: 0.5em;
+    color: var(--muted);
+    transition: color 0.25s var(--ease);
+  }
+
+  .chip[aria-pressed='true'] .chip__count {
+    color: color-mix(in srgb, var(--bg) 62%, transparent);
+  }
+
   .filters__search {
     flex: 1 1 15rem;
     max-width: 22rem;
@@ -444,6 +495,11 @@ const description =
   .item:hover .label--ink,
   .item:focus-within .label--ink {
     color: var(--invert-ink);
+  }
+
+  /* The row whose square is being pointed at in the publication record. */
+  .item:global(.is-traced) {
+    box-shadow: inset 4px 0 0 var(--accent);
   }
 
   @media (min-width: 56rem) {

@@ -3,6 +3,7 @@ import { render } from 'astro:content';
 import Figure from '../../components/Figure.astro';
 import Icon from '../../components/Icon.astro';
 import KeyNumbers from '../../components/KeyNumbers.astro';
+import ProjectFlow from '../../components/ProjectFlow.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getPublicProjects, type Project } from '../../lib/content';
 import { formatPeriod } from '../../lib/dates';
@@ -24,7 +25,7 @@ const sections = headings.filter((heading) => heading.depth === 2);
 
 <BaseLayout title={data.title} description={data.summary} ogType="article">
   <article>
-    <header class="container page-header">
+    <header class="container page-header project-header">
       <a class="arrow-link arrow-link--back" href="/experience/">
         <Icon name="arrow-left" />
         Experience
@@ -32,11 +33,19 @@ const sections = headings.filter((heading) => heading.depth === 2);
       <p class="label label--marked kicker">
         {data.kind} · {formatPeriod(data.start, data.end)}
       </p>
-      <h1>{data.title}</h1>
+      <h1 style={`view-transition-name: project-title-${entry.id.replace(/[^a-zA-Z0-9_-]/g, '-')}`}>{data.title}</h1>
       <p class="lede">{data.summary}</p>
+      {sections.length > 0 && (
+        <nav class="project-jumps" aria-label="Jump to project section">
+          {sections.slice(0, 4).map((section) => (
+            <a class="arrow-link" href={`#${section.slug}`}>{section.text}<Icon name="arrow-down" /></a>
+          ))}
+        </nav>
+      )}
     </header>
 
     <div class="container">
+      <div class="project-scene" data-reveal><ProjectFlow /></div>
       {data.facts && <KeyNumbers items={data.facts} note={data.factsNote} heading="Project figures" />}
       {data.figures?.map((figure) => <Figure {...figure} />)}
 
@@ -84,7 +93,18 @@ const sections = headings.filter((heading) => heading.depth === 2);
 
   .page-header h1 {
     max-width: 18ch;
+    font-family: var(--display, var(--sans));
+    font-size: clamp(3rem, 6.8vw, 6rem);
+    font-weight: 400;
+    text-transform: uppercase;
+    line-height: 1.02;
+    letter-spacing: -0.01em;
   }
+
+  .project-header .lede { max-width: 47rem; }
+  .project-jumps { display: flex; flex-wrap: wrap; gap: 0.2rem 1.5rem; margin-top: var(--space-5); }
+  .project-jumps .arrow-link { font-size: 0.6875rem; }
+  .project-scene { margin-bottom: var(--space-7); }
 
   .body {
     display: grid;
@@ -104,6 +124,10 @@ const sections = headings.filter((heading) => heading.depth === 2);
     .contents {
       position: sticky;
       top: calc(var(--header-height) + var(--space-5));
+      padding: var(--space-5);
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-top: 3px solid var(--accent);
     }
   }
 
@@ -142,5 +166,9 @@ const sections = headings.filter((heading) => heading.depth === 2);
 
   .back {
     margin-top: var(--space-7);
+  }
+
+  @media print {
+    .project-jumps { display: none; }
   }
 </style>

@@ -1,5 +1,6 @@
 ---
 import Icon from '../components/Icon.astro';
+import ButtonLink from '../components/ButtonLink.astro';
 import RoleEntry from '../components/RoleEntry.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import {
@@ -23,13 +24,22 @@ const description =
 ---
 
 <BaseLayout title="Experience" description={description}>
-  <header class="page-header container">
+  <header class="page-header container experience-header">
     <p class="label label--marked">Roles, education and capabilities</p>
     <h1 class="display">Experience</h1>
-    <p class="lede">
-      Research leadership at a student-led markets group, an internship in wealth services, and study towards a B.S. in
-      mathematics and a B.A. in economics, expected in 2029.
-    </p>
+    <div class="experience-header__lower">
+      <p class="lede">
+        Research leadership at a student-led markets group, an internship in wealth services, and study towards a B.S. in
+        mathematics and a B.A. in economics, expected in 2029.
+      </p>
+      <ButtonLink href="/cv/" label="View CV" icon="arrow-up-right" />
+    </div>
+    <nav class="experience-jumps" aria-label="On this page">
+      <a href="#roles-heading">Roles <Icon name="arrow-down" /></a>
+      {projects.length > 0 && <a href="#projects-heading">Independent project <Icon name="arrow-down" /></a>}
+      <a href="#education">Education <Icon name="arrow-down" /></a>
+      <a href="#capabilities">Capabilities <Icon name="arrow-down" /></a>
+    </nav>
   </header>
 
   <div class="container">
@@ -38,8 +48,8 @@ const description =
         <h2 id="roles-heading">Roles</h2>
         <p class="label numeric">{String(roles.length).padStart(2, '0')}</p>
       </div>
-      <div class="cells stack">
-        {roles.map((role) => <RoleEntry {...role.data} />)}
+      <div class="timeline">
+        {roles.map((role, index) => <RoleEntry {...role.data} index={index + 1} />)}
       </div>
     </section>
 
@@ -172,6 +182,23 @@ const description =
 </BaseLayout>
 
 <style>
+  .experience-header h1 {
+    font-family: var(--display, var(--sans));
+    font-size: clamp(4.1rem, 13.7vw, 12rem);
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: -0.015em;
+    line-height: 1;
+  }
+
+  .experience-header__lower { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: var(--space-5) var(--space-7); margin-top: var(--space-6); }
+  .experience-header__lower .lede { margin: 0; max-width: 44rem; }
+  .experience-jumps { display: flex; flex-wrap: wrap; gap: 0.4rem 2rem; margin-top: var(--space-7); padding-block: 1rem; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .experience-jumps a { display: inline-flex; align-items: center; gap: 0.75em; padding-block: 0.3rem; font-family: var(--mono); font-size: 0.6875rem; text-transform: uppercase; text-decoration: none; letter-spacing: 0.04em; }
+  .experience-jumps a :global(.icon) { transition: transform 350ms var(--ease); }
+  .experience-jumps a:hover :global(.icon) { transform: translateY(3px); }
+  .timeline { position: relative; margin-top: var(--space-5); }
+
   .group {
     margin-top: var(--section);
   }
@@ -277,10 +304,16 @@ const description =
     display: flex;
     flex-direction: column;
     gap: var(--space-3);
+    padding: clamp(1.5rem, 1rem + 2vw, 3rem);
+    min-height: 20rem;
   }
 
   .capability__index {
     color: var(--accent-text) !important;
+    font-family: var(--display, var(--sans));
+    font-size: 3.5rem;
+    font-weight: 400;
+    line-height: 1;
   }
 
   .capability__text {
@@ -319,5 +352,10 @@ const description =
   .cv-link {
     margin-top: var(--space-7);
     color: var(--muted);
+  }
+
+  @media print {
+    .experience-jumps { display: none; }
+    .capability { min-height: 0; }
   }
 </style>

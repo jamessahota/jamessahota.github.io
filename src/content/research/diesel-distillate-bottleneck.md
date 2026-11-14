@@ -28,8 +28,6 @@ publicationStatus: published
 visibility: public
 originalUrl: https://605-markets.com/report/crude-is-returning-diesel-isnt-the-distillate-bottleneck-in-global-oil-markets/
 fullReportMinutes: 16
-featured: true
-order: 3
 
 keyNumbers:
   - value: 99%
