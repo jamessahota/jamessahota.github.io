@@ -11,7 +11,7 @@ import ResearchCardFigure from './ResearchCardFigure.astro';
 interface Props {
   entry: Research;
   index?: number;
-  size?: 'lead' | 'regular' | 'compact';
+  size?: 'regular' | 'compact';
 }
 
 const { entry, index, size = 'regular' } = Astro.props;
@@ -176,55 +176,6 @@ const decimals = chart?.items.some((item) => !Number.isInteger(item.value)) ? 2 
     transition: color var(--motion-base, 420ms) var(--ease);
   }
 
-  /* The lead card: larger type, and its chart sits beside the text on wide screens. */
-  .rcard--lead .rcard__title {
-    font-size: clamp(2rem, 1.3rem + 2.7vw, 3.75rem);
-    line-height: 1;
-    letter-spacing: -0.045em;
-    max-width: 19ch;
-  }
-
-  .rcard--lead .rcard__summary {
-    margin-top: var(--space-5);
-    font-size: var(--text-lg);
-    line-height: 1.5;
-  }
-
-  @media (min-width: 62rem) {
-    .rcard--lead {
-      display: grid;
-      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-      grid-template-areas:
-        'top visual'
-        'body visual'
-        'meta visual';
-      column-gap: clamp(2rem, 3vw, 4rem);
-      padding-block: clamp(1.75rem, 1rem + 2vw, 3rem);
-    }
-
-    .rcard--lead .rcard__top {
-      grid-area: top;
-    }
-
-    .rcard--lead .rcard__body {
-      grid-area: body;
-    }
-
-    .rcard--lead .rcard__meta {
-      grid-area: meta;
-    }
-
-    .rcard--lead .rcard__visual {
-      grid-area: visual;
-      align-self: stretch;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      min-height: 23rem;
-      margin-right: 3.5rem;
-    }
-  }
-
   /* The exhibits retain the report's actual figures, in an instrument-like panel. */
   .rcard__exhibit {
     position: relative;
@@ -324,10 +275,6 @@ const decimals = chart?.items.some((item) => !Number.isInteger(item.value)) ? 2 
   .rcard:hover .rcard__bar,
   .rcard:focus-within .rcard__bar {
     filter: brightness(1.18);
-  }
-
-  .rcard--lead .rcard__bar {
-    height: 0.95rem;
   }
 
   .rcard__value {

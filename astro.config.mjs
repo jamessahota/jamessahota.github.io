@@ -3,8 +3,9 @@ import { defineConfig, fontProviders } from 'astro/config';
 
 // The public address of the site. This is the only place the build reads it from.
 // (It is also written on the share image: see scripts/share-image.html.)
-// If the site moves to a custom domain, change it here and add public/CNAME.
-const SITE_URL = 'https://jamessahota.github.io';
+// The domain itself is set in the repository's Settings → Pages; publishing with
+// GitHub Actions needs no public/CNAME file.
+const SITE_URL = 'https://jsahota.com';
 
 const sansFiles = '@fontsource-variable/geist/files';
 const monoFiles = '@fontsource-variable/geist-mono/files';

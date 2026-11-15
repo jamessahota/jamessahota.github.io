@@ -36,7 +36,7 @@ keyNumbers:
     label: Fall in observed global stocks, start of the war to end-July (IEA estimate)
   - value: US$70–90
     label: Base-case range for the 2027 annual average Brent price
-keyNumbersNote: Figures as reported in the paper. The price range is an analyst assumption, not a forecast from a model.
+keyNumbersNote: Figures as reported in the paper.
 
 viewChangers:
   - condition: "Insured flows recover for two weeks, physical premiums compress and Brent falls below roughly US$90 as the curve flattens."
@@ -91,7 +91,6 @@ charts:
         value: 77.87
     caption: >-
       Contract prices on 9 September 2026, the day before Brent’s intraday move to US$105.26.
-      These are observed prices, not probability-weighted forecasts.
     source: ICE Brent futures, 9 September 2026 snapshot, as reported in the paper.
 
 tables:
@@ -119,9 +118,7 @@ tables:
         - US$110–140
         - US$100–130
     note: >-
-      Scenario ranges are 6:05 Markets analyst assumptions. They were not assigned
-      probabilities. One-month and end-2026 figures are endpoint ranges; the 2027 figure is an
-      annual average.
+      One-month and end-2026 figures are endpoint ranges; the 2027 figure is an annual average.
 
 approach: >-
   The scenario ranges are analyst assumptions anchored to observed prices, the ICE futures

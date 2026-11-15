@@ -483,16 +483,6 @@ const current = (href: string) => (path === href ? 'page' : path.startsWith(href
     border-color: var(--ink);
   }
 
-  .theme-toggle .icon {
-    width: 1.125rem;
-    height: 1.125rem;
-    transition: transform 0.5s var(--ease);
-  }
-
-  .theme-toggle[aria-pressed='true'] .icon {
-    transform: rotate(180deg);
-  }
-
   .nav-toggle {
     display: none;
     order: 3;

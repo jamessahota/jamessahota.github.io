@@ -10,17 +10,6 @@
     "value": 95.84,
     "date": "2026-11-13"
   },
-  "jkm-futures": {
-    "label": "JKM LNG futures, front month",
-    "unit": "US$ per MMBtu",
-    "source": "JKM LNG futures (JKM=F), front month, closing price, via Yahoo Finance",
-    "fetch": {
-      "provider": "yahoo",
-      "ticker": "JKM=F"
-    },
-    "value": 31.351,
-    "date": "2026-11-13"
-  },
   "nyh-ulsd": {
     "label": "New York Harbor ULSD spot",
     "unit": "US$ per gallon",

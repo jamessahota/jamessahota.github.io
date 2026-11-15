@@ -47,14 +47,6 @@ export function formatAuthors(authors: string[]): string {
   return `${authors.slice(0, -1).join(', ')} and ${authors.at(-1)}`;
 }
 
-/** Co-authors only, for compact lists: "With Benjamin Lozovsky" or "Sole author". */
-export function coAuthorLine(authors: string[], self: string): string {
-  const others = authors.filter((author) => author !== self);
-  if (!others.length) return 'Sole author';
-  if (others.length > 3) return `With ${others.length} co-authors`;
-  return `With ${formatAuthors(others)}`;
-}
-
 export async function getPublicProjects(): Promise<Project[]> {
   const entries = await getCollection('projects', ({ data }) => data.visibility === 'public');
   return entries.sort((a, b) => sortKey(b.data.start).localeCompare(sortKey(a.data.start)));

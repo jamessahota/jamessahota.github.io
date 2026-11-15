@@ -13,7 +13,9 @@
 # - Add `outcome` only once `due` has passed, from a named source, with the date of the price.
 # - Whether the outcome is inside the range is worked out by the page. Never type a verdict.
 # - `track` names an entry in src/data/latest-prices.json. While the view is open, the page shows
-#   that price as the latest. Refresh the prices with `npm run prices`.
+#   that price as the latest. Refresh the prices with `npm run prices`. Track only a price of the
+#   contract or series the view is judged on; for a view on an average, the page marks the latest
+#   price as for reference.
 
 # Oil Above 100 (sole author), 12 September 2026
 - id: brent-one-month-sep-2026
@@ -79,7 +81,6 @@
   range: { low: 27, high: 31, unit: US$ per MMBtu }
   basis: endpoint
   instrument: JKM LNG futures (JKMX6, CME)
-  track: jkm-futures
 
 - id: blng3-q4-2026
   report: panama-canal-el-nino-asia-energy-costs

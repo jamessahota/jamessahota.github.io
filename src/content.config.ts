@@ -77,8 +77,6 @@ const research = defineCollection({
       standfirst: z.string().optional(),
       authors: z.array(z.string()).min(1),
       authorshipNote: z.string().optional(),
-      // What James did on a co-authored piece. Leave out if not yet written.
-      contribution: z.string().optional(),
       date: partialDate.optional(),
       updated: partialDate.optional(),
       dataAsOf: z.string().optional(),
@@ -92,7 +90,6 @@ const research = defineCollection({
       pdf: publicFile.optional(),
       originalUrl: httpsUrl.optional(),
       fullReportMinutes: z.number().int().positive().optional(),
-      cover: z.object({ src: publicFile, alt: z.string(), credit: z.string().optional() }).optional(),
       featured: z.boolean().default(false),
       order: z.number().optional(),
       // A report-specific exhibit for the detail-page header. Values and mechanisms

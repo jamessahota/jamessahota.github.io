@@ -1,4 +1,4 @@
-# jamessahota.github.io
+# jsahota.com
 
 Personal website of James Sahota: research, experience, CV and projects.
 
@@ -74,12 +74,12 @@ Page layouts are in `src/pages/` and shared pieces in `src/components/`. Adding 
    ```
 
 3. Write the summary in the body, below the second `---`.
-4. Optional extras: `subtitle`, `standfirst`, `keyNumbers`, `charts`, `tables`, `approach`, `sources`, `related` and `dataAsOf` are shown in `oil-above-100-supply-shock.md`, and `authorshipNote` in `diesel-distillate-bottleneck.md`. `contribution` is one line of text. `figures` is a list of images, each with `src`, `alt`, `width`, `height`, `caption` and `credit`.
+4. Optional extras: `subtitle`, `standfirst`, `keyNumbers`, `charts`, `tables`, `approach`, `sources`, `related` and `dataAsOf` are shown in `oil-above-100-supply-shock.md`, and `authorshipNote` in `diesel-distillate-bottleneck.md`. `figures` is a list of images, each with `src`, `alt`, `width`, `height`, `caption` and `credit`.
    `viewChangers` lists up to four conditions the report itself says would change its view, each with `direction: weaken`, `strengthen` or `either`; take them from the published text only (see `oil-above-100-supply-shock.md`). `cardFigure` draws a figure on the homepage card in place of a chart: `kind: cash-returns` needs a `unit` and an `amount` for each of its two numbers (see `totalenergies-cash-returns.md`); `kind: clean-power` needs a `percentage` for each (see `uk-energy-security-critique.md`).
    `headerVisual` supplies a report-specific header exhibit: `bars` for comparable quantities (including signed changes), `ranges` for explicitly conditional scenarios, or `sequence` for a dated mechanism or timeline. Include the period and qualifications in `note`, and identify the report figures in `source`; the caption links to `originalUrl`. Use `domain: { min: 0, max: 100 }` for percentage bars. Reports without an existing chart or route/refinery schematic need this field; there is no generic decorative fallback. See `cuba-energy-collapse.md`, `us-crude-inventories.md` and `uae-leaves-opec.md`.
 5. Run `npm run verify`. If a field is missing or a link is malformed, the message names the file and the field.
 
-Rules the build enforces: published work needs a `date` and either an `originalUrl` or a `pdf`; links must start with `https://`; a `pdf`, `figures` image or `cover` must exist in `public/`; table rows must match their columns; values in `charts` cannot be negative. Signed comparisons use `headerVisual`, with a scale that includes zero.
+Rules the build enforces: published work needs a `date` and either an `originalUrl` or a `pdf`; links must start with `https://`; a `pdf` or `figures` image must exist in `public/`; table rows must match their columns; values in `charts` cannot be negative. Signed comparisons use `headerVisual`, with a scale that includes zero.
 
 **Dates and order.** The list is newest first. A date without a day (`2026-05`) counts as the end of that month, so it is listed above a piece dated the 1st. Give the full date whenever you can verify it.
 
@@ -104,7 +104,7 @@ Dated views from the reports live in `src/content/views.yaml`, one entry per vie
     source: NYMEX Brent futures (BZ=F), front month, closing price, via Yahoo Finance
 ```
 
-While a view is open, the page also shows the latest price of its instrument when the entry has a `track` that names a price in `src/data/latest-prices.json`. Those prices are not live. The deployment (`.github/workflows/deploy.yml`) refreshes them every weekday at 22:30 UTC, after US markets close, and on every push: it fetches the newest close for each price that has a free source (Brent and JKM futures from Yahoo Finance, New York Harbor diesel from FRED) and builds the site with them. Nothing is committed, so the copy in the repository can be older than the one on the site; `npm run prices` updates it locally. If a source cannot be reached, the last committed price is used and the site still deploys. GitHub pauses scheduled runs in a repository with no commits for 60 days; a manual run from the Actions tab, or any push, starts them again. A price with no free source, such as the Baltic freight rates, can be added to that file by hand without a `fetch` entry, and the script will leave it alone.
+While a view is open, the page also shows the latest price of its instrument when the entry has a `track` that names a price in `src/data/latest-prices.json`. Track only the contract or series the view is judged on. For a view on an average, the latest price is one day's close, so the page marks it as for reference. Those prices are not live. The deployment (`.github/workflows/deploy.yml`) refreshes them every weekday at 22:30 UTC, after US markets close, and on every push: it fetches the newest close for each price that has a free source (Brent futures from Yahoo Finance, New York Harbor diesel from FRED) and builds the site with them. Nothing is committed, so the copy in the repository can be older than the one on the site; `npm run prices` updates it locally. If a source cannot be reached, the last committed price is used and the site still deploys. GitHub pauses scheduled runs in a repository with no commits for 60 days; a manual run from the Actions tab, or any push, starts them again. A price with no free source, such as the Baltic freight rates, can be added to that file by hand without a `fetch` entry, and the script will leave it alone.
 
 Use the price of the instrument the view names. The page works out whether the outcome was inside the range, so never type a verdict, and keep every view, including those that miss. A new view needs its `report` (the file name of the report), `source` (`report` or `call`), `view`, `formed`, `due`, `range` (a `low`, a `high` or both, with a `unit`), `basis` (`endpoint` or `average`) and `instrument`. The build stops if `report` names a report that does not exist.
 
@@ -124,14 +124,14 @@ Anything in the PDF is public once the site is live, including a phone number.
 
 ### Change the accent colour
 
-In `src/styles/global.css`, change the `--accent` values in both the light and the dark block:
+In `src/styles/global.css`, change the accent values at the top of the file. The dark block (`:root[data-theme='dark']`) keeps the same `--accent` and sets its own `--accent-text` and `--invert-accent`:
 
 - `--accent` is used for fills, bars and marks.
 - `--accent-text` is the accent as small text on the page background. It must be dark enough to read (in the light theme it is a deeper shade than `--accent`).
 - `--accent-on-panel` is the accent on the dark bands.
 - `--on-accent` is the text colour used on top of an accent fill.
 
-The hero illustration takes its colours from `--flow-accent` and its neighbours in `src/components/FlowPanel.astro`. The favicon (`public/favicon.svg`) and share image (`scripts/share-image.html`) use the same orange; the command to regenerate the share image is at the top of that file.
+The hero illustration takes its colours from `--flow-accent` and its neighbours in `src/components/FlowPanel.astro`. The favicon (`public/favicon.svg`) and share image (`scripts/share-image.html`) use the same orange; the command to regenerate the share image is at the top of that file. Some components also type the orange directly: search `src/` for `#f04400` and `#ff6a33`.
 
 ### Add a research topic
 
@@ -139,15 +139,15 @@ Add it to `TOPICS` in `src/site.config.ts`, then use its key in a report's `topi
 
 ## Publishing
 
-The site is set up for GitHub Pages at https://jamessahota.github.io.
+The site is published with GitHub Pages at https://jsahota.com.
 
-Before the first push: on GitHub, open **Settings → Pages** and set **Source** to **GitHub Actions**. Until that is set, GitHub publishes the repository's files as they are and the workflow cannot deploy.
+On GitHub, **Settings → Pages** has **Source** set to **GitHub Actions** and the custom domain set to `jsahota.com`, with HTTPS enforced. The domain's DNS has GitHub Pages' four A records and a `www` CNAME pointing to `jamessahota.github.io`. Publishing with Actions needs no `public/CNAME` file. The old `jamessahota.github.io` address redirects to the domain.
 
-After that, every push to `main` runs `.github/workflows/deploy.yml`, which installs dependencies, runs `npm run verify` and publishes the result. If a check fails, the live site is left as it was.
+Every push to `main` runs `.github/workflows/deploy.yml`, which installs dependencies, runs `npm run verify` and publishes the result. If a check fails, the live site is left as it was.
 
 You can also edit content files directly on github.com; saving the change triggers the same build.
 
-To use a custom domain later: change `SITE_URL` in `astro.config.mjs`, add a `public/CNAME` file containing the domain, and configure the domain in the repository's Pages settings. The address is also printed on the share image, so update it in `scripts/share-image.html` and regenerate `public/og-default.png`.
+To change the address: change `SITE_URL` in `astro.config.mjs` and the domain in the repository's Pages settings. The address is also printed on the share image, so update it in `scripts/share-image.html` and regenerate `public/og-default.png`.
 
 ## How unpublished work is kept off the site
 
@@ -174,7 +174,7 @@ All of these are additions on top of plain HTML. With JavaScript off, every page
 | Research filter and search | `/research/` | Rows that stay slide to their new places, rows that go fade out, the selected block glides between topics and the count rolls. Each topic shows how many pieces it holds. The address updates (`?topic=gas-lng`), so a filtered view can be shared. Search ignores accents, so "el nino" finds "El Niño" |
 | Reading progress | Report pages | The thin orange bar under the header |
 | Live clock | Header, footer, About | Current time in Chicago |
-| Copy address | Homepage contact block | Copies the email address |
+| Copy address | Footer | Copies the email address |
 | Light and dark | Header switch | One ruled edge crosses the page, with the new theme behind it |
 | Pause animations | The pause icon in the header, beside the theme switch, on every page; and the Pause button in the hero | One setting with two buttons: it stills decorative CSS motion and the hero on every page, and the choice is remembered. The header icon is hidden for visitors who ask for reduced motion, for whom nothing moves anyway |
 | Research exhibits | `src/components/ResearchCard.astro` (cards) and `src/components/ResearchVisual.astro` (report headers) | A card shows its report’s `cardFigure`, its first chart, or two key numbers above a route illustration. The title and exhibit of the piece being opened travel to its page |

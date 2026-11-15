@@ -860,8 +860,7 @@ main > :last-child {
   .site-header,
   .site-footer,
   .skip-link,
-  .progress,
-  .no-print {
+  .progress {
     display: none !important;
   }
 

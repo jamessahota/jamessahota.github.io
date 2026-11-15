@@ -112,14 +112,19 @@ test('work in progress is listed but has no page of its own', () => {
 });
 
 test('research uses reports, commentary and company notes, with work in progress separate', () => {
-  const allowed = new Set(['report', 'commentary', 'company-note']);
-  for (const entry of research.filter((item) => item.visibility === 'public')) {
-    assert.ok(allowed.has(entry.type), `${entry.slug} has an unsupported research type: ${entry.type}`);
+  const labels = { report: 'Report', commentary: 'Commentary', 'company-note': 'Company note' };
+  const shown = research.filter((item) => item.visibility === 'public');
+  for (const entry of shown) {
+    assert.ok(entry.type in labels, `${entry.slug} has an unsupported research type: ${entry.type}`);
   }
+  // Only the labels the published work uses, so publishing the last piece in progress, or a
+  // summary that happens to say "brief", never blocks a deploy.
   const index = visibleText(read(join(DIST, 'research/index.html')));
-  assert.doesNotMatch(index, /\bbriefs?\b/i, 'the research page still labels work as briefs');
-  for (const label of ['Report', 'Commentary', 'Company note', 'In progress']) {
-    assert.ok(index.includes(label), `the research page is missing ${label}`);
+  for (const type of new Set(shown.map((item) => item.type))) {
+    assert.ok(index.includes(labels[type]), `the research page is missing ${labels[type]}`);
+  }
+  if (shown.some((item) => item.status === 'in-progress')) {
+    assert.ok(index.includes('In progress'), 'the research page is missing In progress');
   }
 });
 

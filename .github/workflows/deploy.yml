@@ -2,8 +2,7 @@
 # every time a change reaches the main branch, and each weekday evening so that
 # the latest prices beside open views on the research page stay current.
 #
-# Before the first push, on GitHub: Settings → Pages → Build and deployment → Source: "GitHub Actions".
-# Until that is set, GitHub publishes the repository's files directly and this workflow cannot deploy.
+# On GitHub, Settings → Pages has Source set to "GitHub Actions" and the custom domain jsahota.com.
 
 name: Deploy to GitHub Pages
 

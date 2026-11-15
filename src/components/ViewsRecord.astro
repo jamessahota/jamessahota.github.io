@@ -190,6 +190,7 @@ const filters = [
                       <p class="record__detail record__detail--latest">
                         <span class="record__latest-key" aria-hidden="true" />
                         Latest: {formatPrice(latest.value)} on {formatDate(latest.date)}.
+                        {view.basis === 'average' && ' For reference only: the view is judged on the average over its period.'}
                       </p>
                     )}
                     {view.outcome && <p class="record__source">Source: {view.outcome.source}.</p>}
