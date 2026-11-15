@@ -159,7 +159,7 @@ const jsonLd = {
               </h2>
               <ol class="findings">
                 {data.keyFindings.map((finding, position) => (
-                  <li data-reveal={Math.min(position + 1, 3)}>
+                  <li id={`finding-${position + 1}`} data-reveal={Math.min(position + 1, 3)}>
                     <span class="findings__index numeric" aria-hidden="true">
                       {String(position + 1).padStart(2, '0')}
                     </span>
@@ -212,7 +212,7 @@ const jsonLd = {
                 Data and approach
               </h2>
               <div class="prose">
-                <p>{data.approach}</p>
+                <p id="data-and-assumptions">{data.approach}</p>
               </div>
             </section>
           )
@@ -740,6 +740,13 @@ const jsonLd = {
     font-weight: 500;
     line-height: 1.9;
     color: var(--accent-text);
+  }
+
+  .findings li:target,
+  #data-and-assumptions:target,
+  .exhibits :global(.data-table:has(:target)) {
+    outline: 1px solid var(--accent-text);
+    outline-offset: 0.6rem;
   }
 
   .exhibits {

@@ -1,7 +1,7 @@
 ---
 // The dark hero band with its illustration: streamlines squeezing through a
 // chokepoint. The lines bend around the pointer. It is an illustration of an
-// idea, not a chart of data, and it is labelled as such.
+// idea, not a chart of data.
 //
 // The drawing stops when it is off screen and shows a still frame for visitors who
 // ask their device for reduced motion. Its Pause button and the motion switch in
@@ -18,14 +18,8 @@ import Icon from './Icon.astro';
       <slot />
     </div>
 
-    <!-- Shown by the script: the caption and pause button only make sense once the drawing runs. -->
+    <!-- The pause button is shown once the drawing is available. -->
     <div class="flow__foot" data-flow-foot hidden>
-      <p class="flow__caption label">
-        <span class="flow__fig">Fig. 01</span>
-        <span>
-          Flow through a chokepoint. <span data-flow-hint>Move the pointer to disturb it.</span>
-        </span>
-      </p>
       <button class="flow__toggle" type="button" data-flow-toggle data-paused="false">
         <span class="flow__toggle-icon flow__toggle-icon--pause"><Icon name="pause" /></span>
         <span class="flow__toggle-icon flow__toggle-icon--play"><Icon name="play" /></span>
@@ -314,7 +308,7 @@ import Icon from './Icon.astro';
     root.addEventListener('pointercancel', release);
 
     // --- Lifecycle -----------------------------------------------------------
-    // The caption and the pause button only make sense once the drawing is running.
+    // The pause button only makes sense once the drawing is available.
     root.querySelector<HTMLElement>('[data-flow-foot]')?.removeAttribute('hidden');
     toggle?.addEventListener('click', () => {
       const next = !paused;
@@ -358,11 +352,7 @@ import Icon from './Icon.astro';
       readColours();
       draw();
     });
-    const hint = root.querySelector<HTMLElement>('[data-flow-hint]');
-    // On a touch screen there is no pointer to move.
-    if (hint && window.matchMedia('(hover: none)').matches) hint.textContent = 'Touch it to disturb it.';
     const applyMotionPreference = () => {
-      if (hint) hint.hidden = reduceMotion.matches;
       if (reduceMotion.matches) {
         pointer.force = 0;
         pointer.target = 0;
@@ -449,24 +439,9 @@ import Icon from './Icon.astro';
 
   .flow__foot {
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
-    justify-content: space-between;
-    gap: var(--space-3) var(--space-5);
-    padding-top: var(--space-4);
-    border-top: 1px solid color-mix(in srgb, var(--panel-ink) 18%, transparent);
-    animation: flow-caption-in 1s var(--ease-out) 0.85s both;
-  }
-
-  .flow__caption {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.35em 1.25em;
-    color: var(--panel-muted);
-  }
-
-  .flow__fig {
-    color: var(--accent-on-panel);
+    justify-content: flex-end;
+    animation: flow-controls-in 1s var(--ease-out) 0.85s both;
   }
 
   .flow__toggle {
@@ -513,7 +488,7 @@ import Icon from './Icon.astro';
     to { opacity: 1; transform: none; }
   }
 
-  @keyframes flow-caption-in {
+  @keyframes flow-controls-in {
     from { opacity: 0; transform: translateY(0.75rem); }
     to { opacity: 1; transform: none; }
   }

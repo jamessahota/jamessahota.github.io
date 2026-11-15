@@ -53,7 +53,7 @@ const jsonLd = {
         </div>
       </div>
     </FlowPanel>
-    <div class="route-bridge container" aria-hidden="true"><svg viewBox="0 0 1200 104" preserveAspectRatio="none" fill="none"><path d="M580 0V25Q580 52 540 52H120Q80 52 80 80V104"/><path d="M600 0V104"/><path d="M620 0V25Q620 52 660 52H1080Q1120 52 1120 80V104"/></svg></div>
+    <div class="route-bridge container" aria-hidden="true" data-route-bridge><svg viewBox="0 0 1200 104" preserveAspectRatio="none" fill="none"><path pathLength="1" d="M580 0V25Q580 52 540 52H120Q80 52 80 80V104"/><path pathLength="1" d="M600 0V104"/><path pathLength="1" d="M620 0V25Q620 52 660 52H1080Q1120 52 1120 80V104"/></svg></div>
     <dl class="cells glance container" aria-label="At a glance" data-reveal>
       {
         profile.atAGlance.map((fact) => (
@@ -211,6 +211,33 @@ const jsonLd = {
     phone.addEventListener('change', fit);
     window.addEventListener('resize', fit, { passive: true });
   }
+
+  // Draw the connections into the facts only as the visitor scrolls away from
+  // the opening. Their initial state is hidden even on a tall screen.
+  const bridge = document.querySelector<HTMLElement>('[data-route-bridge]');
+  if (bridge) {
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let bridgeFrame = 0;
+    const drawBridge = () => {
+      bridgeFrame = 0;
+      const distance = Math.max(0, window.scrollY);
+      const end = bridge.getBoundingClientRect().bottom + distance;
+      const still = reducedMotion.matches || document.documentElement.dataset.motion === 'paused';
+      const progress = still
+        ? Number(distance > 0)
+        : Math.min(1, distance / Math.max(120, end - window.innerHeight));
+      bridge.style.setProperty('--route-progress', progress.toFixed(4));
+    };
+    const scheduleBridge = () => {
+      if (!bridgeFrame) bridgeFrame = requestAnimationFrame(drawBridge);
+    };
+    drawBridge();
+    window.addEventListener('scroll', scheduleBridge, { passive: true });
+    window.addEventListener('resize', scheduleBridge, { passive: true });
+    window.addEventListener('pageshow', scheduleBridge);
+    reducedMotion.addEventListener('change', scheduleBridge);
+    document.addEventListener('motionchange', scheduleBridge);
+  }
 </script>
 
 <style>
@@ -306,7 +333,8 @@ const jsonLd = {
   .route-bridge { height:6.5rem; overflow:hidden; }
   /* On a phone the facts are stacked, so lines fanning out to three columns point at nothing. */
   @media(max-width:51.99rem) { .route-bridge { display:none; } .glance { margin-top:var(--gutter) !important; } }
-  .route-bridge svg { width:100%; height:100%; stroke:var(--accent); stroke-width:1; }
+  .route-bridge svg { width:100%; height:100%; stroke:var(--accent); stroke-width:1; opacity:clamp(0, calc(var(--route-progress, 0) * 4), 1); }
+  .route-bridge path { stroke-dasharray:1; stroke-dashoffset:calc(1 - var(--route-progress, 0)); }
   @media(min-width:52rem) { .glance { margin-top:0 !important; } }
   :global([data-theme='dark']) .home-experience { box-shadow: inset 0 0 0 1px var(--line); }
   .selected-section { padding-top:clamp(4rem,7vw,7rem); }
@@ -466,7 +494,6 @@ const jsonLd = {
     border-bottom: 1px solid var(--panel-line);
     /* Lists the reveal's fade here too, because this rule would otherwise replace it. */
     transition:
-      padding 0.4s var(--ease),
       opacity 0.7s var(--ease) var(--reveal-delay, 0s),
       transform 0.7s var(--ease) var(--reveal-delay, 0s);
   }
@@ -477,9 +504,16 @@ const jsonLd = {
       align-items: baseline;
       padding-block: var(--space-6);
     }
+  }
 
-    .roles__item:hover {
-      padding-left: var(--space-4);
+  @media (min-width: 56rem) and (hover: hover) and (pointer: fine) {
+    /* Move the contents as a whole. Their grid tracks and text widths stay fixed. */
+    .roles__item > * {
+      transition: transform 0.4s var(--ease);
+    }
+
+    .roles__item:hover > * {
+      transform: translateX(var(--space-4));
     }
   }
 

@@ -159,11 +159,22 @@ const { id, organisation, url, role, kind, location, start, end, highlights, rel
     font-size: clamp(2rem, 1.5rem + 2vw, 3.5rem);
     letter-spacing: -0.04em;
     line-height: 1;
-    transition: color 450ms var(--ease);
+    color: var(--ink);
+    transition: color 200ms ease;
   }
 
-  .role.is-current h3,
+  /* The heading follows interaction, while scrolling only lights the timeline.
+     Let the link inherit the heading's animated colour without a second fade. */
+  .role h3 a {
+    color: inherit;
+    transition: text-decoration-color 200ms ease;
+  }
+
   .role:focus-within h3 { color: var(--accent-text); }
+
+  @media (hover: hover) {
+    .role:hover h3 { color: var(--accent-text); }
+  }
 
   .role__title {
     margin-top: var(--space-2);

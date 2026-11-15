@@ -15,6 +15,7 @@ import { formatPeriod } from '../lib/dates';
 
 const roles = await getExperience();
 const education = await getEducation();
+const university = education.find((entry) => entry.id === 'university-of-chicago');
 const capabilities = await getCapabilities();
 const projects = await getPublicProjects();
 const profile = await getProfile();
@@ -43,6 +44,7 @@ const description =
       <a href="#roles-heading">Roles <Icon name="arrow-down" /></a>
       {projects.length > 0 && <a href="#projects-heading">Independent project <Icon name="arrow-down" /></a>}
       <a href="#education">Education <Icon name="arrow-down" /></a>
+      {university && <a href="#coursework">Coursework <Icon name="arrow-down" /></a>}
       <a href="#capabilities">Skills <Icon name="arrow-down" /></a>
     </nav>
   </header>
@@ -104,18 +106,6 @@ const description =
                 <h3>{data.institution}</h3>
                 <p class="row__lead">{data.qualification}</p>
                 <dl class="facts">
-                  {data.coursework && (
-                    <div>
-                      <dt class="label">Relevant coursework</dt>
-                      <dd>{data.coursework.join(', ')}</dd>
-                    </div>
-                  )}
-                  {data.courseworkInProgress && (
-                    <div>
-                      <dt class="label">In progress</dt>
-                      <dd>{data.courseworkInProgress.join(', ')}</dd>
-                    </div>
-                  )}
                   {data.activities && (
                     <div>
                       <dt class="label">Leadership and activities</dt>
@@ -129,6 +119,26 @@ const description =
         }
       </div>
     </section>
+
+    {university && (
+      <section class="group" id="coursework" aria-labelledby="coursework-heading">
+        <div class="section-head">
+          <h2 id="coursework-heading">Selected coursework</h2>
+          <p class="label">University of Chicago</p>
+        </div>
+        <div class="cells coursework__grid" data-reveal>
+          {[
+            { label: 'Completed', courses: university.data.coursework },
+            { label: 'In progress', courses: university.data.courseworkInProgress },
+          ].map(({ label, courses }) => courses?.length ? (
+            <div class="cell coursework__group">
+              <h3 class="label label--marked">{label}</h3>
+              <ul>{courses.map((course) => <li>{course}</li>)}</ul>
+            </div>
+          ) : null)}
+        </div>
+      </section>
+    )}
 
     <section class="group" id="capabilities" aria-labelledby="capabilities-heading">
       <div class="section-head">
@@ -279,12 +289,35 @@ const description =
     color: var(--ink-2);
   }
 
+  .coursework__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .coursework__group {
+    padding: clamp(1.5rem, 1rem + 2.5vw, 3rem);
+  }
+
+  .coursework__group ul {
+    margin-top: var(--space-5);
+  }
+
+  .coursework__group li {
+    padding-block: 0.7rem;
+    font-size: var(--text-lg);
+    line-height: 1.4;
+  }
+
+  .coursework__group li + li {
+    border-top: 1px solid var(--line);
+  }
+
   .capabilities {
     grid-template-columns: minmax(0, 1fr);
   }
 
   @media (min-width: 48rem) {
-    .capabilities {
+    .capabilities,
+    .coursework__grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 

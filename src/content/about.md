@@ -7,46 +7,48 @@ lede: >-
   I study mathematics and economics at the University of Chicago. I write about energy
   markets, focusing on the physical constraints behind prices.
 
-# How I approach research. Each point links to a piece of work that shows it.
+# Four worked examples from the September oil-market report.
 approach:
   - title: Start with the physical system
     text: >-
       I begin with flows, capacity and inventories. Prices depend on barrels and cargoes that
       can actually move, so I establish the physical limits before drawing a market conclusion.
     example:
-      label: Saudi crude rerouting to Yanbu
-      href: /research/saudi-crude-rerouting-yanbu/
+      label: Where spare capacity can reach the market
+      href: /research/oil-above-100-supply-shock/#finding-2
   - title: Separate data, estimates and assumptions
     text: >-
       I check each source’s definitions and reporting periods, and look for overlapping
       constraints before combining figures.
     example:
-      label: The distillate bottleneck
-      href: /research/diesel-distillate-bottleneck/
+      label: Separating supply measures and assumptions
+      href: /research/oil-above-100-supply-shock/#data-and-assumptions
   - title: Use scenarios and ranges
     text: >-
       I prefer ranges tied to stated physical conditions to point forecasts that suggest more
       precision than the evidence supports.
     example:
-      label: Oil Above 100
-      href: /research/oil-above-100-supply-shock/
+      label: Three Brent scenarios and their assumptions
+      href: /research/oil-above-100-supply-shock/#table-brent-price-scenarios-as-at-10-september-2026
   - title: Say what would change the view
     text: >-
       In longer reports, I set out the evidence that would strengthen or weaken a thesis before
       the outcome is known.
     example:
-      label: Panama Canal and Asian energy costs
-      href: /research/panama-canal-el-nino-asia-energy-costs/
+      label: Conditions that would challenge the view
+      href: /research/oil-above-100-supply-shock/#view-weaken
 
 beyondWork:
   - >-
-    I was born in Milan and went to school in London. My family home is in Singapore, and I now
-    study in Chicago. I’m also president of the Italian Student Association at the University
-    of Chicago.
+    I was born in Milan, attended St Paul’s School in London and moved to Singapore in 2025.
+    I now study at the University of Chicago, where I’m president of the Italian Student
+    Association and vice president of the Judo Club.
   - >-
-    I studied philosophy at A-level and was co-chief editor of my school’s philosophy magazine.
-    I’ve competed in aikido, judo and Brazilian jiu-jitsu, and I’m vice president of the
-    university judo club. My other interests include MMA, snowsports and motorsport.
+    I studied philosophy at A-level and served as co-chief editor of my school’s philosophy
+    magazine. I’m particularly interested in existentialism, and my favourite book is
+    No Longer Human by Osamu Dazai. I’ve trained and competed at a high level in aikido,
+    judo and Brazilian jiu-jitsu, including at international tournaments. My other interests
+    include MMA, snowsports and motorsport.
 ---
 
 I co-founded 6:05 Markets, a student-led research group at the University of Chicago, and have been co-president since April 2026. We publish weekly research on commodities, macroeconomics and policy. I co-lead the group’s research and editorial work: I set the standards our analysts work to, built our report templates and publication process, and write about oil and gas.
