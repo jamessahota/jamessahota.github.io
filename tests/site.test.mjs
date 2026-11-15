@@ -221,6 +221,31 @@ test('every former orbit illustration is replaced by a sourced report-specific e
   assert.match(stocks, /exhibit__bar--negative/, 'the inventory draw is not drawn as a negative change');
 });
 
+test('header charts retain their explanatory captions alongside their sources', () => {
+  const expected = [
+    {
+      slug: 'diesel-distillate-bottleneck',
+      caption: 'New York Harbor ultra-low sulphur diesel less Brent, on a common volume basis, using monthly average spot prices.',
+      source: 'EIA spot prices; 6:05 Markets calculations, as published in the report.',
+    },
+    {
+      slug: 'oil-above-100-supply-shock',
+      caption: 'Contract prices on 9 September 2026, the day before Brent’s intraday move to US$105.26.',
+      source: 'ICE Brent futures, 9 September 2026 snapshot, as cited in the report.',
+    },
+  ];
+  for (const { slug, caption, source } of expected) {
+    const html = read(join(DIST, `research/${slug}/index.html`));
+    const header = html.match(/<figure\b[^>]*class="[^"]*\brvisual\b[^"]*"[^>]*>[\s\S]*?<\/figure>/)?.[0];
+    assert.ok(header, `${slug} is missing its header figure`);
+    const figcaption = header.match(/<figcaption\b[^>]*>([\s\S]*?)<\/figcaption>/)?.[1];
+    assert.ok(figcaption, `${slug} is missing its figure caption`);
+    assert.ok(visibleText(figcaption).includes(caption), `${slug} lost its chart's comparison or date context`);
+    assert.ok(visibleText(figcaption).includes(source), `${slug} lost its chart source`);
+    assert.equal(visibleText(html).split(caption).length - 1, 1, `${slug} repeats the caption outside its header`);
+  }
+});
+
 test('every internal link, image, stylesheet and document exists', () => {
   for (const page of pages) {
     const html = read(page);

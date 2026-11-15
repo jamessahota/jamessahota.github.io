@@ -131,6 +131,7 @@ if (!exhibit && !chart && !showArt) {
     ))
   }
   <figcaption class="rvisual__caption">
+    {!exhibit && chart?.caption && <p class="rvisual__chart-caption">{chart.caption}</p>}
     {exhibit && data.originalUrl ? <a href={data.originalUrl} rel="noopener">{exhibit.source}</a> : exhibit?.source ?? (chart ? chart.source : numbers.length ? (data.keyNumbersNote ?? data.dataAsOf) : (data.dataAsOf ?? data.venue.name))}
   </figcaption>
 </figure>
@@ -162,6 +163,7 @@ if (!exhibit && !chart && !showArt) {
   .rvisual__numbers dt { font-size: clamp(1.7rem, 2.5vw, 3rem); line-height: 1; font-weight: 550; letter-spacing: -.05em; }
   .rvisual__numbers dd { margin: .65rem 0 0; max-width: 20rem; font-size: .75rem; line-height: 1.5; color: #aeb6bd; }
   .rvisual__caption { margin: 0 1.5rem; padding: .8rem 0 1.15rem; border-top: 1px solid #ffffff16; font-family: var(--mono); font-size: .55rem; line-height: 1.6; color: #8f9aa4; }
+  .rvisual__chart-caption { margin: 0 0 .5rem; font-family: var(--sans); font-size: .75rem; line-height: 1.5; color: #c3c9cd; }
   .rvisual__caption a { color: inherit; text-underline-offset: .2em; }
   .rvisual__caption a:hover { color: #eef0f1; }
   .rvisual--exhibit .rvisual__caption { font-size: .625rem; }
@@ -203,5 +205,5 @@ if (!exhibit && !chart && !showArt) {
   }
   @media (prefers-reduced-motion: reduce) { .rvisual * { animation: none !important; transition: none !important; } }
   /* In print: light, settled, with its bars in colour and without the sheen overlay. */
-  @media print { .rvisual { opacity: 1 !important; transform: none !important; background: #fff; color: #101214; box-shadow: none; border-color: #cfd4d8; print-color-adjust: exact; -webkit-print-color-adjust: exact; } .rvisual::after { display: none; } .rvisual * { animation: none !important; } .rvisual__art { display: none; } .rvisual[data-research-visual='curve'] .rvisual__art { display: grid; min-height: 0; } .rvisual[data-research-visual='curve'] .rvisual__drawing { max-height: 55mm; } .rvisual__topic, .rvisual__data-title, .rvisual__values dt, .rvisual__caption, .rvisual__numbers dd { color: #30353a; } .rvisual__data, .rvisual__numbers, .rvisual__caption { border-top-color: #cfd4d8; } }
+  @media print { .rvisual { opacity: 1 !important; transform: none !important; background: #fff; color: #101214; box-shadow: none; border-color: #cfd4d8; print-color-adjust: exact; -webkit-print-color-adjust: exact; } .rvisual::after { display: none; } .rvisual * { animation: none !important; } .rvisual__art { display: none; } .rvisual[data-research-visual='curve'] .rvisual__art { display: grid; min-height: 0; } .rvisual[data-research-visual='curve'] .rvisual__drawing { max-height: 55mm; } .rvisual__topic, .rvisual__data-title, .rvisual__values dt, .rvisual__caption, .rvisual__chart-caption, .rvisual__numbers dd { color: #30353a; } .rvisual__data, .rvisual__numbers, .rvisual__caption { border-top-color: #cfd4d8; } }
 </style>
