@@ -138,6 +138,8 @@ const safeJsonLd = jsonLd ? JSON.stringify(jsonLd).replace(/</g, '\\u003c') : un
     <Font cssVariable="--font-geist-mono" preload />
     <Font cssVariable="--font-display" preload />
     {safeJsonLd && <script type="application/ld+json" is:inline set:html={safeJsonLd} />}
+    <!-- Cloudflare Web Analytics -->
+    <script is:inline type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "3909dc4d759e4b2fa2e5305ee7796282"}'></script>
   </head>
   <body data-page={Astro.url.pathname}>
     <a class="skip-link" href="#main">Skip to content</a>
