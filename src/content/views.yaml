@@ -16,62 +16,92 @@
 #   that price as the latest. Refresh the prices with `npm run prices`. Track only a price of the
 #   contract or series the view is judged on; for a view on an average, the page marks the latest
 #   price as for reference.
+# - `referenceTrack` supplies a labelled context point, never a forecast outcome.
+# - `entry` is a dated reference, not an executed trade. Freight uses the owner's selected
+#   4 September baseline; `formed` remains the October report publication date.
 
 # Oil Above 100 (sole author), 12 September 2026
 - id: brent-one-month-sep-2026
   report: oil-above-100-supply-shock
   source: report
   view: Base case for Brent one month on
-  formed: 2026-09-10
+  formed: 2026-09-12
   due: 2026-10-10
   range: { low: 95, high: 115, unit: US$ per barrel }
   basis: endpoint
   instrument: Brent futures, front month
+  entry:
+    value: 104.61
+    date: 2026-09-11
+    source: "Brent futures close before publication"
+    sourceLabel: Yahoo Finance
+    sourceUrl: https://finance.yahoo.com/quote/BZ%3DF/history/
+    basis: benchmark
   outcome:
     value: 104.72
     date: 2026-10-09
     source: NYMEX Brent futures (BZ=F), front month, closing price, via Yahoo Finance. The last close before the one-month mark
+    sourceUrl: https://finance.yahoo.com/quote/BZ%3DF/history/
 
 - id: brent-call-oct-2026
   report: oil-above-100-supply-shock
   source: call
   view: Brent at or below US$115 by the end of October
-  formed: 2026-09-13
+  formed: 2026-09-12
   due: 2026-10-31
   range: { high: 115, unit: US$ per barrel }
   basis: endpoint
   instrument: Brent futures, front month (BZ=F)
+  entry:
+    value: 104.61
+    date: 2026-09-11
+    source: "Brent futures close before publication"
+    sourceLabel: Yahoo Finance
+    sourceUrl: https://finance.yahoo.com/quote/BZ%3DF/history/
+    basis: benchmark
   outcome:
     value: 112.33
     date: 2026-10-30
     source: NYMEX Brent Last Day Financial futures, settlement at 17:00 EDT on 30 October, the last trading day on or before 31 October
+    sourceUrl: https://finance.yahoo.com/quote/BZ%3DF/history/
 
 - id: brent-end-2026-sep-2026
   report: oil-above-100-supply-shock
   source: report
   view: Base case for Brent at the end of 2026
-  formed: 2026-09-10
+  formed: 2026-09-12
   due: 2026-12-31
   range: { low: 85, high: 100, unit: US$ per barrel }
   basis: endpoint
   instrument: Brent futures, front month
+  entry:
+    value: 104.61
+    date: 2026-09-11
+    source: "Brent futures close before publication"
+    sourceLabel: Yahoo Finance
+    sourceUrl: https://finance.yahoo.com/quote/BZ%3DF/history/
+    basis: benchmark
   track: brent-futures
 
 - id: brent-2027-average-sep-2026
   report: oil-above-100-supply-shock
   source: report
   view: Base case for the 2027 average Brent price
-  formed: 2026-09-10
+  formed: 2026-09-12
   due: 2027-12-31
   range: { low: 70, high: 90, unit: US$ per barrel }
   basis: average
   instrument: Brent futures, front month (2027 average of daily closes)
+  entry:
+    value: 104.61
+    date: 2026-09-11
+    source: "Brent futures close before publication"
+    sourceLabel: Yahoo Finance
+    sourceUrl: https://finance.yahoo.com/quote/BZ%3DF/history/
+    basis: benchmark
   track: brent-futures
 
 # Panama Canal (with Benjamin Lozovsky), 5 October 2026
-# Editor's note, not shown on the site: JKMX6 is the November 2026 contract (X = November).
-# Check its final trading day on cmegroup.com before recording an outcome; if it stopped trading
-# before 31 December, the call's own rule takes its last price, and the row should say so.
 - id: jkm-q4-2026
   report: panama-canal-el-nino-asia-energy-costs
   source: call
@@ -80,7 +110,17 @@
   due: 2026-12-31
   range: { low: 27, high: 31, unit: US$ per MMBtu }
   basis: endpoint
-  instrument: JKM LNG futures (JKMX6, CME)
+  instrument: JKM LNG spot (Platts)
+  entry:
+    value: 25.71
+    date: 2026-10-05
+    source: "CFD spot price quote"
+    sourceLabel: CFD spot price quote
+    sourceUrl: https://tradingeconomics.com/commodity/liquefied-natural-gas-japan-korea
+    evidenceUrl: https://605-markets.com/predictions/11/chart/
+    basis: reference
+  referenceTrack: jkm-indicative
+  context: The spot forecast is assessed at the end of Q4 2026. This quote and the move from the report reference are indicative, rather than verified Platts physical spot assessments.
 
 - id: blng3-q4-2026
   report: panama-canal-el-nino-asia-energy-costs
@@ -91,6 +131,15 @@
   range: { low: 70000, high: 90000, unit: US$ per day }
   basis: endpoint
   instrument: Baltic Exchange BLNG3 spot rate
+  entry:
+    value: 29400
+    date: 2026-09-04
+    source: "Baltic Exchange Gas Report, Week 36 spot assessment"
+    sourceLabel: Baltic Exchange
+    sourceUrl: https://www.balticexchange.com/en/data-services/WeeklyRoundup/Gas/News/2026/gas-report-week-36.html
+    basis: benchmark
+  track: blng3-spot
+  context: This spot assessment is a current reference point. The end-Q4 2026 view remains unresolved until its assessment date.
 
 - id: blpg3-q4-2026
   report: panama-canal-el-nino-asia-energy-costs
@@ -101,17 +150,33 @@
   range: { low: 350, high: 400, unit: US$ per tonne }
   basis: endpoint
   instrument: Baltic BLPG3 freight futures
+  entry:
+    value: 283.33
+    date: 2026-09-04
+    source: "Baltic Exchange Gas Report, Week 36 spot assessment"
+    sourceLabel: Baltic Exchange
+    sourceUrl: https://www.balticexchange.com/en/data-services/WeeklyRoundup/Gas/News/2026/gas-report-week-36.html
+    basis: reference
+  referenceTrack: blpg3-spot
+  context: The published call names BLPG3 freight futures. The related spot assessment is shown for context only; it does not assess the futures call or establish its end-Q4 result.
 
 # Crude Is Returning. Diesel Isn't (with Benjamin Lozovsky and Michael Wu), 18 October 2026
 - id: nyh-ulsd-q1-2027
   report: diesel-distillate-bottleneck
   source: call
   view: New York Harbor diesel to average US$4.50–4.75 a gallon from 18 January to 18 April 2027
-  formed: 2026-10-14
+  formed: 2026-10-18
   due: 2027-04-18
   range: { low: 4.5, high: 4.75, unit: US$ per gallon }
   basis: average
   instrument: New York Harbor ULSD spot (EIA)
+  entry:
+    value: 5.102
+    date: 2026-10-16
+    source: "EIA New York Harbor ULSD spot close before publication"
+    sourceLabel: EIA / FRED
+    sourceUrl: https://fred.stlouisfed.org/series/DDFUELNYH
+    basis: benchmark
   track: nyh-ulsd
 
 # Why the oil market is mispricing risk in Hormuz (with Michael Wu), 6 July 2026
@@ -119,9 +184,16 @@
   report: hormuz-reopening-mispriced-risk
   source: call
   view: Brent at or above US$82 at the end of 2026
-  formed: 2026-09-01
+  formed: 2026-07-06
   due: 2026-12-31
   range: { low: 82, unit: US$ per barrel }
   basis: endpoint
   instrument: Brent futures, front month (BZ=F)
+  entry:
+    value: 71.99
+    date: 2026-07-06
+    source: "Brent futures close on publication date"
+    sourceLabel: Yahoo Finance
+    sourceUrl: https://finance.yahoo.com/quote/BZ%3DF/history/
+    basis: benchmark
   track: brent-futures

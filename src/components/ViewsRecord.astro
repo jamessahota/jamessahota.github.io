@@ -5,10 +5,11 @@
 import { getCollection } from 'astro:content';
 import latestPrices from '../data/latest-prices.json';
 import { getPublicResearch, researchPath } from '../lib/content';
-import { formatDate } from '../lib/dates';
+import { formatDateShort } from '../lib/dates';
+import { chartObservation, entryMove, observationState, pendingState, type PriceObservation } from '../lib/price-status';
 
-type Latest = { label: string; unit: string; source: string; value: number | null; date: string | null };
-const prices = latestPrices as Record<string, Latest>;
+const prices = latestPrices as Record<string, PriceObservation>;
+const now = new Date();
 
 interface Props {
   /** Only the views from one report. Leave out for all of them. */
@@ -25,8 +26,16 @@ for (const { data: view } of allViews) {
   if (!allResearch.some((entry) => entry.id === view.report)) {
     throw new Error(`src/content/views.yaml: "${view.id}" names a report that does not exist: "${view.report}"`);
   }
-  if (view.track && !prices[view.track]) {
-    throw new Error(`src/content/views.yaml: "${view.id}" tracks "${view.track}", which is not in src/data/latest-prices.json`);
+  if (allResearch.find((entry) => entry.id === view.report)!.data.date !== view.formed) {
+    throw new Error(`src/content/views.yaml: "${view.id}" must use its report's publication date`);
+  }
+  for (const key of [view.track, view.referenceTrack]) {
+    if (key && !prices[key]) {
+      throw new Error(`src/content/views.yaml: "${view.id}" references "${key}", which is not in src/data/latest-prices.json`);
+    }
+  }
+  if (view.track && prices[view.track]!.unit !== view.range.unit) {
+    throw new Error(`src/content/views.yaml: "${view.id}" tracks a price with a different unit from its benchmark`);
   }
 }
 const views = allViews
@@ -41,17 +50,21 @@ const format = (value: number) =>
 // Prices are shown to the precision their source quotes them (diesel to a tenth of a cent).
 const formatPrice = (value: number) =>
   value.toLocaleString('en-GB', { minimumFractionDigits: Number.isInteger(value) ? 0 : 2, maximumFractionDigits: 3 });
-
-/** The latest price of an open view's instrument, when there is one. */
-const latestFor = (view: { outcome?: unknown; track?: string }) => {
-  if (view.outcome || !view.track) return undefined;
-  const latest = prices[view.track];
-  return latest && latest.value !== null && latest.date ? (latest as Latest & { value: number; date: string }) : undefined;
+const signed = (value: number) => `${value > 0 ? '+' : value < 0 ? '−' : ''}${formatPrice(Math.abs(value))}`;
+const signedPercent = (value: number) => `${value > 0 ? '+' : value < 0 ? '−' : ''}${format(Math.abs(value))}`;
+const units: Record<string, string> = {
+  'US$ per barrel': 'US$/bbl', 'US$ per MMBtu': 'US$/MMBtu', 'US$ per day': 'US$/day',
+  'US$ per tonne': 'US$/t', 'US$ per gallon': 'US$/gal',
 };
+const unit = (value: string) => units[value] ?? value;
 
 // `status` is what the filter uses: inside, missed or open.
 const verdict = (view: View) => {
-  if (!view.outcome) return { key: 'pending', status: 'open', text: `Due ${formatDate(view.due)}` };
+  if (!view.outcome) {
+    const state = pendingState(view, now);
+    const text = state === 'outcome' ? 'Awaiting outcome' : 'Open';
+    return { key: 'pending', status: 'open', text };
+  }
   const { low, high } = view.range;
   if (low !== undefined && view.outcome.value < low) return { key: 'below', status: 'missed', text: 'Missed: below the range' };
   if (high !== undefined && view.outcome.value > high) return { key: 'above', status: 'missed', text: 'Missed: above the range' };
@@ -62,8 +75,9 @@ const verdict = (view: View) => {
 // A one-sided range runs off the edge of its scale on the open side.
 const scale = (view: View) => {
   const { low, high } = view.range;
-  const latest = latestFor(view)?.value;
-  const values = [low, high, view.outcome?.value, latest].filter((value): value is number => value !== undefined);
+  const point = chartObservation(view, prices, now)?.value;
+  const entry = view.entry?.value;
+  const values = [low, high, view.outcome?.value, point, entry].filter((value): value is number => value !== undefined);
   const span = Math.max(Math.max(...values) - Math.min(...values), Math.max(...values.map(Math.abs)) * 0.15) || 1;
   const min = Math.min(...values) - span * 0.35;
   const max = Math.max(...values) + span * 0.35;
@@ -74,16 +88,16 @@ const scale = (view: View) => {
     from: from.toFixed(2),
     width: (to - from).toFixed(2),
     open: low === undefined ? 'left' : high === undefined ? 'right' : undefined,
-    outcome: view.outcome ? at(view.outcome.value).toFixed(2) : undefined,
-    latest: latest !== undefined ? at(latest).toFixed(2) : undefined,
+    point: point !== undefined ? at(point).toFixed(2) : undefined,
+    entry: entry !== undefined ? at(entry).toFixed(2) : undefined,
   };
 };
 
 const describe = (view: View) => {
-  const { low, high, unit } = view.range;
-  if (low !== undefined && high !== undefined) return `${format(low)}–${format(high)}, ${unit}`;
-  if (high !== undefined) return `at or below ${format(high)}, ${unit}`;
-  return `at or above ${format(low!)}, ${unit}`;
+  const { low, high } = view.range;
+  if (low !== undefined && high !== undefined) return `${format(low)}–${format(high)}`;
+  if (high !== undefined) return `≤ ${format(high)}`;
+  return `≥ ${format(low!)}`;
 };
 
 const title = (id: string) => research.find((entry) => entry.id === id);
@@ -133,6 +147,11 @@ const filters = [
           </div>
         )
       }
+      <div class="record__legend" aria-label="Chart legend">
+        <span><i class="record__legend-entry" aria-hidden="true" />Entry line</span>
+        <span><i class="record__legend-point" aria-hidden="true" />Current point</span>
+        <span><i class="record__legend-band" aria-hidden="true" />Target band</span>
+      </div>
       <p class="record__empty" data-record-empty hidden>None so far.</p>
       {groups.map((group) => (
         <div class="record__group" data-record-group>
@@ -145,57 +164,77 @@ const filters = [
             {group.views.map((view, index) => {
               const result = verdict(view);
               const place = scale(view);
-              const latest = latestFor(view);
+              const observation = chartObservation(view, prices, now);
+              const configuredPrice = prices[view.track ?? view.referenceTrack ?? ''];
+              const freshness = configuredPrice ? observationState(configuredPrice, now) : undefined;
+              const unavailable = !view.outcome && !observation;
+              const change = entryMove(view, prices, now);
+              const sourceUrl = observation?.sourceUrl ?? configuredPrice?.sourceUrl;
+              const badge = observation?.kind === 'reference' ? (view.referenceTrack === 'jkm-indicative' ? 'Indicative' : 'Spot') : undefined;
               return (
-                <li class:list={['record__row', `record__row--${result.key}`]} style={`--i:${index}`} data-status={result.status}>
+                <li class:list={['record__row', `record__row--${result.key}`]} style={`--i:${index}`} data-status={result.status} data-view-id={view.id}>
                   <div class="record__what">
-                    <p class="record__view">{view.view}</p>
+                    <p class="record__view" title={view.view}>{view.instrument}</p>
                     <p class="record__meta label">
-                      <span class="record__kind">{view.source === 'call' ? 'Published call' : 'From the report'}</span> ·{' '}
-                      {view.instrument} · made {formatDate(view.formed)}
+                      Published <time datetime={view.formed}>{formatDateShort(view.formed)}</time>
                     </p>
+                    {view.entry && (
+                      <p class="record__detail" data-entry-price>
+                        Entry <strong>{formatPrice(view.entry.value)}</strong> <span class="record__unit" title={view.range.unit}>{unit(view.range.unit)}</span>
+                        {' '}· <time datetime={view.entry.date}>{formatDateShort(view.entry.date)}</time>
+                      </p>
+                    )}
+                    {view.entryUnavailable && <p class="record__source" data-entry-unavailable title={view.entryUnavailable}>Entry unavailable</p>}
                   </div>
-                  <div class="record__chart" aria-hidden="true">
-                    <span
-                      class:list={['record__band', place.open && `record__band--open-${place.open}`]}
-                      style={`left:${place.from}%;width:${place.width}%`}
-                    />
-                    {view.range.low !== undefined && (
-                      <span class="record__end numeric" style={`left:${place.from}%`}>{format(view.range.low)}</span>
-                    )}
-                    {view.range.high !== undefined && (
-                      <span class="record__end numeric" style={`left:${(Number(place.from) + Number(place.width)).toFixed(2)}%`}>
-                        {format(view.range.high)}
-                      </span>
-                    )}
-                    {place.outcome && <span class="record__dot" style={`left:${place.outcome}%`} />}
-                    {place.latest && <span class="record__latest" style={`left:${place.latest}%`} />}
+                  <div class="record__visual">
+                    <p class="record__detail record__target">
+                      Target{view.basis === 'average' ? ' avg' : ''} <strong>{describe(view)}</strong> <span class="record__unit" title={view.range.unit}>{unit(view.range.unit)}</span>
+                      {' '}· <time datetime={view.due}>{formatDateShort(view.due)}</time>
+                    </p>
+                    <div class="record__chart" aria-hidden="true">
+                      <span
+                        class:list={['record__band', place.open && `record__band--open-${place.open}`]}
+                        style={`left:${place.from}%;width:${place.width}%`}
+                      />
+                      {view.range.low !== undefined && (
+                        <span class="record__end numeric" style={`left:${place.from}%`}>{format(view.range.low)}</span>
+                      )}
+                      {view.range.high !== undefined && (
+                        <span class="record__end numeric" style={`left:${(Number(place.from) + Number(place.width)).toFixed(2)}%`}>
+                          {format(view.range.high)}
+                        </span>
+                      )}
+                      {place.point && <span class={observation?.kind === 'outcome' ? 'record__dot' : 'record__latest'} style={`left:${place.point}%`} data-chart-kind={observation?.kind} />}
+                      {place.entry && <span class="record__entry" style={`left:${place.entry}%`} />}
+                    </div>
                   </div>
                   <div class="record__result">
                     <p class="record__verdict">
                       <span class="record__flag" aria-hidden="true" />
                       {result.text}
                     </p>
-                    <p class="record__detail">
-                      View: {describe(view)}
-                      {view.basis === 'average' ? ', as an average' : ''}.
-                      {view.outcome && (
-                        <>
-                          {' '}
-                          Outcome: {format(view.outcome.value)} on {formatDate(view.outcome.date)}.
-                        </>
-                      )}
-                    </p>
-                    {latest && (
-                      <p class="record__detail record__detail--latest">
-                        <span class="record__latest-key" aria-hidden="true" />
-                        Latest: {formatPrice(latest.value)} on {formatDate(latest.date)}.
-                        {view.basis === 'average' && ' For reference only: the view is judged on the average over its period.'}
+                    {observation && (
+                      <p class="record__detail" data-current-price data-price-reference={observation.kind === 'reference' || undefined} title={observation.source}>
+                        {observation.kind === 'outcome' ? 'Outcome' : 'Current'} <strong>{formatPrice(observation.value)}</strong> <span class="record__unit" title={view.range.unit}>{unit(view.range.unit)}</span>
+                        {' '}· <time datetime={observation.date}>{formatDateShort(observation.date)}</time>
+                        {badge && <>{' '}<span class="record__badge" title={configuredPrice?.label}>{badge}</span></>}
                       </p>
                     )}
-                    {view.outcome && <p class="record__source">Source: {view.outcome.source}.</p>}
-                    {latest && <p class="record__source">Latest price: {latest.source}. Updated on weekday evenings; prices are not live.</p>}
-                    {view.context && <p class="record__source">{view.context}</p>}
+                    {change && (
+                      <p class="record__detail record__move" data-price-change title={change.basis === 'reference' ? 'Related-market reference move since entry; not an assessed outcome' : 'Benchmark price move since entry'}>
+                        Move <strong>{signed(change.absolute)}</strong> <span class="record__unit">{unit(view.range.unit)}</span>{change.percent !== undefined ? ` (${signedPercent(change.percent)}%)` : ''}
+                      </p>
+                    )}
+                    <p class="record__source record__sources">
+                      {view.entry?.sourceUrl && <a href={view.entry.sourceUrl} title={view.entry.source}>{view.entry.sourceLabel ?? 'Entry source'}</a>}
+                      {sourceUrl && <a href={sourceUrl} title={observation?.source ?? configuredPrice?.source}>Price source</a>}
+                    </p>
+                    {unavailable && <p class="record__source" data-price-state="unavailable">Current unavailable</p>}
+                    {!view.outcome && observation && freshness && (freshness.failed || freshness.stale) && (
+                      <p class="record__source record__price-status" data-price-state={freshness.failed ? 'retained' : 'stale'} title={freshness.failed ? 'Latest refresh failed; last available observation retained' : 'Observation is older than the expected source cadence'}>
+                        {freshness.failed ? 'Last available quote' : 'Older quote'}
+                      </p>
+                    )}
                   </div>
                 </li>
               );
@@ -204,14 +243,20 @@ const filters = [
         </div>
       ))}
       <p class="record__note">
-        This record includes every call published with a report on 6:05 Markets and every base-case view that gives a
-        price range for a named benchmark at a specified date or over a defined period. Misses are included.
-        Conditional scenarios and views without a named benchmark or assessment date are excluded.
-        A base case published as a call for the same range and period appears once, as the call.
-        Each view is assessed after its date has passed, using the series specified in the call.
-        Report views that name only Brent are assessed against front-month Brent futures, the contract used for the
-        report’s headline Brent price.
+        Prices auto-refresh on weekdays; dates show the observation. JKM CFD quotes are indicative.
+        Forecasts are assessed at their due dates; averages use the full period.
       </p>
+      <details class="record__methodology">
+        <summary>Methodology and benchmark notes</summary>
+        <p class="record__source">
+          Every published call and dated base-case benchmark view is included, including misses. Duplicate calls appear once.
+          Entries are publication references, not executed trades. Moves are price changes, not forecast verdicts.
+          Brent uses front-month futures. Related spot or indicative points are chart context; outcomes use the stated benchmark.
+          Daily and weekly sources keep their actual observation dates.
+        </p>
+        {views.filter((view) => view.context).map((view) => <p class="record__source"><strong>{view.instrument}:</strong> {view.context}</p>)}
+        {views.filter((view) => view.basis === 'average').map((view) => <p class="record__source">{view.view}.</p>)}
+      </details>
     </section>
   )
 }
@@ -320,6 +365,47 @@ const filters = [
     border-bottom: 1px solid var(--line);
   }
 
+  .record__legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.25rem;
+    margin-top: var(--space-4);
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: var(--text-xs);
+  }
+
+  .record__legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .record__legend i {
+    display: inline-block;
+    flex: none;
+  }
+
+  .record__legend-entry {
+    width: 1px;
+    height: 0.9rem;
+    background: var(--ink);
+  }
+
+  .record__legend-point {
+    width: 0.6rem;
+    height: 0.6rem;
+    border: 1.5px solid var(--ink);
+    border-radius: 50%;
+  }
+
+  .record__legend-band {
+    width: 1.5rem;
+    height: 0.5rem;
+    border: 1px solid var(--ink-2);
+    background: color-mix(in srgb, var(--ink) 8%, transparent);
+  }
+
   /* Where the instrument trades now, for a view that is still open: a hollow marker,
      distinct from the solid dot of a final outcome. */
   .record__latest {
@@ -333,18 +419,12 @@ const filters = [
     background: var(--bg);
   }
 
-  .record__detail--latest {
-    display: flex;
-    align-items: center;
-    gap: 0.5em;
-  }
-
-  .record__latest-key {
-    flex: none;
-    width: 0.7rem;
-    height: 0.7rem;
-    border: 2px solid var(--ink);
-    border-radius: 50%;
+  .record__entry {
+    position: absolute;
+    top: 0.55rem;
+    width: 1px;
+    height: 1.1rem;
+    background: var(--ink);
   }
 
   .record__report {
@@ -361,6 +441,10 @@ const filters = [
     gap: var(--space-4);
     padding-block: var(--space-5);
     border-bottom: 1px solid var(--line);
+  }
+
+  .record__row > div {
+    min-width: 0;
   }
 
   /* Three columns only when the record itself is wide enough, wherever it sits. */
@@ -381,6 +465,11 @@ const filters = [
   .record__meta {
     margin-top: var(--space-2);
     line-height: 1.6;
+  }
+
+  .record__target {
+    margin-top: 0;
+    margin-bottom: var(--space-2);
   }
 
   /* The range as a band on a scale, with a dot where the market finished. */
@@ -408,10 +497,6 @@ const filters = [
   .record__band--open-right {
     border-right: 0;
     mask-image: linear-gradient(90deg, #000 60%, transparent);
-  }
-
-  .record__kind {
-    color: var(--ink);
   }
 
   .record__row--inside .record__band {
@@ -481,6 +566,26 @@ const filters = [
     line-height: 1.5;
   }
 
+  .record__detail strong {
+    color: var(--ink);
+    font-weight: 550;
+  }
+
+  .record__unit {
+    white-space: nowrap;
+  }
+
+  .record__badge {
+    display: inline-block;
+    margin-left: 0.5rem;
+    padding: 0.05rem 0.35rem;
+    border: 1px solid var(--line);
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 0.625rem;
+    vertical-align: 0.08em;
+  }
+
   .record__source,
   .record__note {
     margin-top: var(--space-2);
@@ -488,11 +593,36 @@ const filters = [
     font-size: var(--text-xs);
     line-height: 1.55;
     color: var(--muted);
+    overflow-wrap: anywhere;
+  }
+
+  .record__price-status {
+    color: var(--ink-2);
+  }
+
+  .record__sources {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1rem;
   }
 
   .record__note {
     margin-top: var(--space-4);
     max-width: var(--measure);
+  }
+
+  .record__methodology {
+    margin-top: var(--space-2);
+    max-width: var(--measure);
+  }
+
+  .record__methodology summary {
+    min-height: 2.75rem;
+    padding-block: 0.65rem;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: var(--text-xs);
+    cursor: pointer;
   }
 
   /* On arrival each band draws out from its low end, then the outcome lands on the scale. */

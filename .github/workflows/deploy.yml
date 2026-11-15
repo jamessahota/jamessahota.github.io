@@ -32,10 +32,22 @@ jobs:
     steps:
       - name: Check out the repository
         uses: actions/checkout@v7
+      - name: Restore last verified market observations
+        uses: actions/cache/restore@v5
+        with:
+          path: .cache/market-prices.json
+          key: market-prices-v1-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: market-prices-v1-
       - name: Refresh the latest prices shown beside open views
-        # A source that cannot be reached keeps the last committed price, so the site still deploys.
+        # Partial failures retain verified observations, including those from prior runs.
         run: node scripts/update-prices.mjs
         continue-on-error: true
+      - name: Save verified market observations for the next refresh
+        if: ${{ !cancelled() && hashFiles('.cache/market-prices.json') != '' }}
+        uses: actions/cache/save@v5
+        with:
+          path: .cache/market-prices.json
+          key: market-prices-v1-${{ github.run_id }}-${{ github.run_attempt }}
       - name: Install, check, build and upload the site
         uses: withastro/action@v6
         with:

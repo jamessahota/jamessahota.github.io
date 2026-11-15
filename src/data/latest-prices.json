@@ -3,22 +3,85 @@
     "label": "Brent futures, front month",
     "unit": "US$ per barrel",
     "source": "NYMEX Brent Last Day Financial futures (BZ=F), front month, closing price, via Yahoo Finance",
+    "sourceUrl": "https://finance.yahoo.com/quote/BZ%3DF/history/",
+    "cadence": "daily",
+    "maxAgeDays": 7,
     "fetch": {
       "provider": "yahoo",
       "ticker": "BZ=F"
     },
     "value": 95.84,
-    "date": "2026-11-13"
+    "date": "2026-11-13",
+    "lastAttemptAt": "2026-11-15T15:05:45.775Z",
+    "checkedAt": "2026-11-15T15:05:45.775Z",
+    "refreshStatus": "ok"
   },
   "nyh-ulsd": {
     "label": "New York Harbor ULSD spot",
     "unit": "US$ per gallon",
     "source": "New York Harbor ultra-low sulphur diesel spot price, EIA, via FRED (DDFUELNYH)",
+    "sourceUrl": "https://fred.stlouisfed.org/series/DDFUELNYH",
+    "cadence": "daily",
+    "maxAgeDays": 7,
     "fetch": {
       "provider": "fred",
       "series": "DDFUELNYH"
     },
     "value": 4.204,
-    "date": "2026-11-11"
+    "date": "2026-11-11",
+    "lastAttemptAt": "2026-11-15T15:05:45.775Z",
+    "checkedAt": "2026-11-15T15:05:45.775Z",
+    "refreshStatus": "ok"
+  },
+  "blng3-spot": {
+    "label": "Baltic Exchange BLNG3 spot assessment",
+    "unit": "US$ per day",
+    "source": "Baltic Exchange weekly Gas Report, BLNG3 spot assessment",
+    "sourceUrl": "https://www.balticexchange.com/en/data-services/WeeklyRoundup/Gas/News/2026/gas-report-week-46.html",
+    "cadence": "weekly",
+    "maxAgeDays": 14,
+    "fetch": {
+      "provider": "baltic",
+      "route": "BLNG3"
+    },
+    "value": 56000,
+    "date": "2026-11-13",
+    "lastAttemptAt": "2026-11-15T15:05:45.775Z",
+    "checkedAt": "2026-11-15T15:05:45.775Z",
+    "refreshStatus": "ok"
+  },
+  "blpg3-spot": {
+    "label": "Baltic Exchange BLPG3 spot assessment",
+    "unit": "US$ per tonne",
+    "source": "Baltic Exchange weekly Gas Report, BLPG3 spot assessment",
+    "sourceUrl": "https://www.balticexchange.com/en/data-services/WeeklyRoundup/Gas/News/2026/gas-report-week-46.html",
+    "cadence": "weekly",
+    "maxAgeDays": 14,
+    "fetch": {
+      "provider": "baltic",
+      "route": "BLPG3"
+    },
+    "value": 310.86,
+    "date": "2026-11-13",
+    "lastAttemptAt": "2026-11-15T15:05:45.775Z",
+    "checkedAt": "2026-11-15T15:05:45.775Z",
+    "refreshStatus": "ok"
+  },
+  "jkm-indicative": {
+    "label": "JKM (indicative CFD)",
+    "unit": "US$ per MMBtu",
+    "source": "Trading Economics JKM benchmark-tracking CFD",
+    "sourceUrl": "https://tradingeconomics.com/commodity/liquefied-natural-gas-japan-korea",
+    "cadence": "daily",
+    "maxAgeDays": 7,
+    "fetch": {
+      "provider": "tradingeconomics",
+      "series": "jkm-indicative"
+    },
+    "value": 31.35,
+    "date": "2026-11-13",
+    "lastAttemptAt": "2026-11-15T15:05:45.775Z",
+    "checkedAt": "2026-11-15T15:05:45.775Z",
+    "refreshStatus": "ok"
   }
 }

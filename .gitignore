@@ -2,6 +2,7 @@
 node_modules/
 dist/
 .astro/
+.cache/
 
 # Local environment and editor files
 .env

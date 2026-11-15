@@ -368,7 +368,7 @@ const views = defineCollection({
       // 'report': stated in the report's text. 'call': a call card published with the report.
       source: z.enum(['report', 'call']),
       view: z.string(),
-      // When the view was formed (the report's data date) and when it is due to be judged.
+      // The report's publication date and when the view is due to be judged.
       formed: isoDay,
       due: isoDay,
       // A call can be one-sided ("at or below 115"), so either end may be left out.
@@ -378,8 +378,17 @@ const views = defineCollection({
       instrument: z.string(),
       // While a view is open, the latest price of its instrument, from src/data/latest-prices.json.
       track: z.string().optional(),
+      // Related market context: plotted with a label, never used to assess a view's outcome.
+      referenceTrack: z.string().optional(),
+      // Sourced publication reference; related-market references cannot assess the benchmark.
+      entry: z.object({
+        value: z.number().positive(), date: isoDay, source: z.string(), sourceUrl: link.optional(),
+        sourceLabel: z.string().optional(), evidenceUrl: link.optional(),
+        basis: z.enum(['benchmark', 'reference']).default('benchmark'),
+      }).optional(),
+      entryUnavailable: z.string().optional(),
       outcome: z
-        .object({ value: z.number(), date: isoDay, source: z.string() })
+        .object({ value: z.number(), date: isoDay, source: z.string(), sourceUrl: link.optional() })
         .optional(),
       context: z.string().optional(),
     })
@@ -387,7 +396,11 @@ const views = defineCollection({
     .refine(
       (view) => view.range.low === undefined || view.range.high === undefined || view.range.low < view.range.high,
       'The low end of a range must be below the high end',
-    ),
+    )
+    .refine((view) => !view.track || view.track !== view.referenceTrack, 'An exact track cannot also be its own reference')
+    .refine((view) => view.entry?.basis !== 'reference' || Boolean(view.referenceTrack), 'A reference entry needs a referenceTrack')
+    .refine((view) => !view.entry || !view.entryUnavailable, 'Use an entry reference or explain why it is unavailable, not both')
+    .refine((view) => !view.entry || view.entry.date <= view.formed, 'An entry reference cannot use a date after the view was formed'),
 });
 
 export const collections = { research, projects, profile, about, experience, education, capabilities, views };

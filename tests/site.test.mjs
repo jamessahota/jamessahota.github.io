@@ -18,6 +18,62 @@ assert.ok(existsSync(DIST), 'dist/ is missing. Run `npm run build` before `npm t
 // The public address, read from the one place it is set.
 const SITE = readFileSync(join(ROOT, 'astro.config.mjs'), 'utf8').match(/SITE_URL = '([^']+)'/)[1];
 
+test('trading views keep rows compact and plot entry and current reference prices', () => {
+  const html = readFileSync(join(DIST, 'research/index.html'), 'utf8');
+  const prices = JSON.parse(readFileSync(join(ROOT, 'src/data/latest-prices.json'), 'utf8'));
+  const today = new Date().toISOString().slice(0, 10);
+  const rows = [...html.matchAll(/<li[^>]*data-view-id="([^"]+)"[^>]*>([\s\S]*?)<\/li>/g)];
+  assert.ok(rows.length >= 9);
+  for (const [ , id, row] of rows) {
+    assert.match(row, /data-entry-price/, `${id} is missing its dated entry`);
+    assert.match(row, /class="record__entry"/, `${id} is missing its entry line`);
+    if (row.includes('data-current-price')) {
+      assert.match(row, /data-chart-kind="(?:benchmark|reference|outcome)"/, `${id} is missing its price point`);
+      assert.match(row, /data-price-change/, `${id} is missing its move`);
+    }
+    const text = row.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+    assert.doesNotMatch(text, /to the verified outcome|to the latest observation|Latest price:|Daily observations; refreshed automatically/);
+  }
+  for (const id of ['jkm-q4-2026', 'blpg3-q4-2026']) {
+    const row = rows.find((row) => row[1] === id)[2];
+    if (today <= '2026-12-31' && !row.includes('>Outcome<')) {
+      assert.match(row, /data-price-reference/);
+      assert.match(row, /data-chart-kind="reference"/);
+    }
+  }
+  const jkm = rows.find((row) => row[1] === 'jkm-q4-2026')[2];
+  assert.match(jkm, /JKM LNG spot/);
+  assert.match(jkm, /CFD spot price quote/);
+  assert.match(jkm, /25\.71/);
+  if (today <= '2026-12-31') {
+    assert.match(jkm, /Indicative/);
+    const value = prices['jkm-indicative'].value;
+    assert.ok(jkm.includes(value.toLocaleString('en-GB', {minimumFractionDigits: Number.isInteger(value) ? 0 : 2, maximumFractionDigits: 3})));
+  }
+  assert.doesNotMatch(jkm, /JKMX6|JKM6|TOCOM|January 2027|6:05 Markets report reference/);
+  const freight = rows.find((row) => row[1] === 'blng3-q4-2026')[2];
+  assert.match(freight, /29,400/);
+  assert.match(freight, /datetime="2026-09-04"/);
+  const lpg = rows.find((row) => row[1] === 'blpg3-q4-2026')[2];
+  assert.match(lpg, /283\.33/);
+  assert.match(lpg, /datetime="2026-09-04"/);
+  if (today <= '2026-12-31') {
+    const value = prices['blng3-spot'].value;
+    assert.ok(freight.includes(value.toLocaleString('en-GB', {minimumFractionDigits: Number.isInteger(value) ? 0 : 2, maximumFractionDigits: 3})));
+    assert.match(freight, /class="record__latest"/);
+  }
+});
+
+test('all trading-view call dates match the report publication dates', () => {
+  const content = readFileSync(join(ROOT, 'src/content/views.yaml'), 'utf8');
+  for (const block of content.split(/(?=^- id: )/m).slice(1)) {
+    const report = block.match(/^  report: (.+)$/m)[1];
+    const formed = block.match(/^  formed: (.+)$/m)[1];
+    const publication = readFileSync(join(RESEARCH_DIR, `${report}.md`), 'utf8').match(/^date: (\d{4}-\d{2}-\d{2})$/m)[1];
+    assert.equal(formed, publication, `${report} uses a data or prediction-card date instead of publication`);
+  }
+});
+
 const walk = (dir) =>
   readdirSync(dir).flatMap((name) => {
     const path = join(dir, name);
