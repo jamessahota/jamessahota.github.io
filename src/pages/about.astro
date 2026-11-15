@@ -27,14 +27,7 @@ const jsonLd = {
     <p class="label label--marked">About</p>
     <h1 class="display">{profile.name}</h1>
     <div class="about-header__grid">
-      <div>
-        <p class="lede">{data.lede}</p>
-        <nav class="about-jumps side-scroll" aria-label="On this page">
-          <a class="arrow-link" href="#biography">Biography <Icon name="arrow-down" /></a>
-          <a class="arrow-link" href="#approach-heading">Research approach <Icon name="arrow-down" /></a>
-          <a class="arrow-link" href="#beyond-heading">Beyond work <Icon name="arrow-down" /></a>
-        </nav>
-      </div>
+      <p class="lede">{data.lede}</p>
       <figure class="about-route" aria-label="Milan, London, Singapore and Chicago" data-loop-host>
         <svg viewBox="0 0 720 230" width="720" height="230" fill="none" aria-hidden="true" focusable="false">
           <g class="about-route__grid">
@@ -69,10 +62,7 @@ const jsonLd = {
       <dl class="cells about__facts">
         <div class="cell">
           <dt class="label">Based in</dt>
-          <dd>
-            {profile.location}
-            <span class="about__clock numeric" data-clock="America/Chicago"></span>
-          </dd>
+          <dd>{profile.location}</dd>
         </div>
         <div class="cell">
           <dt class="label">Languages</dt>
@@ -145,8 +135,6 @@ const jsonLd = {
 
   .about-header__grid { display: grid; gap: var(--space-6); margin-top: var(--space-7); align-items: center; }
   .about-header__grid .lede { margin: 0; max-width: 27ch; font-size: clamp(1.5rem, 1.1rem + 1.5vw, 2.4rem); }
-  .about-jumps { display: flex; flex-wrap: wrap; gap: 0.2rem 1.25rem; margin-top: var(--space-5); }
-  .about-jumps .arrow-link { font-size: 0.65rem; }
 
   .about-route { overflow: hidden; background: #111518; border: 1px solid #353c42; border-radius: var(--radius); color: #eef0f1; }
   .about-route svg { display: block; width: 100%; height: auto; background: radial-gradient(ellipse at 65% 50%, #ff6a3317, transparent 65%); }
@@ -208,13 +196,6 @@ const jsonLd = {
     font-size: 0.9375rem;
     line-height: 1.45;
     overflow-wrap: anywhere;
-  }
-
-  .about__clock {
-    margin-left: 0.5em;
-    font-family: var(--mono);
-    font-size: var(--text-xs);
-    color: var(--muted);
   }
 
   .about__actions {
@@ -296,7 +277,6 @@ const jsonLd = {
 
   @media print {
     .about-route { display: none; }
-    .about-jumps { display: none; }
     .approach__item { min-height: 0; }
   }
 </style>

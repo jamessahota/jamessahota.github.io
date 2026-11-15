@@ -33,8 +33,9 @@ export async function getStaticPaths() {
     // "Up next" is the piece published before this one; the oldest hands over to the newest.
     props: (() => {
       const next = pages.length > 1 ? pages[(position + 1) % pages.length] : undefined;
-      // The piece shown as Up next is not shown again among the related cards just below it.
-      return { entry, next, related: getRelated(entry, all).filter((item) => item.id !== next?.id) };
+      // Up next takes the place of one related card, so the page ends with three pieces, not four,
+      // and none is shown twice.
+      return { entry, next, related: getRelated(entry, all).filter((item) => item.id !== next?.id).slice(0, 2) };
     })(),
   }));
 }
@@ -52,9 +53,16 @@ const coAuthors = data.authors.filter((author) => author !== profile.name);
 const { Content } = await render(entry);
 const hasViews = (await getCollection('views')).some((view) => view.data.report === entry.id);
 const hasBody = Boolean(entry.body?.trim());
-const hasExhibits = Boolean(data.charts?.length || data.tables?.length || data.figures?.length);
+// Without a report-specific exhibit, the header visual shows the first chart, or failing that
+// the first two key numbers, so the body leaves them out rather than repeat them.
+const headerChart = !data.headerVisual && Boolean(data.charts?.length);
+const headerNumbers = !data.headerVisual && !headerChart && Boolean(data.keyNumbers?.length);
+const charts = headerChart ? data.charts!.slice(1) : data.charts;
+const keyNumbers = headerNumbers ? data.keyNumbers!.slice(2) : data.keyNumbers;
+const hasExhibits = Boolean(charts?.length || data.tables?.length || data.figures?.length);
+const typeLabel = RESEARCH_TYPES[data.type].toLowerCase();
 
-const fullPieceLabel = `Read the full ${RESEARCH_TYPES[data.type].toLowerCase()} at ${data.venue.name}`;
+const fullPieceLabel = `Read the full ${typeLabel} at ${data.venue.name}`;
 
 const jsonLd = {
   '@context': 'https://schema.org',
@@ -104,19 +112,19 @@ const jsonLd = {
           {data.originalUrl && <ButtonLink href={data.originalUrl} label={fullPieceLabel} icon="arrow-up-right" />}
           {data.pdf && <ButtonLink href={data.pdf} label="Open the PDF" variant="secondary" icon="download" />}
         </div>
-        {data.fullReportMinutes && <p class="details__note">Full {RESEARCH_TYPES[data.type].toLowerCase()}: {data.fullReportMinutes}-minute read.</p>}
+        {data.fullReportMinutes && <p class="details__note">Full {typeLabel}: {data.fullReportMinutes}-minute read.</p>}
       </div>
       </div>
-      <div class:list={['report-header__visual', { 'report-header__visual--exhibit': Boolean(data.headerVisual) }]}><ResearchVisual entry={entry} compact /></div>
+      <div class:list={['report-header__visual', { 'report-header__visual--exhibit': Boolean(data.headerVisual), 'report-header__visual--data': headerChart || headerNumbers }]}><ResearchVisual entry={entry} compact /></div>
       </div>
       <nav class="report-sections side-scroll" aria-label="On this page">
         {hasBody && <a href="#summary-heading">Summary</a>}
         {data.keyFindings.length > 0 && <a href="#findings-heading">Key findings</a>}
-        {hasViews && <a href="#views">How the views have held up</a>}
+        {hasViews && <a href="#views">Views and outcomes</a>}
         {data.viewChangers && <a href="#changers-heading">What would change the view</a>}
         {hasExhibits && <a href="#exhibits-heading">From the report</a>}
         {data.approach && <a href="#approach-heading">Data and approach</a>}
-        {data.sources && <a href="#sources-heading">Principal sources</a>}
+        {data.sources && <a href="#sources-heading">Sources</a>}
       </nav>
     </header>
 
@@ -136,9 +144,9 @@ const jsonLd = {
         }
 
         {
-          data.keyNumbers && (
+          keyNumbers && keyNumbers.length > 0 && (
             <div class="block">
-              <KeyNumbers items={data.keyNumbers} note={data.keyNumbersNote} />
+              <KeyNumbers items={keyNumbers} note={data.keyNumbersNote} />
             </div>
           )
         }
@@ -166,7 +174,7 @@ const jsonLd = {
         {
           hasViews && (
             <div class="block">
-              <ViewsRecord report={entry.id} heading="How the views have held up" />
+              <ViewsRecord report={entry.id} heading="Views and outcomes" />
             </div>
           )
         }
@@ -177,7 +185,7 @@ const jsonLd = {
               <h2 id="changers-heading" class="block__title label label--marked">
                 What would change the view
               </h2>
-              <ViewChangers items={data.viewChangers} />
+              <ViewChangers items={data.viewChangers} type={typeLabel} />
             </section>
           )
         }
@@ -189,7 +197,7 @@ const jsonLd = {
                 From the report
               </h2>
               <div class="exhibits">
-                {data.charts?.map((chart) => (chart.kind === 'futures-curve' ? <CurveChart {...chart} /> : <BarChart {...chart} />))}
+                {charts?.map((chart) => (chart.kind === 'futures-curve' ? <CurveChart {...chart} /> : <BarChart {...chart} />))}
                 {data.figures?.map((figure) => <Figure {...figure} />)}
                 {data.tables?.map((table) => <DataTable {...table} />)}
               </div>
@@ -214,7 +222,7 @@ const jsonLd = {
           data.sources && (
             <section class="block" aria-labelledby="sources-heading">
               <h2 id="sources-heading" class="block__title label label--marked">
-                Principal sources
+                Sources
               </h2>
               <ul class="sources">
                 {data.sources.map((source) => (
@@ -235,7 +243,7 @@ const jsonLd = {
 
         <div class="panel panel--night closing" data-reveal>
           <p class="closing__lead">
-            {data.originalUrl ? `Read the full ${RESEARCH_TYPES[data.type].toLowerCase()} for the complete analysis.` : 'Research summary.'}
+            {data.originalUrl ? `Read the full ${typeLabel} for the complete analysis.` : 'Research summary.'}
           </p>
           {
             data.originalUrl && (
@@ -243,8 +251,8 @@ const jsonLd = {
             )
           }
           <p class="closing__note">
-            {data.date ? `Dated analysis from ${formatDate(data.date)}. ` : ''}Views and price ranges reflect the information
-            available at the time and have not been updated. Nothing here is investment advice.
+            {data.date ? `Dated analysis from ${formatDate(data.date)}. ` : ''}{hasViews ? 'Views and price ranges' : 'Views'} reflect the
+            information available at the time and have not been updated. Nothing here is investment advice.
           </p>
         </div>
       </div>
@@ -272,20 +280,6 @@ const jsonLd = {
             )
           }
           <div class="cell">
-            <dt class="label">Venue</dt>
-            <dd>
-              {
-                data.venue.url ? (
-                  <a class="quiet-link" href={data.venue.url} rel="noopener">
-                    {data.venue.name}
-                  </a>
-                ) : (
-                  data.venue.name
-                )
-              }
-            </dd>
-          </div>
-          <div class="cell">
             <dt class="label">Status</dt>
             <dd>{STATUS_LABELS[data.publicationStatus]}</dd>
           </div>
@@ -303,7 +297,7 @@ const jsonLd = {
           {data.pdf && <ButtonLink href={data.pdf} label="Open the PDF" variant="secondary" icon="download" />}
           {
             data.fullReportMinutes && (
-              <p class="details__note">Full {RESEARCH_TYPES[data.type].toLowerCase()}: {data.fullReportMinutes}-minute read.</p>
+              <p class="details__note">Full {typeLabel}: {data.fullReportMinutes}-minute read.</p>
             )
           }
         </div>
@@ -438,6 +432,9 @@ const jsonLd = {
   .report-header__copy { min-width: 0; }
   .report-header__visual { display: none; min-width: 0; align-self: center; padding-top: 2rem; }
   .report-header__visual--exhibit { display: block; padding-top: 0; }
+  /* A visual that carries the report's first chart or figures shows on phones too, because the body leaves them out. */
+  .report-header__visual--data { display: block; }
+  @media (max-width: 63.99rem) { .report-header__visual--data { padding-top: 0; } }
   .report-sections { display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--line); }
   .report-sections a { padding: .4rem 0; font-family: var(--mono); font-size: .7rem; text-transform: uppercase; letter-spacing: .04em; text-decoration: none; }
   .report-sections a:hover, .report-sections a:focus-visible { color: var(--accent-text); }
@@ -574,7 +571,8 @@ const jsonLd = {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .details__list .cell:first-child {
+    .details__list .cell:first-child,
+    .details__list .cell:last-child:nth-child(even) {
       grid-column: 1 / -1;
     }
 
@@ -628,9 +626,9 @@ const jsonLd = {
 
   /* A rail down the findings that fills as they are read, with a node at each one.
      Driven by the scroll position where the browser supports it; otherwise the
-     list simply has no rail. Nothing is pinned or delayed. */
+     list simply has no rail. Nothing is pinned or delayed. Screen only, so it never prints. */
   @supports (animation-timeline: view()) {
-    @media (prefers-reduced-motion: no-preference) {
+    @media screen and (prefers-reduced-motion: no-preference) {
       .findings {
         position: relative;
         padding-left: 1.5rem;
@@ -690,7 +688,7 @@ const jsonLd = {
   /* The timelines are set in a block of their own, after the animations. The build
      otherwise folds a timeline into the animation shorthand, which browsers reject,
      and the rail would silently never move. */
-  @media (prefers-reduced-motion: no-preference) {
+  @media screen and (prefers-reduced-motion: no-preference) {
     @supports (animation-timeline: view()) {
       .findings::after {
         animation-timeline: --findings;
@@ -796,6 +794,34 @@ const jsonLd = {
     line-height: 1.6;
     color: var(--panel-muted);
     max-width: 38rem;
+  }
+
+  @media print {
+    /* !important: on a portrait page the phone-width .side-scroll rule would otherwise show it. */
+    .report-sections {
+      display: none !important;
+    }
+
+    /* The closing band prints light, so its button's dark outline stays legible. */
+    .closing {
+      background: none;
+      color: var(--ink);
+      border: 1px solid var(--line);
+    }
+
+    .closing__note {
+      color: var(--muted);
+    }
+
+    /* Links to other pages are no use on paper. */
+    .related {
+      display: none;
+    }
+
+    /* The rule above the summary moves to the next page with it, rather than ending page one. */
+    .report-main > :first-child {
+      break-before: avoid;
+    }
   }
 
   /* Up next: the reader who finishes one piece is handed the next, behind a lifting gate. */

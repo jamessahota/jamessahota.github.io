@@ -3,9 +3,11 @@
 // those that would count against its view and those that would count for it.
 interface Props {
   items: { condition: string; direction: 'weaken' | 'strengthen' | 'either' }[];
+  /** What the piece is, in lower case: report, commentary or company note. */
+  type: string;
 }
 
-const { items } = Astro.props;
+const { items, type } = Astro.props;
 const groups = [
   { key: 'weaken', title: 'Would weaken the view', items: items.filter((item) => item.direction === 'weaken') },
   { key: 'strengthen', title: 'Would strengthen it', items: items.filter((item) => item.direction === 'strengthen') },
@@ -29,7 +31,7 @@ const groups = [
       </div>
     ))
   }
-  <p class="changers__note">Conditions as set out in the report when it was published.</p>
+  <p class="changers__note">Conditions as set out in the {type} when it was published.</p>
 </div>
 
 <style>

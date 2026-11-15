@@ -1,5 +1,5 @@
 ---
-title: Why the Oil market is mispricing risk in Hormuz
+title: Why the Oil Market Is Mispricing Risk in Hormuz
 summary: >-
   Reopening Hormuz did not remove the costs of disrupted shipping. The report examines tanker
   availability, insurance and delayed cargoes, arguing that crude prices had discounted a

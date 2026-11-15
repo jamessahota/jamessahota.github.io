@@ -39,7 +39,8 @@ if (!exhibit && !chart && !showArt) {
   data-reveal
 >
   <div class="rvisual__top">
-    <span class="label">{TOPICS[data.topics[0]!]}</span>
+    <span class="rvisual__topic label">{TOPICS[data.topics[0]!]}</span>
+    {!exhibit && showArt && !isCurve && <span class="rvisual__illustration label">Illustration</span>}
     <span class="rvisual__signal" aria-hidden="true"><i></i><i></i><i></i></span>
   </div>
 
@@ -104,7 +105,6 @@ if (!exhibit && !chart && !showArt) {
         ) : null
       }
     </svg>
-    {!isCurve && <span class="rvisual__illustration label">Illustration</span>}
   </div>
   )}
 
@@ -131,7 +131,7 @@ if (!exhibit && !chart && !showArt) {
     ))
   }
   <figcaption class="rvisual__caption">
-    {exhibit && data.originalUrl ? <a href={data.originalUrl} rel="noopener">{exhibit.source}</a> : exhibit?.source ?? (chart ? chart.source : data.dataAsOf ?? data.keyNumbersNote ?? data.venue.name)}
+    {exhibit && data.originalUrl ? <a href={data.originalUrl} rel="noopener">{exhibit.source}</a> : exhibit?.source ?? (chart ? chart.source : numbers.length ? (data.keyNumbersNote ?? data.dataAsOf) : (data.dataAsOf ?? data.venue.name))}
   </figcaption>
 </figure>
 
@@ -139,14 +139,14 @@ if (!exhibit && !chart && !showArt) {
   .rvisual { position: relative; isolation: isolate; display: flex; flex-direction: column; min-width: 0; margin: 0; overflow: hidden; border: 1px solid #ffffff26; border-radius: 2px; background: #171a1d; color: #eef0f1; box-shadow: 0 20px 70px #00000012; }
   .rvisual::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(135deg, #ffffff09, transparent 45%); }
   .rvisual__top { display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 1.5rem 0; gap: 1rem; }
-  .rvisual__top .label { color: #c3c9cd; font-size: .65rem; }
+  .rvisual__topic { color: #c3c9cd; font-size: .65rem; }
   .rvisual__signal { display: flex; align-items: end; gap: 3px; height: 12px; }
   .rvisual__signal i { width: 3px; height: 5px; background: #ff6a33; }
   .rvisual__signal i:nth-child(2) { height: 9px; opacity: .65; }
   .rvisual__signal i:nth-child(3) { height: 12px; opacity: .35; }
   .rvisual__art { position: relative; display: grid; align-items: center; flex: 1; min-height: 13rem; }
   .rvisual__drawing { display: block; width: 100%; height: auto; color: #eef0f1; transform: translate(var(--visual-shift-x, 0px), var(--visual-shift-y, 0px)); transition: transform 1s var(--ease-out, ease); }
-  .rvisual__illustration { position: absolute; right: 1.5rem; bottom: .5rem; color: #8b939a; font-size: .55rem; }
+  .rvisual__illustration { margin-left: auto; color: #8b939a; font-size: .55rem; }
   .rvisual__data, .rvisual__numbers { position: relative; margin: 0 1.5rem; padding-block: 1.1rem; border-top: 1px solid #ffffff24; }
   .rvisual__data-title { color: #aeb6bd; font-size: .625rem; line-height: 1.6; margin-bottom: 1rem; max-width: 34rem; }
   .rvisual__values { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .75rem; }
@@ -175,7 +175,9 @@ if (!exhibit && !chart && !showArt) {
   .rvisual.reveal-in .rvisual__point { animation: point-arrive .5s var(--ease-out, ease) calc(.2s + var(--reached) * 1.6s) both; }
   .rvisual.reveal-in .rvisual__beacon { animation: beacon 3s ease-in-out infinite; }
   .rvisual--compact .rvisual__top { padding: 1rem 1rem 0; }
-  .rvisual--compact .rvisual__art { min-height: 9rem; max-height: 12rem; overflow: hidden; }
+  .rvisual--compact .rvisual__art { min-height: 9rem; }
+  /* An illustration is scaled to fit the header, never cropped. A futures curve is data, so it keeps its full size. */
+  .rvisual--compact:not([data-research-visual='curve']) .rvisual__drawing { max-height: 12rem; }
   .rvisual--compact .rvisual__data, .rvisual--compact .rvisual__numbers { margin-inline: 1rem; padding-block: .8rem; }
   .rvisual--compact .rvisual__caption { margin-inline: 1rem; }
   .rvisual--compact .rvisual__numbers dt { font-size: 1.8rem; }
@@ -189,6 +191,8 @@ if (!exhibit && !chart && !showArt) {
     .rvisual__art { min-height: 10rem; }
     .rvisual__data, .rvisual__numbers, .rvisual__caption { margin-inline: 1rem; }
     .rvisual__top { padding: 1rem 1rem 0; }
+    /* Viewbox units: about 9px on a phone, where the drawing is shrunk. */
+    .rvisual__tick { font-size: 20px; }
     .rvisual__values { gap: .35rem; }
     .rvisual__values dt { font-size: .6rem; }
     .rvisual__values dd { font-size: .8rem; }
@@ -198,5 +202,6 @@ if (!exhibit && !chart && !showArt) {
     .rvisual__numbers dd { font-size: .7rem; }
   }
   @media (prefers-reduced-motion: reduce) { .rvisual * { animation: none !important; transition: none !important; } }
-  @media print { .rvisual { background: #fff; color: #101214; box-shadow: none; border-color: #cfd4d8; } .rvisual * { animation: none !important; } .rvisual__art { display: none; } .rvisual__data-title, .rvisual__values dt, .rvisual__caption, .rvisual__numbers dd { color: #30353a; } }
+  /* In print: light, settled, with its bars in colour and without the sheen overlay. */
+  @media print { .rvisual { opacity: 1 !important; transform: none !important; background: #fff; color: #101214; box-shadow: none; border-color: #cfd4d8; print-color-adjust: exact; -webkit-print-color-adjust: exact; } .rvisual::after { display: none; } .rvisual * { animation: none !important; } .rvisual__art { display: none; } .rvisual[data-research-visual='curve'] .rvisual__art { display: grid; min-height: 0; } .rvisual[data-research-visual='curve'] .rvisual__drawing { max-height: 55mm; } .rvisual__topic, .rvisual__data-title, .rvisual__values dt, .rvisual__caption, .rvisual__numbers dd { color: #30353a; } .rvisual__data, .rvisual__numbers, .rvisual__caption { border-top-color: #cfd4d8; } }
 </style>

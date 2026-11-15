@@ -371,6 +371,22 @@ main > :last-child {
   transform: translateX(4px);
 }
 
+/* In a narrow card, a link that wraps keeps its arrow beside its last word. */
+.capability .arrow-link,
+.approach__item .arrow-link,
+.role .arrow-link {
+  display: inline-block;
+  text-wrap: balance;
+}
+
+.capability .arrow-link .icon,
+.approach__item .arrow-link .icon,
+.role .arrow-link .icon {
+  display: inline-block;
+  margin-left: 0.5em;
+  vertical-align: -0.125em;
+}
+
 .arrow-link--back:hover .icon {
   transform: translateX(-4px);
 }
@@ -729,21 +745,11 @@ main > :last-child {
     min-width: 0;
   }
 
-  /* A link that wraps keeps its arrow beside its last word. */
   .capability .arrow-link,
   .approach__item .arrow-link {
-    display: inline-block;
     min-height: 0;
     padding-block: 0.85rem;
     line-height: 1.4;
-    text-wrap: balance;
-  }
-
-  .capability .arrow-link .icon,
-  .approach__item .arrow-link .icon {
-    display: inline-block;
-    margin-left: 0.5em;
-    vertical-align: -0.125em;
   }
 }
 
@@ -852,9 +858,17 @@ main > :last-child {
    ========================================================================== */
 
 @media print {
-  :root {
+  /* Paper is always light, whichever theme is on screen. */
+  :root,
+  :root[data-theme='dark'] {
+    color-scheme: light;
     --bg: #fff;
     --surface: #fff;
+    --ink: #101214;
+    --ink-2: #30353a;
+    --muted: #5b6168;
+    --line: #cfd4d8;
+    --accent-text: #b53609;
   }
 
   .site-header,
@@ -880,4 +894,41 @@ main > :last-child {
   }
 
   main { animation: none !important; }
+
+  /* Buttons print as outlined dark text, with the address of an external link beneath. */
+  .btn {
+    display: inline-block !important;
+    background: none !important;
+    color: #101214 !important;
+    border: 1px solid #101214 !important;
+  }
+
+  .btn svg {
+    display: none;
+  }
+
+  a[href^='http'].btn::after {
+    content: attr(href);
+    display: block;
+    margin-top: 0.3em;
+    font-size: 0.85em;
+    text-transform: none;
+    overflow-wrap: anywhere;
+  }
+
+  /* Keep headings with what follows, and figures and panels whole. */
+  h2,
+  h3,
+  .block__title {
+    break-after: avoid;
+  }
+
+  figure,
+  .rvisual,
+  .changers,
+  .closing,
+  .key-numbers,
+  .details__list {
+    break-inside: avoid;
+  }
 }

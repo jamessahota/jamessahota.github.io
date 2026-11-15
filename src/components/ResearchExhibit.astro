@@ -76,7 +76,7 @@ const format = (value: number) => value.toLocaleString('en-GB', { maximumFractio
   .exhibit__row { min-width: 0; }
   .exhibit__row dt { max-width: 36rem; font-size: 0.78rem; line-height: 1.4; color: #c3c9cd; }
   .exhibit__row dd { display: flex; flex-direction: column; gap: 0.55rem; margin: 0.35rem 0 0; }
-  .exhibit__value { font-size: clamp(1.25rem, 2vw, 2rem); font-weight: 550; line-height: 1.05; letter-spacing: -0.035em; }
+  .exhibit__value { font-size: clamp(1.25rem, 2vw, 2rem); font-weight: 550; line-height: 1.05; letter-spacing: -0.035em; white-space: nowrap; }
   .exhibit__track { position: relative; display: block; height: 0.9rem; background: repeating-linear-gradient(90deg, #eef0f10a 0, #eef0f10a 1px, transparent 1px, transparent 10%); border-bottom: 1px solid #eef0f129; }
   .exhibit__track::after { content: ''; position: absolute; top: -3px; bottom: -4px; left: var(--zero, 0%); width: 1px; background: #eef0f18a; }
   .exhibit__bar, .exhibit__range { position: absolute; display: block; height: 100%; overflow: hidden; background: linear-gradient(90deg, #f04400, #ff915e); transform-origin: left; }
@@ -104,5 +104,5 @@ const format = (value: number) => value.toLocaleString('en-GB', { maximumFractio
   @keyframes exhibit-read { to { transform: translateX(100%); } }
   @media (max-width: 47.99rem) { .exhibit { padding-inline: 1rem; } }
   @media (prefers-reduced-motion: reduce) { .exhibit__scan { animation: none; display: none; } }
-  @media print { .exhibit__title, .exhibit__value, .exhibit__step-value { color: #101214; } .exhibit__detail, .exhibit__note, .exhibit__row dt, .exhibit__unit, .exhibit__axis, .exhibit__step-label { color: #30353a; } .exhibit__scan { display: none; } }
+  @media print { .exhibit__title, .exhibit__value, .exhibit__step-value { color: #101214; } .exhibit__detail, .exhibit__note, .exhibit__row dt, .exhibit__unit, .exhibit__axis, .exhibit__step-label { color: #30353a; } .exhibit__scan { display: none; } .exhibit__track { border-bottom-color: #cfd4d8; } .exhibit__track::after { background: #5b6168; } .exhibit__note { border-top-color: #cfd4d8; } .exhibit__step { background: #fff; color: #b53609; } }
 </style>

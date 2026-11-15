@@ -1,8 +1,8 @@
 ---
 title: About
 description: >-
-  James Sahota studies mathematics and economics at the University of Chicago, co-founded 6:05
-  Markets and writes research on energy markets.
+  James Sahota studies mathematics and economics at the University of Chicago and co-founded 6:05
+  Markets. Biography, research approach and background.
 lede: >-
   I study mathematics and economics at the University of Chicago. I write about energy
   markets, focusing on the physical constraints behind prices.
@@ -18,8 +18,8 @@ approach:
       href: /research/saudi-crude-rerouting-yanbu/
   - title: Separate data, estimates and assumptions
     text: >-
-      I distinguish reported data from estimates and assumptions, check each source’s definitions
-      and reporting periods, and look for overlapping constraints before combining figures.
+      I check each source’s definitions and reporting periods, and look for overlapping
+      constraints before combining figures.
     example:
       label: The distillate bottleneck
       href: /research/diesel-distillate-bottleneck/
@@ -41,18 +41,18 @@ approach:
 beyondWork:
   - >-
     I was born in Milan and went to school in London. My family home is in Singapore, and I now
-    study in Chicago. I’m fluent in English and Italian and speak conversational Spanish. I’m
-    also president of the Italian Student Association at the University of Chicago.
+    study in Chicago. I’m also president of the Italian Student Association at the University
+    of Chicago.
   - >-
     I studied philosophy at A-level and was co-chief editor of my school’s philosophy magazine.
     I’ve competed in aikido, judo and Brazilian jiu-jitsu, and I’m vice president of the
     university judo club. My other interests include MMA, snowsports and motorsport.
 ---
 
-I co-founded 6:05 Markets, a student-led research group at the University of Chicago, and have been co-president since April 2026. We publish weekly research on commodities, macroeconomics and policy. I help lead the group’s research and editorial work: I set the standards our analysts work to, built our report templates and publication process, and write about oil and gas.
+I co-founded 6:05 Markets, a student-led research group at the University of Chicago, and have been co-president since April 2026. We publish weekly research on commodities, macroeconomics and policy. I co-lead the group’s research and editorial work: I set the standards our analysts work to, built our report templates and publication process, and write about oil and gas.
 
 The name refers to the moment five minutes after a headline, when the first reaction has begun to settle. That’s when I want to ask what has changed, what is already reflected in prices and what still needs to be understood.
 
-Before co-founding 6:05 Markets, I led the energy team at UChicago Commodities. In the summer of 2026, I interned in wealth services at HBL Bank UK in London, writing cross-asset market outlooks and working on fee benchmarking and tax analysis. Since October 2026, I have been a research contributor at Energy Flux, developing independently authored work on the US natural gas market for publication.
+Before co-founding 6:05 Markets, I led the energy team at UChicago Commodities. In the summer of 2026, I interned in wealth management at HBL Bank UK in London, writing cross-asset market outlooks and working on fee benchmarking and tax analysis. Since October 2026, I have been a research contributor at Energy Flux, developing independently authored work on the US natural gas market for publication.
 
-The questions that interest me most link physical constraints to prices: a shipping strait, a canal, a refinery outage or a pipeline running at capacity. I try to establish what the market has already priced in and what evidence would change my view.
+The questions that interest me most link physical constraints to prices: a shipping strait, a canal, a refinery outage or a pipeline running at capacity.

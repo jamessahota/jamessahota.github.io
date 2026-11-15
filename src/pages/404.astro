@@ -1,7 +1,6 @@
 ---
 import ButtonLink from '../components/ButtonLink.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { NAV } from '../site.config';
 ---
 
 <BaseLayout
@@ -17,16 +16,6 @@ import { NAV } from '../site.config';
       <ButtonLink href="/research/" label="Browse research" icon="arrow-right" />
       <ButtonLink href="/" label="Go to the homepage" variant="secondary" />
     </div>
-    <ul class="not-found__links">
-      {
-        NAV.map((item) => (
-          <li>
-            <a href={item.href}>{item.label}</a>
-          </li>
-        ))
-      }
-      <li><a href="/cv/">CV</a></li>
-    </ul>
   </div>
 </BaseLayout>
 
@@ -48,21 +37,5 @@ import { NAV } from '../site.config';
     flex-wrap: wrap;
     gap: var(--space-3);
     margin-top: var(--space-6);
-  }
-
-  .not-found__links {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-2) var(--space-5);
-    margin-top: var(--space-6);
-    font-family: var(--mono);
-    font-size: var(--text-xs);
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-  }
-
-  .not-found__links a {
-    display: inline-block;
-    padding-block: 0.5rem;
   }
 </style>

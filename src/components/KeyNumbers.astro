@@ -40,6 +40,11 @@ const { items, note, heading = 'Key numbers' } = Astro.props;
     grid-template-columns: minmax(0, 1fr);
   }
 
+  /* A single figure keeps the width of one cell rather than stretching across the column. */
+  .key-numbers__grid[data-count='1'] {
+    max-width: 24rem;
+  }
+
   @container (min-width: 34rem) {
     .key-numbers__grid[data-count='3'] {
       grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -53,12 +58,13 @@ const { items, note, heading = 'Key numbers' } = Astro.props;
   }
 
   .key-numbers__value {
-    font-size: clamp(1.45rem, 1.1rem + 1.25vw, 2.125rem);
+    /* Shrinks on the narrowest screens so a figure such as US$105.26 fits its cell. */
+    font-size: clamp(1.25rem, 6.2vw, clamp(1.45rem, 1.1rem + 1.25vw, 2.125rem));
     font-weight: 560;
     line-height: 1.05;
     letter-spacing: -0.05em;
-    /* Keep a figure such as US$105.26 in one piece. */
-    overflow-wrap: normal;
+    /* Keep a figure in one piece. */
+    white-space: nowrap;
   }
 
   /* Each figure lands whole: it rises from behind a mask, already correct on its

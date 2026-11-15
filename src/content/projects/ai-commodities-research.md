@@ -1,8 +1,9 @@
 ---
 title: AI Commodities Research & Forecasting System
 summary: >-
-  A research system that uses AI agents to analyse scheduled energy data releases, develop
-  scenario forecasts and test hypothetical positions after transaction costs.
+  A multi-agent research system that turns scheduled EIA releases into scenario forecasts and
+  point-in-time backtests of hypothetical positions in energy futures, ETFs and equities, after
+  transaction costs and risk controls.
 kind: Independent project
 start: 2026-07
 visibility: public
@@ -27,16 +28,9 @@ I designed the research questions, selected the data and set the workflow, contr
 
 ## Inputs
 
-The system combines market, macroeconomic and inventory data to test event-driven scenarios across energy futures, exchange-traded funds and equities. The backtest covers 35 historical EIA releases and 15 instrument baskets.
+The system combines market, macroeconomic and inventory data to test event-driven scenarios across energy futures, exchange-traded funds and equities.
 
 ## Approach
-
-AI agents handle four stages of the research process:
-
-1. **Data.** Collect the release and related data, preserving when each item became available.
-2. **Analysis.** Compare the release with market expectations and explain how any difference could affect prices.
-3. **Forecasts.** Develop scenario forecasts with explicit assumptions.
-4. **Backtesting.** Build hypothetical positions and test them against historical prices after transaction costs.
 
 Four controls govern the backtest:
 

@@ -34,9 +34,7 @@ keyNumbers:
     label: Gulf crude production shut in during August (EIA estimate)
   - value: 410m bbl
     label: Fall in observed global stocks, start of the war to end-July (IEA estimate)
-  - value: US$70–90
-    label: Base-case range for the 2027 annual average Brent price
-keyNumbersNote: Figures as reported in the paper.
+keyNumbersNote: Figures from the report.
 
 viewChangers:
   - condition: "Insured flows recover for two weeks, physical premiums compress and Brent falls below roughly US$90 as the curve flattens."
@@ -63,11 +61,8 @@ keyFindings:
   - >-
     Backwardation was the market’s working assumption. An ICE snapshot on 9 September showed
     Brent at US$100.45 for November 2026 and US$77.87 for December 2027. The curve priced
-    scarcity now and relief later.
-  - >-
-    Deferred prices were the test of permanence. The view would change if insured flows through
-    Hormuz recovered for two consecutive weeks or, in the other direction, if Gulf output stayed
-    at least 4 mb/d below pre-war levels into 2027 while deferred Brent moved above US$100.
+    scarcity now and relief later, which made deferred prices the test of whether the shock was
+    permanent.
 
 charts:
   - title: The Brent futures curve sloped sharply downwards
@@ -91,7 +86,7 @@ charts:
         value: 77.87
     caption: >-
       Contract prices on 9 September 2026, the day before Brent’s intraday move to US$105.26.
-    source: ICE Brent futures, 9 September 2026 snapshot, as reported in the paper.
+    source: ICE Brent futures, 9 September 2026 snapshot, as cited in the report.
 
 tables:
   - title: Brent price scenarios, as at 10 September 2026
@@ -122,11 +117,10 @@ tables:
 
 approach: >-
   The scenario ranges are analyst assumptions anchored to observed prices, the ICE futures
-  curve, the EIA’s official path and published bank forecasts. They are not mechanically
-  probability-weighted and are not outputs from a proprietary oil-balance model. The report
-  treats production shut-ins, Gulf exports and Hormuz transits as separate measures that
-  cannot be added together, notes where the IEA and EIA use different definitions, and sets
-  out the conditions that would invalidate the view in either direction.
+  curve, the EIA’s official path and published bank forecasts. They are not
+  probability-weighted. The report treats production shut-ins, Gulf exports and Hormuz
+  transits as separate measures that cannot be added together and notes where the IEA and EIA
+  use different definitions.
 
 sources:
   - label: EIA, Short-Term Energy Outlook, September 2026

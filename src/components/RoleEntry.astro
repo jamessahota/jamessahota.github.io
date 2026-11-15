@@ -13,12 +13,11 @@ interface Props {
   start: string;
   end?: string;
   highlights: string[];
-  note?: string;
   related?: { label: string; href: string };
   index?: number;
 }
 
-const { id, organisation, url, role, kind, location, start, end, highlights, note, related, index } = Astro.props;
+const { id, organisation, url, role, kind, location, start, end, highlights, related, index } = Astro.props;
 ---
 
 <article class="role" id={id} data-reveal data-role>
@@ -44,7 +43,6 @@ const { id, organisation, url, role, kind, location, start, end, highlights, not
     <ul class="role__highlights">
       {highlights.map((highlight) => <li>{highlight}</li>)}
     </ul>
-    {note && <p class="role__note">{note}</p>}
     {
       related && (
         <a class="arrow-link" href={related.href}>
@@ -197,15 +195,6 @@ const { id, organisation, url, role, kind, location, start, end, highlights, not
 
   .role__highlights li + li {
     margin-top: 0.6em;
-  }
-
-  .role__note {
-    margin-top: var(--space-4);
-    max-width: var(--measure);
-    font-family: var(--mono);
-    font-size: var(--text-xs);
-    line-height: 1.6;
-    color: var(--muted);
   }
 
   .role .arrow-link {

@@ -138,6 +138,13 @@ const stages = [
   .project-flow--compact .project-flow__stages { padding-bottom: 1.5rem; }
   .project-flow--compact .project-flow__stage { gap: 0.4rem; padding-inline: 0.5rem; }
   .project-flow--compact .project-flow__name { font-size: clamp(0.75rem, 0.65rem + 0.5vw, 1rem); }
+  /* The compact flow sits in a narrow column on laptops too, so it goes two by two by its own width. */
+  .project-flow--compact { container-type: inline-size; }
+  @container (max-width: 31rem) {
+    .project-flow--compact .project-flow__stages { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem 0; padding-inline: 0.6rem; }
+    .project-flow--compact .project-flow__stage:nth-child(2) { border: 0; }
+    .project-flow--compact .project-flow__name { font-size: 0.9375rem; }
+  }
 
   @keyframes project-signal { to { stroke-dashoffset: -1000; } }
   @keyframes project-node {

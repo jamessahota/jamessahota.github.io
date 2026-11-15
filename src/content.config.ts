@@ -319,7 +319,6 @@ const experience = defineCollection({
     start: partialDate,
     end: partialDate.optional(),
     highlights: z.array(z.string()).min(1).max(4),
-    note: z.string().optional(),
     homeSummary: z.string().optional(),
     showOnHome: z.boolean().default(false),
     related: z.object({ label: z.string(), href: link }).optional(),
@@ -336,6 +335,8 @@ const education = defineCollection({
     qualification: z.string(),
     period: z.string(),
     coursework: z.array(z.string()).optional(),
+    // Courses being taken now; shown as 'In progress' on the Experience page.
+    courseworkInProgress: z.array(z.string()).optional(),
     activities: z.array(z.string()).optional(),
   }),
 });

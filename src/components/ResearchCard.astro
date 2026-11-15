@@ -21,6 +21,8 @@ const chart = !figure && size !== 'compact' ? data.charts?.[0] : undefined;
 const numbers = !figure && !chart && size !== 'compact' ? data.keyNumbers?.slice(0, 2) : undefined;
 const max = chart ? Math.max(...chart.items.map((item) => item.value)) : 1;
 const decimals = chart?.items.some((item) => !Number.isInteger(item.value)) ? 2 : 0;
+// Most pieces appear at 6:05 Markets, so a card names its venue only when it is another one.
+const venue = data.venue.name !== '6:05 Markets' ? data.venue.name : undefined;
 ---
 
 <article class:list={['rcard', `rcard--${size}`, 'cell', 'cell--link']} data-reveal data-vt-key={entry.id} data-loop-host>
@@ -98,7 +100,7 @@ const decimals = chart?.items.some((item) => !Number.isInteger(item.value)) ? 2 
     )
   }
 
-  <p class="rcard__meta label">{data.venue.name}</p>
+  {venue && <p class="rcard__meta label">{venue}</p>}
 </article>
 
 <style>
@@ -348,6 +350,7 @@ const decimals = chart?.items.some((item) => !Number.isInteger(item.value)) ? 2 
     font-weight: 560;
     line-height: 1;
     letter-spacing: -0.045em;
+    white-space: nowrap;
   }
 
   .rcard__numbers dd {

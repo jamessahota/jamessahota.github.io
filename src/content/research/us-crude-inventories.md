@@ -1,5 +1,5 @@
 ---
-title: "Are US Crude Inventories Running Low & What Does This Mean?"
+title: "Are US Crude Inventories Running Low, and What Does It Mean?"
 summary: >-
   In October 2026, US crude stocks were below their seasonal norm and falling when they
   usually build. This team report examines refinery runs, trade and production, and why low
@@ -59,7 +59,7 @@ keyNumbers:
     label: Gap to the calendar-matched 2021–2025 average
   - value: 93.4%
     label: Latest refinery utilisation
-keyNumbersNote: Figures from EIA weekly data, as reported in the paper.
+keyNumbersNote: Figures from EIA weekly data, as cited in the report.
 
 viewChangers:
   - condition: "Within the eight-to-twelve-week horizon, supply recovers faster while refinery demand weakens, allowing US commercial crude stocks to rebuild."

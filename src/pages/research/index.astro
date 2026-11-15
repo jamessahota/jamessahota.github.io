@@ -3,6 +3,7 @@ import Icon from '../../components/Icon.astro';
 import ResearchTape from '../../components/ResearchTape.astro';
 import ViewsRecord from '../../components/ViewsRecord.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
 import { getPublicResearch, hasDetailPage, researchPath } from '../../lib/content';
 import { formatDateShort } from '../../lib/dates';
 import { RESEARCH_TYPES, STATUS_LABELS, TOPICS, type TopicId } from '../../site.config';
@@ -10,6 +11,8 @@ import { RESEARCH_TYPES, STATUS_LABELS, TOPICS, type TopicId } from '../../site.
 const all = await getPublicResearch();
 const published = all.filter(hasDetailPage);
 const inProgress = all.filter((entry) => !hasDetailPage(entry));
+// Search also finds a piece by the benchmarks its dated views are judged on.
+const views = await getCollection('views');
 
 // Only topics that have at least one piece are offered as filters.
 const topicIds = (Object.keys(TOPICS) as TopicId[]).filter((id) =>
@@ -36,8 +39,9 @@ const description =
     </p>
     <h1 class="display">Research</h1>
     <p class="lede">
-      Reports, commentary and company notes on oil, gas, refining and the routes that connect them.
-      Explore the main findings, the evidence behind each view and the full published research.
+      Reports, commentary and company notes published with 6:05 Markets on oil, gas, refining and the
+      routes that connect them. Dated price views from these reports are scored against the market in{' '}
+      <a href="#views">Views and outcomes</a>, including any that miss.
     </p>
   </header>
 
@@ -106,7 +110,7 @@ const description =
             id="research-search"
             type="search"
             name="q"
-            placeholder="Search titles and summaries"
+            placeholder="Search research"
             autocomplete="off"
             spellcheck="false"
           />
@@ -126,7 +130,13 @@ const description =
               data-search={searchable(
                 [
                   entry.data.title,
+                  entry.data.standfirst ?? '',
                   entry.data.summary,
+                  entry.data.keyFindings.join(' '),
+                  entry.data.headerVisual?.title ?? '',
+                  (entry.data.charts ?? []).map((chart) => `${chart.title} ${chart.unit}`).join(' '),
+                  views.filter((view) => view.data.report === entry.id).map((view) => view.data.instrument).join(' '),
+                  (entry.data.viewChangers ?? []).map((changer) => changer.condition).join(' '),
                   entry.data.venue.name,
                   entry.data.topics.map((topic) => TOPICS[topic]).join(' '),
                   RESEARCH_TYPES[entry.data.type],
@@ -152,10 +162,13 @@ const description =
                 </h3>
                 <p class="item__summary">{entry.data.summary}</p>
                 <p class="item__meta label">
+                  {/* The intro names 6:05 Markets once, so only another venue is shown here. */}
                   {[
-                    entry.data.venue.name,
+                    entry.data.venue.name !== '6:05 Markets' && entry.data.venue.name,
                     entry.data.topics.map((topic) => TOPICS[topic]).join(', '),
-                  ].join(' · ')}
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
                 </p>
               </div>
               <span class="go" aria-hidden="true">
@@ -535,10 +548,10 @@ const description =
   }
 
   .item__title {
-    font-size: var(--text-2xl);
-    line-height: 1.04;
-    letter-spacing: -0.04em;
-    max-width: 26ch;
+    font-size: var(--text-xl);
+    line-height: 1.14;
+    letter-spacing: -0.025em;
+    max-width: 40ch;
   }
 
   .item__title a {

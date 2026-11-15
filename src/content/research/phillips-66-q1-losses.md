@@ -1,5 +1,5 @@
 ---
-title: "Phillips 66: Oil Price Spike Drives Nearly $1 Billion in Q1 Losses"
+title: "Phillips 66: Oil Price Spike Drives Nearly US$900 Million in Q1 Losses"
 summary: >-
   Why did Phillips 66 expect nearly US$900 million in losses as oil prices surged? The note
   examines its derivatives exposure and whether the hit represented a temporary dislocation
@@ -41,7 +41,7 @@ viewChangers:
     direction: weaken
   - condition: "The full results show the mark-to-market damage fed into weaker operational performance, rather than being mostly accounting-driven."
     direction: weaken
-  - condition: "Commodity conditions stabilise; because the losses were spread across segments, the report expects earnings to recover across the portfolio rather than depend on a turnaround in one damaged division."
+  - condition: "Commodity conditions stabilise; because the losses were spread across segments, the note expects earnings to recover across the portfolio rather than depend on a turnaround in one damaged division."
     direction: strengthen
 keyFindings:
   - >-

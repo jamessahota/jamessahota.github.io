@@ -256,9 +256,9 @@ const bar = (cell: string, index: number) => {
       opacity 0.25s var(--ease);
   }
 
-  /* On a phone each row becomes a block: its name, then each figure beside its column name,
-     so no figure is hidden off to the side. */
-  @media (max-width: 47.99rem) {
+  /* On a phone, and on paper, each row becomes a block: its name, then each figure beside its
+     column name, so no figure is hidden off to the side. */
+  @media (max-width: 47.99rem), print {
     .data-table__scroll {
       overflow: visible;
       background: none;

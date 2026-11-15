@@ -42,7 +42,7 @@ const safeJsonLd = jsonLd ? JSON.stringify(jsonLd).replace(/</g, '\\u003c') : un
 
     <meta property="og:site_name" content={SITE.name} />
     <meta property="og:type" content={ogType} />
-    <meta property="og:title" content={title ?? SITE.title} />
+    <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:locale" content="en_GB" />
     {canonical && <meta property="og:url" content={canonical} />}

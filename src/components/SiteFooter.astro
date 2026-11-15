@@ -46,7 +46,7 @@ const year = new Date().getFullYear();
       <div class="footer-contact__actions" data-reveal>
         <ButtonLink href={`mailto:${profile.email}`} label={profile.email} variant="on-dark" icon="mail" />
         <CopyEmail email={profile.email} />
-        {!Astro.url.pathname.startsWith('/cv') && <ButtonLink href="/cv/" label="View CV" variant="outline-dark" icon="arrow-up-right" />}
+        {!Astro.url.pathname.startsWith('/cv') && <ButtonLink href="/cv/" label="View CV" variant="outline-dark" icon="arrow-right" />}
         <ButtonLink href={profile.linkedin} label="LinkedIn" variant="outline-dark" icon="arrow-up-right" />
       </div>
     </div>

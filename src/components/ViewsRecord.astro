@@ -243,7 +243,8 @@ const filters = [
         </div>
       ))}
       <p class="record__note">
-        Prices auto-refresh on weekdays; dates show the observation. JKM CFD quotes are indicative.
+        Prices auto-refresh on weekdays; dates show the observation.{' '}
+        {views.some((view) => view.referenceTrack === 'jkm-indicative') && 'JKM CFD quotes are indicative. '}
         Forecasts are assessed at their due dates; averages use the full period.
       </p>
       <details class="record__methodology">
@@ -660,11 +661,24 @@ const filters = [
   @media print {
     .record .record__band,
     .record .record__latest,
-    .record .record__dot {
+    .record .record__dot,
+    .record .record__entry,
+    .record .record__legend-entry,
+    .record .record__chart,
+    .record .record__flag {
       opacity: 1 !important;
       transform: none !important;
       print-color-adjust: exact;
       -webkit-print-color-adjust: exact;
+    }
+
+    .record__row {
+      break-inside: avoid;
+    }
+
+    /* A closed disclosure cannot be opened on paper. */
+    .record__methodology {
+      display: none;
     }
   }
 </style>

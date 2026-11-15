@@ -1,5 +1,5 @@
 ---
-title: "Crude Is Returning. Diesel Isn't: The Distillate Bottleneck in Global Oil Markets"
+title: "Crude Is Returning. Diesel Isn’t: The Distillate Bottleneck in Global Oil Markets"
 summary: >-
   By October 2026, Middle Eastern crude exports had nearly recovered, but diesel remained
   scarce. The report traces the bottleneck to refining and delivery capacity, and explains
@@ -113,9 +113,6 @@ approach: >-
   Export losses, refinery throughput and damaged capacity overlap, so they are not added
   together. Replacement calculations show sensitivity to assumptions rather than a reconciled
   supply forecast. Price scenarios are conditional outcomes without assigned probabilities.
-  We would reduce conviction if three things happened together:
-  delivered diesel volumes rose, East Coast stocks moved back towards their seasonal average,
-  and the New York Harbor diesel-minus-Brent spread narrowed.
 
 sources:
   - label: Reuters, 12 October 2026
@@ -134,6 +131,6 @@ related:
 
 The report’s central view is that diesel supply would normalise more slowly than crude exports, keeping middle-distillate margins elevated while refining and delivery constraints persisted. In September 2026, crude and condensate exports from the Middle East, excluding Iran, reached 99.4% of their pre-conflict level, while regional fuel exports remained below half. Reuters reported more than 2.3 million barrels a day of refining capacity offline.
 
-Our base interpretation was uneven relief. More crude and better shipping would let functioning refiners lift output before repairs were complete, while emergency diesel releases cushioned the shortage. That would keep margins high without implying that diesel prices had to rise further.
+Our base case was uneven relief. More crude and better shipping would let functioning refiners lift output before repairs were complete, while emergency diesel releases cushioned the shortage. That would keep margins high without implying that diesel prices had to rise further.
 
 In the base case we expected the New York Harbor diesel crack to hold near US$90 a barrel, and ultra-low sulphur diesel to average around US$4.50–4.75 a gallon over the following three to six months, a modest fall from the spot price of US$5.07 on 14 October.

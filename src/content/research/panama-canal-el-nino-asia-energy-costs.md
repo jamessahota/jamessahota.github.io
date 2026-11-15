@@ -35,18 +35,16 @@ keyNumbers:
     label: Record auction bid for an LPG carrier transit, 1 September 2026
   - value: 3.2 mb/d
     label: Oil flows through the Panama Canal (EIA, second quarter of 2026)
-  - value: US$27–31
-    label: Base-case JKM range per MMBtu through late Q4 2026
-keyNumbersNote: Figures as reported in the paper. The JKM range is an analyst estimate conditional on renewed canal restrictions.
+keyNumbersNote: From the report.
 
 viewChangers:
-  - condition: "The announced 33 daily slots from 15 October are delivered and sustained, and permitted draught stays at 14.94m or improves."
+  - condition: "The announced 33 daily slots from 15 October are delivered and sustained, and permitted draught stays at 14.94 metres or improves."
     direction: weaken
-  - condition: "BLNG3 falls below about US$50,000/day for two consecutive weeks, BLPG3 below about US$300/tonne despite continuing Panama restrictions, or JKM trades below US$23/MMBtu."
+  - condition: "BLNG3 falls below about US$50,000 a day for two consecutive weeks, BLPG3 below about US$300 a tonne despite continuing Panama restrictions, or JKM trades below US$23 per MMBtu."
     direction: weaken
   - condition: "Daily transit availability falls below about 27 vessels, especially towards the 2023–24 level of 22, or draught restrictions approach 13.4–14.0 metres."
     direction: strengthen
-  - condition: "JKM moves above US$30/MMBtu while Middle East supply is broadly unchanged, giving cleaner evidence that Panama constraints are reaching Asian delivered prices."
+  - condition: "JKM moves above US$30 per MMBtu while Middle East supply is broadly unchanged, giving cleaner evidence that Panama constraints are reaching Asian delivered prices."
     direction: strengthen
 keyFindings:
   - >-
@@ -121,16 +119,14 @@ tables:
     note: >-
       BLNG3 is the Baltic Exchange US Gulf to Japan LNG freight route; BLPG3 is Houston to
       Chiba LPG freight. Ranges are 6:05 Markets analyst estimates anchored to 2 October 2026
-      assessments. They are not outputs from a probability-weighted shipping model.
+      assessments. No probabilities are assigned.
 
 approach: >-
   The scenario ranges are analyst estimates anchored to the Baltic Exchange freight and
   period-charter assessments of 2 October 2026, a JKM reference price of US$25.18 per MMBtu,
   conditions observed during the 2023–24 El Niño and the cargo-cost sensitivities calculated in
   the report. The 28–30 transit base case is our forecast of renewed tightening, not the Panama
-  Canal Authority’s announced operating plan. The report lists the evidence that would weaken
-  the thesis, such as the announced 33 daily slots being delivered and sustained, alongside
-  the evidence that would strengthen it.
+  Canal Authority’s announced operating plan.
 
 sources:
   - label: Panama Canal Authority, advisory of 28 September 2026
@@ -149,4 +145,4 @@ Renewed Panama restrictions would compound an already tight energy system. The P
 
 We expected the clearest effect in freight and in delivered LNG and LPG prices in Asia, with outright Brent a secondary channel. The base case placed JKM at US$27–31 per MMBtu, BLNG3 at US$70,000–90,000 a day and BLPG3 at US$350–400 a tonne through late Q4 2026. Confidence was medium-high on freight and medium on LNG and LPG prices.
 
-The thesis depended on the recent improvement in rainfall and operating conditions proving temporary. The report identifies the freight, auction and transit levels that would weaken it.
+The thesis depended on the recent improvement in rainfall and operating conditions proving temporary.

@@ -19,6 +19,15 @@ const capabilities = await getCapabilities();
 const projects = await getPublicProjects();
 const profile = await getProfile();
 
+// Languages grouped by level: "English and Italian (fluent), Spanish (conversational)".
+const levels = [...new Set(profile.languages.map((language) => language.level))];
+const languages = levels
+  .map((level) => {
+    const names = profile.languages.filter((language) => language.level === level).map((language) => language.name);
+    return `${new Intl.ListFormat('en-GB').format(names)} (${level.toLowerCase()})`;
+  })
+  .join(', ');
+
 const description =
   'Experience and education of James Sahota: co-founder of 6:05 Markets, research contributor at Energy Flux, and a mathematics and economics student at the University of Chicago.';
 ---
@@ -28,13 +37,9 @@ const description =
     <p class="label label--marked">Roles, education and skills</p>
     <h1 class="display">Experience</h1>
     <div class="experience-header__lower">
-      <p class="lede">
-        I co-founded 6:05 Markets and develop research with Energy Flux. My experience also includes
-        wealth services at HBL Bank UK and energy-research leadership at UChicago Commodities.
-      </p>
-      <ButtonLink href="/cv/" label="View CV" icon="arrow-up-right" />
+      <ButtonLink href="/cv/" label="View CV" icon="arrow-right" />
     </div>
-    <nav class="experience-jumps side-scroll" aria-label="On this page">
+    <nav class="experience-jumps" aria-label="On this page">
       <a href="#roles-heading">Roles <Icon name="arrow-down" /></a>
       {projects.length > 0 && <a href="#projects-heading">Independent project <Icon name="arrow-down" /></a>}
       <a href="#education">Education <Icon name="arrow-down" /></a>
@@ -46,7 +51,6 @@ const description =
     <section aria-labelledby="roles-heading">
       <div class="section-head">
         <h2 id="roles-heading">Roles</h2>
-        <p class="label numeric">{String(roles.length).padStart(2, '0')}</p>
       </div>
       <div class="timeline">
         {roles.map((role, index) => <RoleEntry {...role.data} index={index + 1} />)}
@@ -58,7 +62,6 @@ const description =
         <section class="group" aria-labelledby="projects-heading">
           <div class="section-head">
             <h2 id="projects-heading">Independent project</h2>
-            <p class="label numeric">{String(projects.length).padStart(2, '0')}</p>
           </div>
           <div class="cells stack" data-reveal>
             {projects.map((project) => (
@@ -88,7 +91,6 @@ const description =
     <section class="group" id="education" aria-labelledby="education-heading">
       <div class="section-head">
         <h2 id="education-heading">Education</h2>
-        <p class="label numeric">{String(education.length).padStart(2, '0')}</p>
       </div>
       <div class="cells stack" data-reveal>
         {
@@ -108,6 +110,12 @@ const description =
                       <dd>{data.coursework.join(', ')}</dd>
                     </div>
                   )}
+                  {data.courseworkInProgress && (
+                    <div>
+                      <dt class="label">In progress</dt>
+                      <dd>{data.courseworkInProgress.join(', ')}</dd>
+                    </div>
+                  )}
                   {data.activities && (
                     <div>
                       <dt class="label">Leadership and activities</dt>
@@ -124,17 +132,12 @@ const description =
 
     <section class="group" id="capabilities" aria-labelledby="capabilities-heading">
       <div class="section-head">
-        <div>
-          <h2 id="capabilities-heading">Skills</h2>
-          <p class="group__intro">Research, writing and leadership, illustrated through my work.</p>
-        </div>
-        <p class="label numeric">{String(capabilities.length).padStart(2, '0')}</p>
+        <h2 id="capabilities-heading">Skills</h2>
       </div>
       <div class="cells capabilities" data-reveal>
         {
-          capabilities.map(({ data }, position) => (
+          capabilities.map(({ data }) => (
             <article class="capability cell">
-              <p class="label numeric capability__index">{String(position + 1).padStart(2, '0')}</p>
               <h3>{data.title}</h3>
               <p class="capability__text">{data.description}</p>
               {data.evidence && (
@@ -153,6 +156,7 @@ const description =
           ))
         }
       </div>
+      <p class="languages">Languages: {languages}.</p>
     </section>
 
     <section class="group" aria-labelledby="also-heading">
@@ -174,10 +178,6 @@ const description =
         </div>
       </div>
     </section>
-
-    <p class="cv-link">
-      For a one-page summary, <a href="/cv/">view my CV</a>.
-    </p>
   </div>
 </BaseLayout>
 
@@ -191,8 +191,7 @@ const description =
     line-height: 1;
   }
 
-  .experience-header__lower { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: var(--space-5) var(--space-7); margin-top: var(--space-6); }
-  .experience-header__lower .lede { margin: 0; max-width: 44rem; }
+  .experience-header__lower { margin-top: var(--space-6); }
   .experience-jumps { display: flex; flex-wrap: wrap; gap: 0.4rem 2rem; margin-top: var(--space-7); padding-block: 1rem; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
   .experience-jumps a { display: inline-flex; align-items: center; gap: 0.75em; padding-block: 0.3rem; font-family: var(--mono); font-size: 0.6875rem; text-transform: uppercase; text-decoration: none; letter-spacing: 0.04em; }
   .experience-jumps a :global(.icon) { transition: transform 350ms var(--ease); }
@@ -201,11 +200,6 @@ const description =
 
   .group {
     margin-top: var(--section);
-  }
-
-  .group__intro {
-    margin-top: var(--space-3);
-    color: var(--muted);
   }
 
   .stack {
@@ -308,14 +302,6 @@ const description =
     min-height: 20rem;
   }
 
-  .capability__index {
-    color: var(--accent-text) !important;
-    font-family: var(--display, var(--sans));
-    font-size: 3.5rem;
-    font-weight: 400;
-    line-height: 1;
-  }
-
   .capability__text {
     max-width: 34rem;
     color: var(--ink-2);
@@ -327,6 +313,11 @@ const description =
     gap: 0 var(--space-5);
     margin-top: auto;
     padding-top: var(--space-2);
+  }
+
+  .languages {
+    margin-top: var(--space-5);
+    color: var(--ink-2);
   }
 
   .also {
@@ -371,11 +362,6 @@ const description =
     .capability {
       min-height: 0;
     }
-  }
-
-  .cv-link {
-    margin-top: var(--space-7);
-    color: var(--muted);
   }
 
   @media print {

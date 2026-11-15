@@ -14,41 +14,13 @@
     - label: The distillate bottleneck
       href: /research/diesel-distillate-bottleneck/
 
-- id: writing-editing
-  order: 2
-  title: Analytical writing and editing
-  description: >-
-    Reports, commentary and company notes that lead with the conclusion and explain the evidence.
-    At 6:05 Markets, I set editorial standards and build the templates our analysts use.
-  evidence:
-    - label: A critique of UK energy policy
-      href: /research/uk-energy-security-critique/
-    - label: All research
-      href: /research/
-
-- id: research-leadership
-  order: 3
-  title: Research leadership
-  description: >-
-    I help lead a research organisation of 40+ members, assign analyst responsibilities and
-    manage the publication process. At UChicago Commodities, I delivered oil-market training
-    to 25 members.
-  evidence:
-    - label: 6:05 Markets and UChicago Commodities
-      href: /experience/
-
 - id: data-tools
-  order: 4
+  order: 2
   title: Data and tools
   description: >-
-    Excel, PowerPoint, financial-data integration and multi-agent research workflows. I use AI
-    coding tools to build and test research systems, with controls on when data was available
-    and checks on the calculations.
+    Backtesting with point-in-time data and transaction costs, financial-data integration,
+    multi-agent research workflows and Excel. I use AI coding tools to build and test research
+    systems, with checks on the calculations.
   evidence:
     - label: AI commodities research project
       href: /projects/ai-commodities-research/
-
-- id: languages
-  order: 5
-  title: Languages
-  description: English and Italian, both fluent. Conversational Spanish.

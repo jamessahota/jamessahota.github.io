@@ -33,7 +33,7 @@ Other commands:
 | Dated views from the reports, and how they turned out | `src/content/views.yaml` (the rules are at the top of the file) |
 | Biography, research approach and other interests | `src/content/about.md` |
 | Roles | `src/content/experience.yaml` |
-| Degree, coursework, activities | `src/content/education.yaml` |
+| Degree, coursework (and courses in progress), activities | `src/content/education.yaml` |
 | Capabilities and the evidence for each | `src/content/capabilities.yaml` |
 | Research | one file per piece in `src/content/research/` |
 | Project case studies | one file per project in `src/content/projects/` |
@@ -177,22 +177,22 @@ All of these are additions on top of plain HTML. With JavaScript off, every page
 | Hover inversions | Research cards and rows | A whole card is one link. When hovered or focused it turns dark, an orange line loads across its top edge and its arrow turns upwards. On touch screens the card crossing the middle of the screen does the same |
 | Scroll reveal | Elements with `data-reveal` | Only elements that start below the fold are animated, so nothing is ever left hidden |
 | Charts | Report pages | Bars grow in when a chart scrolls into view. A chart marked `kind: futures-curve` is drawn as a line from left to right, with each marker switching on as the line reaches it (`src/components/CurveChart.astro`) |
-| Research filter and search | `/research/` | Rows that stay slide to their new places, rows that go fade out, the selected block glides between topics and the count rolls. Each topic shows how many pieces it holds. The address updates (`?topic=gas-lng`), so a filtered view can be shared. Search ignores accents, so "el nino" finds "El Niño" |
+| Research filter and search | `/research/` | Rows that stay slide to their new places, rows that go fade out, the selected block glides between topics and the count rolls. Each topic shows how many pieces it holds. The address updates (`?topic=gas-lng`), so a filtered view can be shared. Search covers titles, summaries, key findings, chart titles and the conditions that would change a view, and ignores accents, so "el nino" finds "El Niño" |
 | Reading progress | Report pages | The thin orange bar under the header |
-| Live clock | Header, footer, About | Current time in Chicago |
+| Live clock | Header, footer | Current time in Chicago |
 | Copy address | Footer | Copies the email address |
 | Light and dark | Header switch | One ruled edge crosses the page, with the new theme behind it |
 | Pause animations | The pause icon in the header, beside the theme switch, on every page; and the Pause button in the hero | One setting with two buttons: it stills decorative CSS motion and the hero on every page, and the choice is remembered. The header icon is hidden for visitors who ask for reduced motion, for whom nothing moves anyway |
-| Research exhibits | `src/components/ResearchCard.astro` (cards) and `src/components/ResearchVisual.astro` (report headers) | A card shows its report’s `cardFigure`, its first chart, or two key numbers above a route illustration. The title and exhibit of the piece being opened travel to its page |
+| Research exhibits | `src/components/ResearchCard.astro` (cards) and `src/components/ResearchVisual.astro` (report headers) | A card shows its report’s `cardFigure`, its first chart, or two key numbers above a route illustration. On a report without its own `headerVisual`, the header shows the first chart (or the first two key numbers) on every screen size, and the body leaves them out so nothing appears twice. The title and exhibit of the piece being opened travel to its page |
 | Project workflow | `src/components/ProjectFlow.astro` | Four stages from the documented research workflow |
 | Page changes | Between pages | Pages change with a direction: sideways between sections, down into a report and up on the way back. The orange underline in the header slides to the new section, and the title and plate of the piece being opened travel to its page. The rules are in `src/styles/motion.css`; the direction is set by the script in the head of `src/layouts/BaseLayout.astro` |
 | Publication record | `/research/`, `src/components/ResearchTape.astro` | One square per piece, stacked by month, built from the dates in the content files. Pointing at a square names the piece and marks its row; filtering empties the squares outside the topic |
 | Key numbers | Report pages and the homepage project | Each figure rises into place whole, with an orange tick. Figures never count up, because a count would pass through values that were never true |
 | Range bars | Tables on report pages, `src/components/DataTable.astro` | A column made only of ranges ("US$95–115") or percentages draws a thin bar under each figure, on one scale from zero. A row whose first cell says "base case" is drawn solid. Pointing at a cell tints its row and column |
 | Findings rail | Report pages | A line beside the key findings fills as they are read. It needs a browser with scroll-driven animations; elsewhere the list is unchanged |
-| Up next | End of each report | A dark band that lifts open on the next piece (the one published before it) |
+| Up next | End of each report | A dark band that lifts open on the next piece (the one published before it). It takes the place of one related card, so no piece is shown twice |
 | Views and outcomes | `/research/` and report pages, `src/components/ViewsRecord.astro` | Each dated view drawn as its range on a scale, with a dot where the market finished once it falls due, and a hollow marker at the latest price while it is open. On `/research/` the record can be filtered to the views inside their range, those that missed, or those still open |
 | What would change the view | Report pages, `src/components/ViewChangers.astro` | The conditions a report set out in advance, grouped by whether they would count against its view or for it |
 | Selected research on a phone | Homepage | The four cards sit in one row that is swiped sideways, with a count of the card in view |
-| Sideways rows on a phone | Topic chips, and the section links on the Experience, About, project and report pages | One row that scrolls sideways instead of wrapping into a tall stack (`.side-scroll` in `global.css`) |
+| Sideways rows on a phone | Topic chips, and the section links on the project and report pages | One row that scrolls sideways instead of wrapping into a tall stack (`.side-scroll` in `global.css`) |
 | Continuous decoration | Everywhere | A decoration marked `data-loop` runs while its card or panel is on screen. The pause switch in the header stops it |

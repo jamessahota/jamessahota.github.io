@@ -6,13 +6,18 @@
   institution: The University of Chicago
   location: Chicago, IL
   qualification: B.S. Mathematics and B.A. Economics
-  period: Expected 2029
+  period: Expected May 2029
   coursework:
     - Calculus III
     - Introduction to Proofs in Analysis
     - Abstract Linear Algebra
     - Microeconomics
     - Macroeconomics
+  # Courses being taken now. Move them into `coursework` when the quarter ends.
+  courseworkInProgress:
+    - Analysis in Rⁿ I
+    - Trading from Game Theory
+    - Financial Accounting
   activities:
     - Judo Club Vice President
     - Italian Student Association President
