@@ -165,7 +165,7 @@ To change the address: change `SITE_URL` in `astro.config.mjs` and the domain in
 
 - Graphite and warm ivory with a flame-orange accent. Nearly square corners, hairline grids and monospaced labels. A light theme by default, with a dark theme behind the switch in the header; the choice is remembered on that device.
 - Anton for display headlines, Geist for reading text and Geist Mono for labels and figures. All fonts are bundled locally through Fontsource, so font requests stay on the site.
-- No analytics, cookies or tracking, so there is no cookie banner.
+- Visits are counted with Cloudflare Web Analytics (the snippet is in `src/layouts/BaseLayout.astro`). It sets no cookies, so there is no cookie banner.
 
 ### The interactive pieces
 
