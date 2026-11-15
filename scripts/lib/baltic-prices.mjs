@@ -93,14 +93,60 @@ export function parseBalticReport(html, { date, sourceUrl, now = new Date() }) {
   }]));
 }
 
+function isoWeek(date) {
+  const thursday = new Date(`${date}T00:00:00Z`);
+  thursday.setUTCDate(thursday.getUTCDate() + 4 - (thursday.getUTCDay() || 7));
+  return Math.ceil(((thursday - Date.UTC(thursday.getUTCFullYear(), 0, 1)) / 86_400_000 + 1) / 7);
+}
+
+/** A bounded alternative to Baltic's dynamic listing, using its published weekly URL pattern. */
+export function balticReportCandidates(now = new Date()) {
+  const friday = new Date(`${now.toISOString().slice(0, 10)}T00:00:00Z`);
+  friday.setUTCDate(friday.getUTCDate() - ((friday.getUTCDay() + 2) % 7));
+  return [0, 7].map((daysAgo) => {
+    const date = new Date(friday);
+    date.setUTCDate(date.getUTCDate() - daysAgo);
+    const week = isoWeek(date.toISOString().slice(0, 10));
+    return { week, year: date.getUTCFullYear(), sourceUrl: `${ORIGIN}/en/data-services/WeeklyRoundup/Gas/News/${date.getUTCFullYear()}/gas-report-week-${week}.html` };
+  });
+}
+
 export async function fetchBalticPrices({ fetchImpl = globalThis.fetch, now = new Date() } = {}) {
   const request = async (url) => {
-    const response = await fetchImpl(url, { signal: AbortSignal.timeout(15_000), redirect: 'error' });
+    const response = await fetchImpl(url, {
+      signal: AbortSignal.timeout(15_000), redirect: 'error',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; public research price refresh)',
+        'Accept': url === LISTING.href ? 'application/json' : 'text/html',
+        'Referer': `${ORIGIN}/en/data-services/WeeklyRoundup.html`,
+        ...(url === LISTING.href ? { 'X-Requested-With': 'XMLHttpRequest' } : {}),
+      },
+    });
     if (!response.ok) throw new Error(`Baltic HTTP ${response.status}`);
     return response;
   };
-  const listing = await (await request(LISTING.href)).json();
-  const report = selectBalticReport(listing, { now });
-  const html = await (await request(report.sourceUrl)).text();
-  return parseBalticReport(html, { ...report, now });
+  let listingError;
+  try {
+    const response = await request(LISTING.href);
+    if (response.headers?.get('content-type')?.includes('text/html')) throw new Error('listing returned HTML');
+    const listing = await response.json();
+    const report = selectBalticReport(listing, { now });
+    const html = await (await request(report.sourceUrl)).text();
+    return parseBalticReport(html, { ...report, now });
+  } catch (error) { listingError = error; }
+
+  // Some hosting networks receive HTML instead of the listing JSON. The actual public
+  // articles remain independently usable; the calendar is only discovery, never a quote date.
+  let articleError;
+  for (const candidate of balticReportCandidates(now)) {
+    try {
+      const html = await (await request(candidate.sourceUrl)).text();
+      const date = html.match(/<time\b[^>]*\bdatetime\s*=\s*["']([^"']+)["']/i)?.[1];
+      if (!validDate(date ?? '') || date.slice(0, 4) !== String(candidate.year) || isoWeek(date) !== candidate.week) {
+        throw new Error('article date does not match its report week');
+      }
+      return parseBalticReport(html, { date, sourceUrl: candidate.sourceUrl, now });
+    } catch (error) { articleError = error; }
+  }
+  throw new Error(`Baltic listing unavailable (${listingError.message}); public reports unavailable (${articleError.message})`);
 }

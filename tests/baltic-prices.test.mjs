@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { fetchBalticPrices, parseBalticReport, parseBalticRoute, selectBalticReport } from '../scripts/lib/baltic-prices.mjs';
+import { balticReportCandidates, fetchBalticPrices, parseBalticReport, parseBalticRoute, selectBalticReport } from '../scripts/lib/baltic-prices.mjs';
 
 const now = new Date('2026-11-15T12:00:00Z');
 const sourceUrl = 'https://www.balticexchange.com/en/data-services/WeeklyRoundup/Gas/News/2026/gas-report-week-46.html';
@@ -72,6 +72,39 @@ test('Baltic adapter discovers the current report with timeout and fetches it on
   assert.equal(prices.BLNG3.value, 56000);
   assert.equal(calls.length, 2);
   assert.equal(calls[1].url, sourceUrl);
+  assert.equal(calls[0].options.headers.Accept, 'application/json');
+  assert.equal(calls[1].options.headers.Accept, 'text/html');
   assert.ok(calls.every(({ options }) => options.signal instanceof AbortSignal && options.redirect === 'error'));
   await assert.rejects(fetchBalticPrices({ now, fetchImpl: async () => ({ ok: false, status: 503 }) }), /HTTP 503/);
+});
+
+test('HTML listing responses fall back to a dated public report, not a guessed observation date', async () => {
+  const calls = [];
+  const prices = await fetchBalticPrices({ now, fetchImpl: async (url) => {
+    calls.push(url);
+    if (calls.length === 1) return { ok: true, headers: new Headers({ 'content-type': 'text/html' }) };
+    return { ok: true, text: async () => html() };
+  } });
+  assert.equal(calls.length, 2);
+  assert.equal(calls[1], sourceUrl);
+  assert.equal(prices.BLNG3.value, 56000);
+  assert.equal(prices.BLPG3.date, '2026-11-13');
+});
+
+test('calendar discovery handles the week and calendar year around New Year', () => {
+  const candidates = balticReportCandidates(new Date('2027-01-04T22:30:00Z'));
+  assert.equal(candidates[0].sourceUrl, sourceUrl.replace('/2026/', '/2027/').replace('46.html', '53.html'));
+  assert.equal(candidates[1].sourceUrl, sourceUrl.replace('46.html', '52.html'));
+});
+
+test('fallback rejects unrelated publication weeks and future report dates', async () => {
+  for (const date of ['2026-11-20', '2026-11-01']) {
+    let requests = 0;
+    await assert.rejects(fetchBalticPrices({ now, fetchImpl: async () => {
+      requests++;
+      return requests === 1 ? { ok: true, json: async () => { throw new Error('not JSON'); } }
+        : { ok: true, text: async () => html(week46, date) };
+    } }), /public reports unavailable/);
+    assert.equal(requests, 3);
+  }
 });
