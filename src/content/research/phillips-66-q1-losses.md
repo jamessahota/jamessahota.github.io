@@ -19,6 +19,23 @@ publicationStatus: published
 visibility: public
 originalUrl: https://605-markets.com/report/energy-phillips66-q1-losses/
 fullReportMinutes: 8
+headerVisual:
+  kind: sequence
+  title: How the price spike hit Phillips 66
+  steps:
+    - label: Derivatives exposure
+      value: "~50m barrels"
+      detail: Net short crude and product position at end-March 2026.
+    - label: March price shock
+      value: "+64% Brent"
+      detail: Brent rose 64% in March 2026 as crude and product prices surged.
+    - label: Preliminary Q1 impact
+      value: "~US$900m loss"
+      detail: Expected pre-tax losses announced on 6 April, before the full results.
+  note: >-
+    Exposure, price movement and expected earnings impact are different measures, not
+    additive quantities. The loss estimate was preliminary and subject to closing procedures.
+  source: Phillips 66 disclosure and Brent move quoted in the April 2026 company note.
 viewChangers:
   - condition: "Full first-quarter results, scheduled for 29 April, show the loss was the start of a broader, longer-lasting earnings problem rather than a temporary valuation hit."
     direction: weaken

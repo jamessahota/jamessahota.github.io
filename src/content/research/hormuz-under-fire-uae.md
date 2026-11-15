@@ -20,6 +20,28 @@ publicationStatus: published
 visibility: public
 originalUrl: https://605-markets.com/report/oil-gas-hormuz-under-fire-uae-fujairah/
 fullReportMinutes: 11
+headerVisual:
+  kind: ranges
+  title: Two near-term Brent scenarios
+  unit: US$ per barrel
+  domain:
+    min: 90
+    max: 130
+  items:
+    - label: Contained conflict · base case
+      low: 110
+      high: 125
+      display: 110–125
+      detail: Persistent pressure on infrastructure connected to Fujairah.
+    - label: De-escalation
+      low: 95
+      high: 105
+      display: 95–105
+      detail: Strikes stop and tensions ease.
+  note: >-
+    Conditional forecasts in the May 2026 report, not realised prices.
+    Direct damage to ADCOP or a wider maritime control zone would go beyond the contained base case.
+  source: Brent scenario ranges quoted in the May 2026 report.
 viewChangers:
   - condition: "Strikes on the Fujairah area stop and de-escalation follows; the report then expects crude to give back its jump of about US$6 quickly and stabilise between US$95 and US$105."
     direction: weaken

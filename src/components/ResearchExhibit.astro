@@ -1,0 +1,108 @@
+---
+import type { Research } from '../lib/content';
+import { comparisonGeometry } from '../lib/exhibit';
+
+interface Props { exhibit: NonNullable<Research['data']['headerVisual']>; }
+const { exhibit } = Astro.props;
+const scale = exhibit.kind === 'bars' ? comparisonGeometry(exhibit.items.map((item) => item.value), exhibit.domain) : undefined;
+const format = (value: number) => value.toLocaleString('en-GB', { maximumFractionDigits: 2 });
+---
+
+<div class:list={['exhibit', `exhibit--${exhibit.kind}`]} data-report-exhibit={exhibit.kind}>
+  <p class="exhibit__title">{exhibit.title}</p>
+  {exhibit.kind === 'bars' ? (
+    <>
+      <p class="exhibit__unit label">{exhibit.unit}</p>
+      <dl class="exhibit__comparisons">
+        {exhibit.items.map((item, index) => (
+          <div class="exhibit__row" style={`--row:${index}`}>
+            <dt>{item.label}</dt>
+            <dd>
+              <span class="exhibit__value numeric">{item.display ?? format(item.value)}</span>
+              <span class="exhibit__track" aria-hidden="true" style={`--zero:${scale!.zero}%`}>
+                <span class:list={['exhibit__bar', { 'exhibit__bar--negative': scale!.bars[index]!.negative, 'exhibit__bar--estimate': item.status === 'projection' || item.status === 'target' }]} style={`left:${scale!.bars[index]!.left}%;width:${scale!.bars[index]!.width}%`}>
+                  <span class="exhibit__scan" data-loop></span>
+                </span>
+              </span>
+            </dd>
+          </div>
+        ))}
+      </dl>
+      <div class="exhibit__axis numeric" aria-hidden="true"><span>{format(scale!.min)}</span>{scale!.min < 0 && scale!.max > 0 && <span class="exhibit__zero" style={`left:${scale!.zero}%`}>0</span>}<span>{format(scale!.max)}</span></div>
+    </>
+  ) : exhibit.kind === 'ranges' ? (
+    <>
+      <p class="exhibit__unit label">{exhibit.unit} · report scenarios</p>
+      <dl class="exhibit__comparisons">
+        {exhibit.items.map((item, index) => (
+          <div class="exhibit__row" style={`--row:${index}`}>
+            <dt>{item.label}</dt>
+            <dd>
+              <span class="exhibit__value numeric">{item.display}</span>
+              <span class="exhibit__track exhibit__track--range" aria-hidden="true">
+                <span class="exhibit__range" style={`left:${((item.low - exhibit.domain.min) / (exhibit.domain.max - exhibit.domain.min)) * 100}%;width:${((item.high - item.low) / (exhibit.domain.max - exhibit.domain.min)) * 100}%`}>
+                  <span class="exhibit__scan" data-loop></span>
+                </span>
+              </span>
+              {item.detail && <p class="exhibit__detail">{item.detail}</p>}
+            </dd>
+          </div>
+        ))}
+      </dl>
+      <div class="exhibit__axis numeric" aria-hidden="true"><span>{format(exhibit.domain.min)}</span><span>{format(exhibit.domain.max)}</span></div>
+    </>
+  ) : (
+    <ol class="exhibit__sequence">
+      {exhibit.steps.map((step, index) => (
+        <li style={`--row:${index}`}>
+          <span class="exhibit__step numeric" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
+          <div>
+            <p class="exhibit__step-label label">{step.label}</p>
+            {step.value && <p class="exhibit__step-value numeric">{step.value}</p>}
+            <p class="exhibit__detail">{step.detail}</p>
+          </div>
+        </li>
+      ))}
+    </ol>
+  )}
+  <p class="exhibit__note">{exhibit.note}</p>
+</div>
+
+<style>
+  .exhibit { padding: 1.25rem 1.5rem 0; min-width: 0; }
+  .exhibit__title { max-width: 32ch; font-size: clamp(1.05rem, 1.35vw, 1.35rem); font-weight: 550; line-height: 1.25; letter-spacing: -0.02em; }
+  .exhibit__unit { color: #aeb6bd; font-size: 0.625rem; line-height: 1.6; margin-top: 0.65rem; }
+  .exhibit__comparisons { display: grid; gap: 1.25rem; margin-top: 1.25rem; }
+  .exhibit__row { min-width: 0; }
+  .exhibit__row dt { max-width: 36rem; font-size: 0.78rem; line-height: 1.4; color: #c3c9cd; }
+  .exhibit__row dd { display: flex; flex-direction: column; gap: 0.55rem; margin: 0.35rem 0 0; }
+  .exhibit__value { font-size: clamp(1.25rem, 2vw, 2rem); font-weight: 550; line-height: 1.05; letter-spacing: -0.035em; }
+  .exhibit__track { position: relative; display: block; height: 0.9rem; background: repeating-linear-gradient(90deg, #eef0f10a 0, #eef0f10a 1px, transparent 1px, transparent 10%); border-bottom: 1px solid #eef0f129; }
+  .exhibit__track::after { content: ''; position: absolute; top: -3px; bottom: -4px; left: var(--zero, 0%); width: 1px; background: #eef0f18a; }
+  .exhibit__bar, .exhibit__range { position: absolute; display: block; height: 100%; overflow: hidden; background: linear-gradient(90deg, #f04400, #ff915e); transform-origin: left; }
+  .exhibit__bar--negative { background: #ffba99; transform-origin: right; }
+  .exhibit__bar--estimate { background: #ff6a3324; border: 1px dashed #ff986b; }
+  .exhibit__track--range { height: 0.6rem; }
+  .exhibit__track--range::after { display: none; }
+  .exhibit__range { background: #ff6a335e; border-inline: 2px solid #ff986b; overflow: hidden; }
+  .exhibit__scan { position: absolute; inset: 0; background: linear-gradient(90deg, transparent 30%, #fff5 50%, transparent 70%); transform: translateX(-100%); animation: exhibit-read 5s linear infinite; animation-delay: calc(var(--row, 0) * -0.7s); }
+  .exhibit__axis { position: relative; display: flex; justify-content: space-between; margin-top: 0.6rem; color: #8f9aa4; font-family: var(--mono); font-size: 0.625rem; }
+  .exhibit__zero { position: absolute; transform: translateX(-50%); }
+  .exhibit__note { margin-block: 1.25rem 1rem; padding-top: 0.85rem; border-top: 1px solid #ffffff1c; color: #aeb6bd; font-size: 0.7rem; line-height: 1.55; }
+  .exhibit__detail { margin-top: 0.45rem; color: #aeb6bd; font-size: 0.75rem; line-height: 1.5; }
+  .exhibit--ranges .exhibit__row { position: relative; }
+  .exhibit--ranges .exhibit__row dt { padding-right: 6rem; min-height: 1.4rem; }
+  .exhibit--ranges .exhibit__row dd { margin-top: 0.65rem; }
+  .exhibit--ranges .exhibit__value { position: absolute; top: 0; right: 0; font-size: 1.25rem; }
+  .exhibit--ranges .exhibit__detail { margin-top: 0; }
+  .exhibit__sequence { position: relative; display: grid; gap: 1.25rem; margin-top: 1.5rem; }
+  .exhibit__sequence::before { content: ''; position: absolute; top: 0.7rem; bottom: 2rem; left: 0.75rem; width: 1px; background: linear-gradient(#ff6a33a6, #ff6a3333); }
+  .exhibit__sequence li { position: relative; display: grid; grid-template-columns: 1.5rem minmax(0, 1fr); gap: 1rem; }
+  .exhibit__step { position: relative; display: grid; place-items: center; align-self: start; width: 1.5rem; height: 1.5rem; border: 1px solid #ff6a3370; border-radius: 50%; background: #171a1d; color: #ff986b; font-family: var(--mono); font-size: 0.6rem; }
+  .exhibit__step-label { color: #c3c9cd; font-size: 0.625rem; line-height: 1.5; }
+  .exhibit__step-value { font-size: clamp(1.15rem, 1.6vw, 1.7rem); font-weight: 550; line-height: 1.15; margin-top: 0.25rem; letter-spacing: -0.025em; }
+  @keyframes exhibit-read { to { transform: translateX(100%); } }
+  @media (max-width: 47.99rem) { .exhibit { padding-inline: 1rem; } }
+  @media (prefers-reduced-motion: reduce) { .exhibit__scan { animation: none; display: none; } }
+  @media print { .exhibit__title, .exhibit__value, .exhibit__step-value { color: #101214; } .exhibit__detail, .exhibit__note, .exhibit__row dt, .exhibit__unit, .exhibit__axis, .exhibit__step-label { color: #30353a; } .exhibit__scan { display: none; } }
+</style>

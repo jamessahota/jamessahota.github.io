@@ -19,6 +19,23 @@ publicationStatus: published
 visibility: public
 originalUrl: https://605-markets.com/report/oil-gas-cuba-energy-collapse-economic-survival/
 fullReportMinutes: 6
+headerVisual:
+  kind: bars
+  title: Cuba’s domestic oil supply gap
+  unit: Thousand barrels per day
+  items:
+    - label: Domestic crude output
+      value: 40
+      display: "~40"
+      status: reported
+    - label: Estimated national oil needs
+      value: 100
+      display: "~100"
+      status: reported
+  note: >-
+    Approximate crude-output and oil-needs figures quoted in May 2026. Grid condition is a
+    separate constraint: more fuel alone would not resolve the generation shortfall.
+  source: Oil supply figures quoted in the May 2026 report.
 viewChangers:
   - condition: "Cuba secures consistent Russian shipments or Chinese-backed financing, so fuel stocks rebuild, generation stabilises and blackouts become less frequent by early 2027."
     direction: weaken

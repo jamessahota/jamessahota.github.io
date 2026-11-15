@@ -19,6 +19,23 @@ publicationStatus: published
 visibility: public
 originalUrl: https://605-markets.com/report/oil-gas-totalenergies-cash-returns-volatile-energy-market/
 fullReportMinutes: 12
+headerVisual:
+  kind: bars
+  title: TotalEnergies · cash generation and earnings
+  unit: US$ billion
+  items:
+    - label: Cash flow from operations · Q1 2026
+      value: 8.6
+      display: "8.6"
+      status: reported
+    - label: Net income · Q1 2026
+      value: 5.4
+      display: "5.4"
+      status: reported
+  note: >-
+    Two separate measures of first-quarter results. The bars compare cash generation
+    with accounting earnings; they are not components of one total.
+  source: TotalEnergies Q1 2026 figures quoted in the May 2026 company note.
 featured: true
 order: 3
 cardFigure:

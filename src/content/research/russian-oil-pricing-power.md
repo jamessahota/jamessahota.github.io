@@ -19,6 +19,23 @@ publicationStatus: published
 visibility: public
 originalUrl: https://605-markets.com/report/why-russian-oil-is-regaining-pricing-power/
 fullReportMinutes: 10
+headerVisual:
+  kind: sequence
+  title: How Urals moved closer to Brent
+  steps:
+    - label: 2022–2023
+      value: Steep discount
+      detail: Sanctions, shipping constraints and fewer buyers kept Urals below Brent.
+    - label: Hormuz crisis
+      value: Premium above US$10/bbl
+      detail: Disrupted competing supply helped Urals trade above Brent.
+    - label: Early August 2026
+      value: Near parity
+      detail: Urals and Brent were close to parity at around US$75–85 a barrel.
+  note: >-
+    Three observations quoted in the report, not a continuous price series.
+    The report judged the convergence cyclical.
+  source: Urals and Brent comparisons quoted in the August 2026 report.
 viewChangers:
   - condition: "Hormuz traffic recovers and Gulf producers restore exports, giving Asian refiners more alternative barrels; the report says this would weaken Russia’s bargaining position and probably widen the Urals discount. It calls this the clearest risk to its view, but also expected the end of the supply shock to show that the convergence was cyclical."
     direction: either

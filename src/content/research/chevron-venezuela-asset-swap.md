@@ -19,6 +19,23 @@ publicationStatus: published
 visibility: public
 originalUrl: https://605-markets.com/report/energy-chevron-venezuela-asset-swap/
 fullReportMinutes: 6
+headerVisual:
+  kind: bars
+  title: Chevron’s Venezuelan production
+  unit: Thousand barrels per day
+  items:
+    - label: At the time of the April 2026 note
+      value: 250
+      display: "250"
+      status: reported
+    - label: Potential output within two years
+      value: 390
+      display: "390"
+      status: projection
+  note: >-
+    The higher figure is the note’s potential outcome, conditional on sanctions, legal
+    stability and infrastructure allowing the asset swap to succeed.
+  source: Production figures and outlook quoted in the April 2026 company note.
 viewChangers:
   - condition: "Logistical and infrastructure constraints stop Chevron reaching its production target, exposing Venezuela’s neglected oil infrastructure and the scale of investment needed."
     direction: weaken

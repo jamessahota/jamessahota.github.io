@@ -17,6 +17,24 @@ publicationStatus: published
 visibility: public
 originalUrl: https://605-markets.com/report/policy-uk-energy-security-critique/
 fullReportMinutes: 12
+headerVisual:
+  kind: bars
+  title: Great Britain’s clean-power ambition
+  unit: "% of electricity generation"
+  domain: { min: 0, max: 100 }
+  items:
+    - label: Clean generation share in 2023
+      value: 60
+      display: "60%"
+      status: reported
+    - label: Government target for 2030
+      value: 95
+      display: "≥95%"
+      status: target
+  note: >-
+    The target is at least 95%. Delivery depends on new generation, storage and grid
+    upgrades arriving in time.
+  source: UK government planning figures quoted in the May 2026 commentary.
 featured: true
 order: 4
 cardFigure:

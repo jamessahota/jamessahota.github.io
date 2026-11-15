@@ -95,6 +95,52 @@ const research = defineCollection({
       cover: z.object({ src: publicFile, alt: z.string(), credit: z.string().optional() }).optional(),
       featured: z.boolean().default(false),
       order: z.number().optional(),
+      // A report-specific exhibit for the detail-page header. Values and mechanisms
+      // come from the published research; forecasts and targets are labelled explicitly.
+      headerVisual: z
+        .discriminatedUnion('kind', [
+          z.object({
+            kind: z.literal('bars'),
+            title: z.string().min(3),
+            unit: z.string().min(1),
+            domain: z.object({ min: z.number(), max: z.number() }).optional(),
+            items: z.array(z.object({
+              label: z.string().min(1),
+              value: z.number(),
+              display: z.string().optional(),
+              status: z.enum(['reported', 'projection', 'target']).optional(),
+            })).min(2).max(5).refine((items) => items.some((item) => item.value !== 0), 'A comparison needs a nonzero value'),
+            note: z.string().min(10),
+            source: z.string().min(5),
+          }),
+          z.object({
+            kind: z.literal('sequence'),
+            title: z.string().min(3),
+            steps: z.array(z.object({
+              label: z.string().min(1),
+              value: z.string().optional(),
+              detail: z.string().min(3),
+            })).min(2).max(4),
+            note: z.string().min(10),
+            source: z.string().min(5),
+          }),
+          z.object({
+            kind: z.literal('ranges'),
+            title: z.string().min(3),
+            unit: z.string().min(1),
+            domain: z.object({ min: z.number(), max: z.number() }),
+            items: z.array(z.object({
+              label: z.string().min(1),
+              low: z.number(),
+              high: z.number(),
+              display: z.string().min(1),
+              detail: z.string().optional(),
+            })).min(2).max(5),
+            note: z.string().min(10),
+            source: z.string().min(5),
+          }),
+        ])
+        .optional(),
       // A bespoke preview exhibit; kept separate from the report's body figures.
       cardFigure: z
         .discriminatedUnion('kind', [
@@ -169,6 +215,18 @@ const research = defineCollection({
       related: z.array(z.string()).max(3).optional(),
     })
     .superRefine((data, ctx) => {
+      if (data.headerVisual?.kind === 'bars' && data.headerVisual.domain) {
+        const { domain, items } = data.headerVisual;
+        if (domain.max <= domain.min || domain.min > 0 || domain.max < 0 || items.some((item) => item.value < domain.min || item.value > domain.max)) {
+          ctx.addIssue({ code: 'custom', path: ['headerVisual'], message: 'Comparison domains must include zero and all values' });
+        }
+      }
+      if (data.headerVisual?.kind === 'ranges') {
+        const { domain, items } = data.headerVisual;
+        if (domain.max <= domain.min || items.some((item) => item.low > item.high || item.low < domain.min || item.high > domain.max)) {
+          ctx.addIssue({ code: 'custom', path: ['headerVisual'], message: 'Scenario ranges must fit an increasing domain, with low no greater than high' });
+        }
+      }
       if (data.publicationStatus === 'published' && !data.date) {
         ctx.addIssue({ code: 'custom', path: ['date'], message: 'Published research needs a date' });
       }

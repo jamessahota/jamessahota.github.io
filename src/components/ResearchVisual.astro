@@ -2,12 +2,14 @@
 import type { Research } from '../lib/content';
 import { curveGeometry } from '../lib/curve';
 import { TOPICS } from '../site.config';
+import ResearchExhibit from './ResearchExhibit.astro';
 
 interface Props { entry: Research; compact?: boolean; }
 const { entry, compact = false } = Astro.props;
 const { data } = entry;
 const key = entry.id.replace(/[^a-zA-Z0-9_-]/g, '-');
 const chart = data.charts?.[0];
+const exhibit = data.headerVisual;
 const kind = data.topics[0] === 'refining-products' ? 'refining'
   : data.topics.includes('shipping-chokepoints') && data.topics[0] !== 'oil-markets' ? 'routes'
   : data.topics[0] === 'gas-lng' ? 'gas'
@@ -22,13 +24,18 @@ const curvePoints = geometry?.points ?? [];
 const curve = geometry?.line ?? '';
 const gridId = 'visual-grid-' + key;
 const glowId = 'visual-glow-' + key;
+const showArt = isCurve || kind === 'refining' || kind === 'routes' || kind === 'gas';
+if (!exhibit && !chart && !showArt) {
+  throw new Error(`Research ${entry.id} needs a report-specific headerVisual or a chart`);
+}
 ---
 
 <figure
-  class:list={['rvisual', 'rvisual--' + kind, { 'rvisual--compact': compact }]}
+  class:list={['rvisual', 'rvisual--' + kind, { 'rvisual--compact': compact, 'rvisual--exhibit': Boolean(exhibit) }]}
   style={compact ? 'view-transition-name:research-visual-' + key : undefined}
   data-vt-visual
-  data-loop-host={compact ? '' : undefined}
+  data-loop-host
+  data-research-visual={exhibit?.kind ?? (isCurve ? 'curve' : kind)}
   data-reveal
 >
   <div class="rvisual__top">
@@ -36,6 +43,9 @@ const glowId = 'visual-glow-' + key;
     <span class="rvisual__signal" aria-hidden="true"><i></i><i></i><i></i></span>
   </div>
 
+  {exhibit && <ResearchExhibit exhibit={exhibit} />}
+
+  {!exhibit && showArt && (
   <div class="rvisual__art">
     <svg class="rvisual__drawing" viewBox="0 0 640 280" width="640" height="280" fill="none" aria-hidden="true" focusable="false">
       <defs>
@@ -91,26 +101,15 @@ const glowId = 'visual-glow-' + key;
             <g fill="#171a1d" stroke="#eef0f1" stroke-opacity=".65"><circle cx="38" cy="224" r="6" /><circle cx="602" cy="57" r="6" /></g>
             <circle class="rvisual__beacon" data-loop="5" cx="320" cy="138" r="6" fill="#ff6a33" />
           </g>
-        ) : (
-          <g class="rvisual__network">
-            <g stroke="#eef0f1" stroke-opacity=".25">
-              <ellipse cx="320" cy="140" rx="205" ry="82" transform="rotate(-24 320 140)" />
-              <ellipse cx="320" cy="140" rx="205" ry="82" transform="rotate(24 320 140)" />
-              <ellipse cx="320" cy="140" rx="205" ry="82" transform="rotate(90 320 140)" />
-              <path d="M94 140H546M320 31V249M158 61L482 219M158 219L482 61" />
-            </g>
-            <ellipse class="rvisual__orbit" data-loop="2" cx="320" cy="140" rx="205" ry="82" transform="rotate(-24 320 140)" pathLength="1" stroke="#ff6a33" stroke-width="3" />
-            <circle cx="320" cy="140" r="32" fill="#ff6a33" fill-opacity=".1" stroke="#ff6a33" />
-            <circle cx="320" cy="140" r="5" fill="#ff6a33" />
-          </g>
-        )
+        ) : null
       }
     </svg>
     {!isCurve && <span class="rvisual__illustration label">Illustration</span>}
   </div>
+  )}
 
   {
-    chart ? (
+    !exhibit && (chart ? (
       <div class:list={['rvisual__data', { 'rvisual__data--curve': isCurve }]}>
         <p class="rvisual__data-title label">{chart.title} · {chart.unit}</p>
         <dl class:list={['rvisual__values', { 'rvisual__values--bars': !isCurve }]}>
@@ -129,9 +128,11 @@ const glowId = 'visual-glow-' + key;
       <dl class="rvisual__numbers">
         {numbers.map((number) => <div><dt>{number.value}</dt><dd>{number.label}</dd></div>)}
       </dl>
-    )
+    ))
   }
-  <figcaption class="rvisual__caption">{chart ? chart.source : data.dataAsOf ?? data.keyNumbersNote ?? data.venue.name}</figcaption>
+  <figcaption class="rvisual__caption">
+    {exhibit && data.originalUrl ? <a href={data.originalUrl} rel="noopener">{exhibit.source}</a> : exhibit?.source ?? (chart ? chart.source : data.dataAsOf ?? data.keyNumbersNote ?? data.venue.name)}
+  </figcaption>
 </figure>
 
 <style>
@@ -161,17 +162,18 @@ const glowId = 'visual-glow-' + key;
   .rvisual__numbers dt { font-size: clamp(1.7rem, 2.5vw, 3rem); line-height: 1; font-weight: 550; letter-spacing: -.05em; }
   .rvisual__numbers dd { margin: .65rem 0 0; max-width: 20rem; font-size: .75rem; line-height: 1.5; color: #aeb6bd; }
   .rvisual__caption { margin: 0 1.5rem; padding: .8rem 0 1.15rem; border-top: 1px solid #ffffff16; font-family: var(--mono); font-size: .55rem; line-height: 1.6; color: #8f9aa4; }
+  .rvisual__caption a { color: inherit; text-underline-offset: .2em; }
+  .rvisual__caption a:hover { color: #eef0f1; }
+  .rvisual--exhibit .rvisual__caption { font-size: .625rem; }
   .rvisual__tick { fill: #8f9aa4; font-family: var(--mono); font-size: 11px; }
   .rvisual__traveller { stroke-dasharray: .085 .915; stroke-dashoffset: .2; }
   .rvisual__curve-line { stroke-dasharray: 1; }
   .rvisual__beacon { transform-box: fill-box; transform-origin: center; }
-  .rvisual__orbit { stroke-dasharray: .12 .88; }
   .rvisual.reveal-in .rvisual__traveller { animation: visual-flow 5s linear infinite; }
   /* The line draws at a steady pace, and each marker switches on as the line reaches it. */
   .rvisual.reveal-in .rvisual__curve-line { animation: curve-arrive 1.6s linear .2s both; }
   .rvisual.reveal-in .rvisual__point { animation: point-arrive .5s var(--ease-out, ease) calc(.2s + var(--reached) * 1.6s) both; }
   .rvisual.reveal-in .rvisual__beacon { animation: beacon 3s ease-in-out infinite; }
-  .rvisual.reveal-in .rvisual__orbit { animation: visual-flow 8s linear infinite; }
   .rvisual--compact .rvisual__top { padding: 1rem 1rem 0; }
   .rvisual--compact .rvisual__art { min-height: 9rem; max-height: 12rem; overflow: hidden; }
   .rvisual--compact .rvisual__data, .rvisual--compact .rvisual__numbers { margin-inline: 1rem; padding-block: .8rem; }

@@ -107,7 +107,7 @@ const jsonLd = {
         {data.fullReportMinutes && <p class="details__note">Full {RESEARCH_TYPES[data.type].toLowerCase()}: {data.fullReportMinutes}-minute read.</p>}
       </div>
       </div>
-      <div class="report-header__visual"><ResearchVisual entry={entry} compact /></div>
+      <div class:list={['report-header__visual', { 'report-header__visual--exhibit': Boolean(data.headerVisual) }]}><ResearchVisual entry={entry} compact /></div>
       </div>
       <nav class="report-sections side-scroll" aria-label="On this page">
         {hasBody && <a href="#summary-heading">Summary</a>}
@@ -437,6 +437,7 @@ const jsonLd = {
   .report-header__layout { display: grid; min-width: 0; gap: 3rem; }
   .report-header__copy { min-width: 0; }
   .report-header__visual { display: none; min-width: 0; align-self: center; padding-top: 2rem; }
+  .report-header__visual--exhibit { display: block; padding-top: 0; }
   .report-sections { display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--line); }
   .report-sections a { padding: .4rem 0; font-family: var(--mono); font-size: .7rem; text-transform: uppercase; letter-spacing: .04em; text-decoration: none; }
   .report-sections a:hover, .report-sections a:focus-visible { color: var(--accent-text); }

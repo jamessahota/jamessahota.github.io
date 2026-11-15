@@ -19,6 +19,23 @@ publicationStatus: published
 visibility: public
 originalUrl: https://605-markets.com/report/oil-gas-hormuz-mispricing-risk/
 fullReportMinutes: 11
+headerVisual:
+  kind: sequence
+  title: Reopening the strait did not clear the backlog
+  steps:
+    - label: Legal reopening
+      value: Shipping restarts
+      detail: A temporary US–Iran peace framework allowed commercial traffic to resume.
+    - label: Operational constraints
+      value: Recovery takes time
+      detail: Tanker availability, port scheduling and insurance delayed normalisation.
+    - label: Near-term forecast
+      value: US$75–80/bbl
+      detail: The report expected crude to rise over the following weeks while the peace framework remained uncertain.
+  note: >-
+    View published on 6 July 2026, not an observed outcome. A smoother reopening
+    and faster clearance of delayed barrels would weaken this view.
+  source: Shipping mechanism and price view in the July 2026 report.
 viewChangers:
   - condition: "The Strait reopens more smoothly than expected, delayed barrels clear quickly and the remaining logistical premium leaves crude prices."
     direction: weaken

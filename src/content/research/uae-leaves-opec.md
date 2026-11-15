@@ -19,6 +19,38 @@ publicationStatus: published
 visibility: public
 originalUrl: https://605-markets.com/report/energy-uae-opec-exit-structural-shock/
 fullReportMinutes: 9
+headerVisual:
+  kind: ranges
+  title: Shipping and Saudi policy shape the price outcome
+  unit: US$ per barrel · Brent
+  domain:
+    min: 70
+    max: 140
+  items:
+    - label: Hormuz risk persists
+      low: 115
+      high: 130
+      display: 115–130
+      detail: Gulf shipping constraints continue to support prices.
+    - label: Export flows normalise
+      low: 90
+      high: 105
+      display: 90–105
+      detail: UAE barrels return without offsetting Saudi cuts.
+    - label: Saudi Arabia offsets supply
+      low: 100
+      high: 115
+      display: 100–115
+      detail: Saudi output falls by 0.5–1.0 million barrels a day.
+    - label: Quota discipline weakens
+      low: 75
+      high: 90
+      display: 75–90
+      detail: Independent or non-compliant OPEC-linked supply rises by 1.0–1.5 million barrels a day.
+  note: >-
+    Conditional views from 1 May 2026, not observed prices. Normalisation and producer-response
+    scenarios apply after the Hormuz shock eases; wider fragmentation is the bearish stress case.
+  source: Brent price ranges and conditions in the May 2026 report.
 viewChangers:
   - condition: "Gulf exports reopen, the UAE lifts production by 500,000–800,000 barrels a day over the next several months and Brent could fall back towards US$90–105 a barrel."
     direction: strengthen

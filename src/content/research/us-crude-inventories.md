@@ -32,6 +32,23 @@ publicationStatus: published
 visibility: public
 originalUrl: https://605-markets.com/report/are-us-crude-inventories-running-low-what-does-this-mean/
 fullReportMinutes: 22
+headerVisual:
+  kind: bars
+  title: Stocks fell when they usually build
+  unit: Million barrels
+  items:
+    - label: Actual change, 18 Sep–16 Oct 2026
+      value: -13.9
+      display: "−13.9"
+      status: reported
+    - label: Historical seasonal average
+      value: 8.3
+      display: "+8.3"
+      status: reported
+  note: >-
+    Four-week change in US commercial crude stocks, excluding the SPR, compared with
+    the historical average for the equivalent four weeks.
+  source: EIA weekly data and seasonal comparison quoted in the November 2026 report.
 
 keyNumbers:
   - value: 412.5m bbl

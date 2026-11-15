@@ -17,6 +17,23 @@ publicationStatus: published
 visibility: public
 originalUrl: https://605-markets.com/report/renewables-european-wind-power-energy-security/
 fullReportMinutes: 10
+headerVisual:
+  kind: bars
+  title: EU wind capacity · the 2030 delivery gap
+  unit: GW of installed wind capacity
+  items:
+    - label: WindEurope projection for 2030
+      value: 343
+      display: "343"
+      status: projection
+    - label: EU target for 2030
+      value: 425
+      display: "425"
+      status: target
+  note: >-
+    Both figures refer to 2030, as quoted in April 2026. Permitting and grid bottlenecks
+    separate the projected build-out from the policy target.
+  source: WindEurope projection and EU target quoted in the April 2026 report.
 viewChangers:
   - condition: "EU member states significantly fast-track permits, increase investment and resolve grid bottlenecks, letting the EU close in on its 2030 target."
     direction: strengthen

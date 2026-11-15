@@ -141,6 +141,25 @@ test('co-authors are credited on detail pages and omitted from selected research
   assert.doesNotMatch(home, /Co-authored with|Co-authors:|Sole author/i, 'author credits appear on the homepage');
 });
 
+test('every former orbit illustration is replaced by a sourced report-specific exhibit', () => {
+  const affected = [
+    'chevron-venezuela-asset-swap', 'cuba-energy-collapse', 'european-wind-energy-security',
+    'hormuz-reopening-mispriced-risk', 'hormuz-under-fire-uae', 'phillips-66-q1-losses',
+    'russian-oil-pricing-power', 'totalenergies-cash-returns', 'uae-leaves-opec',
+    'uk-energy-security-critique', 'us-crude-inventories',
+  ];
+  for (const slug of affected) {
+    const html = read(join(DIST, `research/${slug}/index.html`));
+    assert.match(html, /data-report-exhibit="(?:bars|sequence|ranges)"/, `${slug} has no explanatory exhibit`);
+    assert.match(html, /class="exhibit__note/, `${slug} has no period or interpretation note`);
+    assert.match(html, /<figcaption[^>]*>[\s\S]*?<a href="https:\/\/605-markets\.com\/report\//, `${slug} has no linked report source`);
+    assert.doesNotMatch(html, /rvisual__network|rvisual__orbit/, `${slug} still contains the generic orbit`);
+  }
+  assert.match(read(join(DIST, 'research/oil-above-100-supply-shock/index.html')), /rvisual__curve-line/, 'the actual futures curve was lost');
+  const stocks = read(join(DIST, 'research/us-crude-inventories/index.html'));
+  assert.match(stocks, /exhibit__bar--negative/, 'the inventory draw is not drawn as a negative change');
+});
+
 test('every internal link, image, stylesheet and document exists', () => {
   for (const page of pages) {
     const html = read(page);
