@@ -54,7 +54,7 @@ const jsonLd = {
         <div class="hero__actions">
           {flagship ? (
             <div class="hero__flagship-action" data-vt-key={flagship.id}>
-              <ButtonLink href={`${researchPath(flagship)}#summary-heading`} label="View trading case" variant="on-dark" icon="arrow-right" />
+              <ButtonLink href={`${researchPath(flagship)}#summary-heading`} label="View case study" variant="on-dark" icon="arrow-right" />
             </div>
           ) : (
             <ButtonLink href="/research/" label="Explore research" variant="on-dark" icon="arrow-right" />
@@ -85,7 +85,7 @@ const jsonLd = {
   </section>
 
   {flagship && (
-    <section class="section container flagship-section" aria-label="Flagship trading case">
+    <section class="section container flagship-section" aria-label="Featured investment case">
       <FlagshipCase entry={flagship} />
     </section>
   )}
