@@ -79,6 +79,19 @@ const research = defineCollection({
       editors: z.array(z.string()).default([]),
       date: partialDate.optional(),
       updated: partialDate.optional(),
+      // A dated retrospective is distinct from the original report and its forecasts.
+      reviewAsOf: partialDate.optional(),
+      // One public case may be promoted on the homepage.
+      flagshipCase: z.object({
+        title: z.string().min(3),
+        summary: z.string().min(30).max(240),
+        symbol: z.string().optional(),
+        prices: z.array(z.object({
+          date: partialDate.refine((value) => value.length === 10, 'Use a full observation date'),
+          label: z.string().min(1),
+          close: z.number().positive(),
+        })).min(2).max(4),
+      }).optional(),
       dataAsOf: z.string().optional(),
       topics: z.array(z.enum(TOPIC_IDS)).min(1).max(3),
       type: z.enum(RESEARCH_TYPE_IDS),
@@ -212,6 +225,15 @@ const research = defineCollection({
       related: z.array(z.string()).max(3).optional(),
     })
     .superRefine((data, ctx) => {
+      if (data.flagshipCase) {
+        const prices = data.flagshipCase.prices;
+        if (!data.reviewAsOf || prices[0]!.date !== data.date || prices.at(-1)!.date !== data.reviewAsOf) {
+          ctx.addIssue({ code: 'custom', path: ['flagshipCase'], message: 'Flagship reference prices must run from publication to the dated review' });
+        }
+        if (prices.some((point, index) => index > 0 && point.date <= prices[index - 1]!.date)) {
+          ctx.addIssue({ code: 'custom', path: ['flagshipCase', 'prices'], message: 'Reference-price observations must be in date order' });
+        }
+      }
       if (data.headerVisual?.kind === 'bars' && data.headerVisual.domain) {
         const { domain, items } = data.headerVisual;
         if (domain.max <= domain.min || domain.min > 0 || domain.max < 0 || items.some((item) => item.value < domain.min || item.value > domain.max)) {

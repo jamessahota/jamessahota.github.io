@@ -8,7 +8,24 @@ authors:
   - James Sahota
 editors:
   - Abraham Went
-date: 2026-04
+date: 2026-04-09
+reviewAsOf: 2026-11-13
+flagshipCase:
+  title: "Phillips 66: a bullish view after the hedge-loss warning"
+  symbol: "NYSE: PSX"
+  summary: >-
+    I argued that the US$900 million hedge-loss warning did not establish lasting damage
+    to the business, and saw scope for a rebound if the shock proved temporary.
+  prices:
+    - date: 2026-04-09
+      label: Publication
+      close: 161.07
+    - date: 2026-04-29
+      label: First earnings
+      close: 173.49
+    - date: 2026-11-13
+      label: Review
+      close: 264.90
 topics:
   - companies
   - refining-products
@@ -59,6 +76,36 @@ related:
   - diesel-distillate-bottleneck
 ---
 
-On 6 April 2026, Phillips 66 said its first-quarter results would include nearly US$900 million of pre-tax losses, after the Iran conflict and the disruption to flows through the Strait of Hormuz drove a rapid rise in crude and product prices. The company held a net short position of around 50 million barrels in crude and product derivatives at the end of March, and those positions moved against it. The figures were preliminary and subject to the company’s closing procedures.
+**A bullish view after the US$900 million hedge-loss warning**
 
-We viewed the loss as a positioning shock rather than a structural operational weakness: the company had reported crude capacity utilisation of 99% in the fourth quarter of 2025. Our view of the shares ahead of the full results was cautiously positive, with the scale of the loss limiting conviction.
+*Published 9 April 2026 · Historical review through 13 November 2026*
+
+Following research earlier that week, I published a bullish view on Phillips 66 after its warning of approximately US$900 million in pre-tax mark-to-market losses.
+
+My argument was that the disruption had not established lasting damage to the company’s refining assets or its integrated business. Phillips 66 had entered the period with strong operating performance. I saw scope for earnings and the shares to recover if the first-quarter shock proved temporary.
+
+I remained cautious about entry timing. The report favoured selective buying closer to the scheduled 29 April earnings release, allowing more time to assess whether the losses pointed to a broader deterioration in the business. [Original report](https://605-markets.com/report/energy-phillips66-q1-losses/).
+
+### The risk behind the headline
+
+Company disclosures provide important context for reviewing the thesis. The derivatives were economic hedges against physical positions, and increases in the associated inventory’s market value were not reflected in book value. Nevertheless, the company faced approximately US$3 billion of cash-collateral outflows. Its ability to finance that pressure mattered alongside the strength of its underlying assets. [April disclosure](https://www.sec.gov/Archives/edgar/data/1534701/000153470126000015/psx-2026_q1prexrelease.htm).
+
+### What happened
+
+- **29 April:** Phillips 66 reported US$207 million of first-quarter net income and US$200 million of adjusted earnings. The final pre-tax mark-to-market loss was US$839 million, and refining utilisation was 95%. [Q1 results](https://www.sec.gov/Archives/edgar/data/1534701/000153470126000020/psx-2026331_ex991.htm).
+- **5 August:** Second-quarter adjusted earnings reached US$3.79 billion. The company attributed improved refining earnings principally to higher crack spreads and favourable mark-to-market effects. [Q2 results](https://investor.phillips66.com/financial-information/news-releases/news-release-details/2026/Phillips-66-Delivers-Strong-Second-Quarter-Results-and-Operating-Performance/default.aspx).
+- **28 October:** Third-quarter adjusted earnings reached US$5.62 billion, with refining utilisation of 98%. Higher refining margins and volumes contributed to the improvement. [Q3 results](https://investor.phillips66.com/financial-information/news-releases/news-release-details/2026/Phillips-66-Reports-Third-Quarter-Results-Delivers-98-Refining-Utilization-and-Strong-Midstream-Volumes/default.aspx).
+
+### Share-price reference
+
+The shares also recovered:
+
+| Reference date | Close (US$) | Price change |
+| :--- | ---: | ---: |
+| 9 April 2026 — publication | 161.07 | — |
+| 29 April 2026 — first earnings catalyst | 173.49 | +7.7% |
+| 13 November 2026 — review date | 264.90 | +64.5% |
+
+*Price changes from the publication-day close, excluding dividends; these are reference-price comparisons.* [Historical prices](https://finance.yahoo.com/quote/PSX/history/?period1=1775692800&period2=1794614400), [company quotation](https://investor.phillips66.com/stock-information/default.aspx?section=historical).
+
+The subsequent earnings strength was consistent with the report’s conditional rebound case. The recovery also benefited from stronger refining conditions, so the full share-price increase should not be attributed solely to the original catalyst.

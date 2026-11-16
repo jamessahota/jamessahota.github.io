@@ -50,7 +50,8 @@ const { entry, related, next } = Astro.props;
 const { data } = entry;
 const profile = await getProfile();
 const coAuthors = data.authors.filter((author) => author !== profile.name);
-const { Content } = await render(entry);
+const { Content, headings } = await render(entry);
+const reviewSections = data.reviewAsOf ? headings.filter((heading) => heading.depth === 3) : [];
 const hasViews = (await getCollection('views')).some((view) => view.data.report === entry.id);
 const hasBody = Boolean(entry.body?.trim());
 // Without a report-specific exhibit, the header visual shows the first chart, or failing that
@@ -125,10 +126,11 @@ const jsonLd = {
       <div class:list={['report-header__visual', { 'report-header__visual--exhibit': Boolean(data.headerVisual), 'report-header__visual--data': headerChart || headerNumbers }]}><ResearchVisual entry={entry} compact /></div>
       </div>
       <nav class="report-sections side-scroll" aria-label="On this page">
-        {hasBody && <a href="#summary-heading">Summary</a>}
-        {data.keyFindings.length > 0 && <a href="#findings-heading">Key findings</a>}
+        {hasBody && <a href="#summary-heading">{data.reviewAsOf ? 'Case study' : 'Summary'}</a>}
+        {reviewSections.map((section) => <a href={`#${section.slug}`}>{section.text}</a>)}
+        {data.keyFindings.length > 0 && <a href="#findings-heading">{data.reviewAsOf ? 'Original findings' : 'Key findings'}</a>}
         {hasViews && <a href="#views">Views and outcomes</a>}
-        {data.viewChangers && <a href="#changers-heading">What would change the view</a>}
+        {data.viewChangers && <a href="#changers-heading">{data.reviewAsOf ? 'Original thesis conditions' : 'What would change the view'}</a>}
         {hasExhibits && <a href="#exhibits-heading">From the report</a>}
         {data.approach && <a href="#approach-heading">Data and approach</a>}
         {data.sources && <a href="#sources-heading">Sources</a>}
@@ -141,9 +143,9 @@ const jsonLd = {
           hasBody && (
             <section class="block" aria-labelledby="summary-heading">
               <h2 id="summary-heading" class="block__title label label--marked">
-                Summary
+                {data.reviewAsOf ? 'Historical case study' : 'Summary'}
               </h2>
-              <div class="prose summary">
+              <div class:list={['prose summary', { 'summary--review': Boolean(data.reviewAsOf) }]}>
                 <Content />
               </div>
             </section>
@@ -162,7 +164,7 @@ const jsonLd = {
           data.keyFindings.length > 0 && (
             <section class="block" aria-labelledby="findings-heading">
               <h2 id="findings-heading" class="block__title label label--marked">
-                Key findings
+                {data.reviewAsOf ? 'From the original report' : 'Key findings'}
               </h2>
               <ol class="findings">
                 {data.keyFindings.map((finding, position) => (
@@ -190,7 +192,7 @@ const jsonLd = {
           data.viewChangers && (
             <section class="block" aria-labelledby="changers-heading">
               <h2 id="changers-heading" class="block__title label label--marked">
-                What would change the view
+                {data.reviewAsOf ? 'Original thesis conditions' : 'What would change the view'}
               </h2>
               <ViewChangers items={data.viewChangers} type={typeLabel} />
             </section>
@@ -258,8 +260,10 @@ const jsonLd = {
             )
           }
           <p class="closing__note">
-            {data.date ? `Dated analysis from ${formatDate(data.date)}. ` : ''}{hasViews ? 'Views and price ranges' : 'Views'} reflect the
-            information available at the time and have not been updated. Nothing here is investment advice.
+            {data.reviewAsOf
+              ? `Original view${data.date ? ` from ${formatDate(data.date)}` : ''}; historical review through ${formatDate(data.reviewAsOf)}.`
+              : `${data.date ? `Dated analysis from ${formatDate(data.date)}. ` : ''}${hasViews ? 'Views and price ranges' : 'Views'} reflect the information available at the time and have not been updated.`}
+            {' '}Nothing here is investment advice.
           </p>
         </div>
       </div>
@@ -273,6 +277,14 @@ const jsonLd = {
                 <dd>
                   <time datetime={data.date}>{formatDate(data.date)}</time>
                 </dd>
+              </div>
+            )
+          }
+          {
+            data.reviewAsOf && (
+              <div class="cell">
+                <dt class="label">Reviewed through</dt>
+                <dd><time datetime={data.reviewAsOf}>{formatDate(data.reviewAsOf)}</time></dd>
               </div>
             )
           }
@@ -601,6 +613,53 @@ const jsonLd = {
   .summary {
     font-size: var(--text-lg);
     line-height: 1.6;
+  }
+
+  .summary--review :global(h3) {
+    font-size: var(--text-xl);
+    line-height: 1.25;
+    scroll-margin-top: var(--space-3);
+  }
+
+  .summary--review :global(table) {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    font-size: var(--text-sm);
+    line-height: 1.5;
+  }
+
+  .summary--review :global(th),
+  .summary--review :global(td) {
+    padding: 0.8rem 0.6rem;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+    overflow-wrap: anywhere;
+  }
+
+  .summary--review :global(th) {
+    font-family: var(--mono);
+    font-size: var(--text-xs);
+    font-weight: 500;
+    color: var(--muted);
+    vertical-align: bottom;
+  }
+
+  .summary--review :global(th:first-child),
+  .summary--review :global(td:first-child) {
+    width: 48%;
+    padding-left: 0;
+    text-align: left;
+  }
+
+  .summary--review :global(th:last-child),
+  .summary--review :global(td:last-child) {
+    padding-right: 0;
+  }
+
+  .summary--review :global(td:not(:first-child)) {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
   }
 
   .findings {

@@ -1,6 +1,7 @@
 ---
 import ButtonLink from '../components/ButtonLink.astro';
 import FlowPanel from '../components/FlowPanel.astro';
+import FlagshipCase from '../components/FlagshipCase.astro';
 import LookingFor from '../components/LookingFor.astro';
 import Icon from '../components/Icon.astro';
 import ResearchCard from '../components/ResearchCard.astro';
@@ -9,16 +10,19 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import {
   getExperience,
   getFeaturedResearch,
+  getFlagshipResearch,
   getProfile,
   getPublicProjects,
   getPublicResearch,
   hasDetailPage,
   projectPath,
+  researchPath,
 } from '../lib/content';
 import { formatPeriod } from '../lib/dates';
 
 const profile = await getProfile();
 const selected = await getFeaturedResearch(4);
+const flagship = await getFlagshipResearch();
 const researchCount = (await getPublicResearch()).filter(hasDetailPage).length;
 const roles = (await getExperience()).filter((role) => role.data.showOnHome);
 const project = (await getPublicProjects()).find((entry) => entry.data.featured);
@@ -48,7 +52,13 @@ const jsonLd = {
       <div class="hero__lower">
         <p class="hero__intro">{profile.intro}</p>
         <div class="hero__actions">
-          <ButtonLink href="/research/" label="Explore research" variant="on-dark" icon="arrow-right" />
+          {flagship ? (
+            <div class="hero__flagship-action" data-vt-key={flagship.id}>
+              <ButtonLink href={`${researchPath(flagship)}#summary-heading`} label="View trading case" variant="on-dark" icon="arrow-right" />
+            </div>
+          ) : (
+            <ButtonLink href="/research/" label="Explore research" variant="on-dark" icon="arrow-right" />
+          )}
           <ButtonLink href="/cv/" label="View CV" variant="outline-dark" />
         </div>
       </div>
@@ -73,6 +83,12 @@ const jsonLd = {
       }
     </dl>
   </section>
+
+  {flagship && (
+    <section class="section container flagship-section" aria-label="Flagship trading case">
+      <FlagshipCase entry={flagship} />
+    </section>
+  )}
 
   {
     selected.length > 0 && (
@@ -321,6 +337,10 @@ const jsonLd = {
     animation: hero-detail-in 1s var(--ease-out) 0.7s both;
   }
 
+  .hero__flagship-action {
+    display: flex;
+  }
+
   @keyframes hero-line-in {
     from { transform: translateY(112%) rotate(2deg); opacity: 0; }
     to { transform: none; opacity: 1; }
@@ -349,6 +369,7 @@ const jsonLd = {
   @media(min-width:52rem) { .glance { margin-top:0 !important; } }
   :global([data-theme='dark']) .home-experience { box-shadow: inset 0 0 0 1px var(--line); }
   .selected-section { padding-top:clamp(4rem,7vw,7rem); }
+  .flagship-section { padding-top:clamp(2.5rem,5vw,5rem); }
   .home-experience { position:relative; overflow:hidden; padding:clamp(1.5rem,5vw,4.5rem); background:radial-gradient(ellipse at 100% 100%,#3c251d,transparent 70%),#111719; }
   .roles__index { font-family:var(--display); font-size:3rem; color:#ff6a33; line-height:1; }
   .project__system { min-width:0; display:grid; gap:2rem; }

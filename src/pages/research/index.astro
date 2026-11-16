@@ -132,6 +132,7 @@ const description =
                   entry.data.title,
                   entry.data.standfirst ?? '',
                   entry.data.summary,
+                  entry.data.flagshipCase?.symbol ?? '',
                   entry.data.keyFindings.join(' '),
                   entry.data.headerVisual?.title ?? '',
                   (entry.data.charts ?? []).map((chart) => `${chart.title} ${chart.unit}`).join(' '),

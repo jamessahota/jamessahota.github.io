@@ -1,0 +1,300 @@
+---
+// A prominent route into the dated case study. These are reference closes,
+// not a continuous price history or an executed trading result.
+import ButtonLink from './ButtonLink.astro';
+import { researchPath, type Research } from '../lib/content';
+import { formatDateShort } from '../lib/dates';
+
+interface Props {
+  entry: Research;
+}
+
+const { entry } = Astro.props;
+const caseStudy = entry.data.flagshipCase!;
+const first = caseStudy.prices[0]!;
+const last = caseStudy.prices.at(-1)!;
+const change = ((last.close / first.close) - 1) * 100;
+const changeLabel = `${change > 0 ? '+' : change < 0 ? '−' : ''}${Math.abs(change).toFixed(1)}%`;
+const headingId = `flagship-${entry.id}`;
+---
+
+<article
+  class="flagship"
+  aria-labelledby={headingId}
+  data-reveal
+  data-vt-key={entry.id}
+  data-flagship-case={entry.id}
+  data-reference-close={first.close}
+  data-review-close={last.close}
+>
+  <div class="flagship__copy">
+    <p class="flagship__eyebrow label"><span aria-hidden="true" />Flagship trading case</p>
+    <h2 id={headingId}><span data-vt-title>{caseStudy.title}</span></h2>
+    <p class="flagship__summary">{caseStudy.summary}</p>
+    <div class="flagship__actions">
+      <ButtonLink href={`${researchPath(entry)}#summary-heading`} label="Read the case study" variant="on-dark" icon="arrow-right" />
+      <span class="flagship__kind label">Historical equity case{caseStudy.symbol && <>{' · '}{caseStudy.symbol}</>}</span>
+    </div>
+  </div>
+
+  <div class="flagship__evidence">
+    <p class="flagship__metric-label label">Price change</p>
+    <p class="flagship__change numeric" data-flagship-change>{changeLabel}</p>
+    <p class="flagship__period numeric">
+      <time datetime={first.date}>{formatDateShort(first.date)}</time>
+      <span aria-hidden="true">—</span>
+      <span class="visually-hidden">to</span>
+      <time datetime={last.date}>{formatDateShort(last.date)}</time>
+    </p>
+    <p class="flagship__basis">Excluding dividends</p>
+
+    <div class="flagship__references">
+      <p class="flagship__references-label label">Reference closes · US$</p>
+      <ol class="flagship__prices">
+        {caseStudy.prices.map((point, index) => (
+          <li style={`--point:${index}`}>
+            <span class="flagship__node" aria-hidden="true" />
+            <span class="flagship__point-label">{point.label}</span>
+            <strong class="flagship__price numeric">{point.close.toFixed(2)}</strong>
+            <time class="numeric" datetime={point.date}>{formatDateShort(point.date)}</time>
+          </li>
+        ))}
+      </ol>
+    </div>
+  </div>
+</article>
+
+<style>
+  .flagship {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    display: grid;
+    gap: clamp(2rem, 4vw, 4rem);
+    min-width: 0;
+    padding: clamp(1.5rem, 3.5vw, 3.5rem);
+    border: 1px solid #343a3f;
+    border-radius: var(--radius);
+    background:
+      radial-gradient(ellipse at 100% 0%, #ff6a331a, transparent 60%),
+      #14191c;
+    color: #eef0f1;
+    scroll-margin-top: calc(var(--header-height) + var(--space-5));
+    transition:
+      border-color 0.4s var(--ease),
+      opacity var(--motion-slow) var(--ease-out) var(--reveal-delay, 0s),
+      transform var(--motion-slow) var(--ease-out) var(--reveal-delay, 0s);
+  }
+
+  .flagship::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto;
+    height: 3px;
+    background: #ff6a33;
+    transform: scaleX(0.22);
+    transform-origin: left;
+    transition: transform 0.65s var(--ease-out);
+  }
+
+  .flagship:is(:hover, :focus-within) { border-color: #ff6a3380; }
+  .flagship:is(:hover, :focus-within)::before { transform: scaleX(1); }
+  .flagship__copy, .flagship__evidence { min-width: 0; }
+
+  .flagship__eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 0.7em;
+    color: #ff9368;
+  }
+
+  .flagship__eyebrow > span {
+    width: 0.5em;
+    height: 0.5em;
+    flex: none;
+    background: currentColor;
+  }
+
+  h2 {
+    max-width: 22ch;
+    margin-top: var(--space-5);
+    font-size: clamp(2rem, 1.25rem + 2.8vw, 3.8rem);
+    font-weight: 600;
+    line-height: 1.04;
+    letter-spacing: -0.045em;
+    text-wrap: balance;
+  }
+
+  .flagship__summary {
+    max-width: 40rem;
+    margin-top: var(--space-5);
+    color: #b7bec4;
+    font-size: var(--text-lg);
+    line-height: 1.55;
+  }
+
+  .flagship__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-4) var(--space-5);
+    margin-top: var(--space-6);
+  }
+
+  .flagship__kind { color: #a2a9b0; font-size: 0.625rem; }
+  .flagship__evidence { padding-top: var(--space-6); border-top: 1px solid #343a3f; }
+  .flagship__metric-label { color: #b7bec4; }
+
+  .flagship__change {
+    margin-top: 0.1em;
+    font-family: var(--display);
+    font-size: clamp(4rem, 2.5rem + 6vw, 8.75rem);
+    font-weight: 400;
+    line-height: 0.95;
+    letter-spacing: -0.025em;
+    color: #ff9368;
+    white-space: nowrap;
+  }
+
+  .flagship__period {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.45em;
+    margin-top: var(--space-4);
+    font-family: var(--mono);
+    font-size: var(--text-xs);
+    color: #eef0f1;
+  }
+
+  .flagship__basis {
+    margin-top: 0.35rem;
+    color: #a2a9b0;
+    font-size: var(--text-xs);
+  }
+
+  .flagship__references { margin-top: var(--space-6); }
+  .flagship__references-label { color: #a2a9b0; font-size: 0.625rem; }
+
+  .flagship__prices {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin-top: var(--space-4);
+    padding: 0;
+    list-style: none;
+  }
+
+  /* A sequence of dated observations, not a line interpolating share prices. */
+  .flagship__prices::before {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: #707a8280;
+    transform-origin: left;
+  }
+
+  .flagship__prices li {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 0;
+    padding-top: 1.15rem;
+  }
+
+  .flagship__node {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 7px;
+    height: 7px;
+    border: 1px solid #ff9368;
+    background: #14191c;
+  }
+
+  .flagship__prices li:last-child .flagship__node { background: #ff9368; }
+
+  .flagship__point-label {
+    min-height: 2.5em;
+    color: #b7bec4;
+    font-size: 0.6875rem;
+    line-height: 1.25;
+  }
+
+  .flagship__price {
+    display: block;
+    margin-top: var(--space-2);
+    font-size: clamp(1.2rem, 0.9rem + 0.7vw, 1.75rem);
+    font-weight: 550;
+    line-height: 1.1;
+    letter-spacing: -0.035em;
+    white-space: nowrap;
+  }
+
+  .flagship__prices time {
+    margin-top: var(--space-2);
+    color: #a2a9b0;
+    font-family: var(--mono);
+    font-size: 0.625rem;
+    line-height: 1.5;
+  }
+
+  .flagship:global(.reveal-wait) .flagship__prices::before { transform: scaleX(0); }
+  .flagship:global(.reveal-in) .flagship__prices::before {
+    transform: scaleX(1);
+    transition: transform 1s var(--ease-out) 0.25s;
+  }
+
+  .flagship:global(.reveal-wait) .flagship__prices li { opacity: 0; transform: translateY(0.65rem); }
+  .flagship:global(.reveal-in) .flagship__prices li {
+    opacity: 1;
+    transform: none;
+    transition: opacity 0.65s var(--ease) calc(0.4s + var(--point) * 90ms), transform 0.65s var(--ease-out) calc(0.4s + var(--point) * 90ms);
+  }
+
+  @media (min-width: 56rem) {
+    .flagship { grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr); align-items: center; }
+    .flagship__evidence { padding-top: 0; padding-left: clamp(2rem, 3.5vw, 4rem); border-top: 0; border-left: 1px solid #343a3f; }
+  }
+
+  @media (max-width: 35.99rem) {
+    .flagship { padding: 1.25rem; gap: 1.5rem; }
+    h2 { margin-top: var(--space-4); font-size: 1.8rem; line-height: 1.08; }
+    .flagship__summary { margin-top: var(--space-4); font-size: var(--text-base); line-height: 1.5; }
+    .flagship__actions { margin-top: 1.25rem; gap: 0.75rem; }
+    .flagship__evidence { padding-top: 1.25rem; }
+    .flagship__change { font-size: 4rem; }
+    .flagship__period { margin-top: 0.75rem; }
+    .flagship__references { margin-top: 1.25rem; }
+    .flagship__prices { margin-top: 0.75rem; }
+    .flagship__prices li { padding-top: 0.9rem; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .flagship::before, .flagship__prices::before, .flagship__prices li { transition: none !important; }
+    .flagship:global(.reveal-wait) .flagship__prices::before { transform: none; }
+    .flagship:global(.reveal-wait) .flagship__prices li { opacity: 1; transform: none; }
+  }
+
+  :global([data-motion='paused']) .flagship::before,
+  :global([data-motion='paused']) .flagship__prices::before,
+  :global([data-motion='paused']) .flagship__prices li { transition: none !important; }
+
+  :global([data-motion='paused']) .flagship:global(.reveal-wait) .flagship__prices::before { transform: none; }
+  :global([data-motion='paused']) .flagship:global(.reveal-wait) .flagship__prices li { opacity: 1; transform: none; }
+
+  @media print {
+    .flagship { break-inside: avoid; background: none; border-color: #cfd4d8; color: #101214; }
+    .flagship::before { display: none; }
+    .flagship__eyebrow, .flagship__change { color: #b53609; }
+    .flagship__summary, .flagship__kind, .flagship__metric-label, .flagship__period,
+    .flagship__basis, .flagship__references-label, .flagship__point-label, .flagship__prices time { color: #30353a; }
+    .flagship__prices::before { transform: none !important; }
+    .flagship__prices li { opacity: 1 !important; transform: none !important; }
+  }
+</style>

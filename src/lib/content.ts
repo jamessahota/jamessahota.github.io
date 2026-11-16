@@ -29,6 +29,13 @@ export async function getFeaturedResearch(limit = 3): Promise<Research[]> {
   return entries.sort((a, b) => (a.data.order ?? 99) - (b.data.order ?? 99)).slice(0, limit);
 }
 
+/** A single, explicitly selected public case; it does not reorder the archive. */
+export async function getFlagshipResearch(): Promise<Research | undefined> {
+  const cases = (await getPublicResearch()).filter((entry) => entry.data.flagshipCase && hasDetailPage(entry));
+  if (cases.length > 1) throw new Error('Select only one public flagship case study.');
+  return cases[0];
+}
+
 /** Related pieces: those named in front matter, otherwise the newest that share a topic. */
 export function getRelated(entry: Research, all: Research[], limit = 3): Research[] {
   const candidates = all.filter((other) => other.id !== entry.id && hasDetailPage(other));

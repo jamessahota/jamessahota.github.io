@@ -275,6 +275,61 @@ test('header charts retain their explanatory captions alongside their sources', 
   }
 });
 
+test('the Phillips 66 retrospective keeps publication and review dates distinct and checks its price comparisons', () => {
+  const html = read(join(DIST, 'research/phillips-66-q1-losses/index.html'));
+  const structured = JSON.parse(html.match(/<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/)[1]);
+  assert.equal(structured.mainEntity.datePublished, '2026-04-09');
+  assert.match(html, /<time datetime="2026-11-13"/);
+  const review = html.match(/<div[^>]*class="[^"]*summary--review[^"]*"[^>]*>([\s\S]*?)<\/div>/)?.[1];
+  assert.ok(review, 'the retrospective is missing its distinct body');
+  const tableBody = review.match(/<tbody>([\s\S]*?)<\/tbody>/)?.[1];
+  assert.ok(tableBody, 'the retrospective has no price-reference table');
+  const rows = [...tableBody.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/g)].map((row) =>
+    [...row[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((cell) => visibleText(cell[1]).trim()),
+  );
+  assert.equal(rows.length, 3);
+  const reference = Number(rows[0][1]);
+  assert.equal(reference, 161.07, 'the reference must be the verified publication-day close');
+  for (const row of rows.slice(1)) {
+    const expected = `+${((Number(row[1]) / reference - 1) * 100).toFixed(1)}%`;
+    assert.equal(row[2], expected, `${row[0]} has an inconsistent price change`);
+  }
+  assert.match(visibleText(review), /publication-day close, excluding dividends/);
+  assert.doesNotMatch(read(join(ROOT, 'src/content/views.yaml')), /report: phillips-66-q1-losses/,
+    'a retrospective price comparison must not become an original scored forecast');
+});
+
+test('the flagship case appears on the homepage only and uses the approved reference prices', () => {
+  const caseHtml = read(join(DIST, 'research/phillips-66-q1-losses/index.html'));
+  const body = caseHtml.match(/<div[^>]*class="[^"]*summary--review[^"]*"[^>]*>([\s\S]*?)<\/div>/)[1];
+  const rows = [...body.match(/<tbody>([\s\S]*?)<\/tbody>/)[1].matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/g)]
+    .map((row) => [...row[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((cell) => visibleText(cell[1]).trim()));
+  const reference = Number(rows[0][1]);
+  const latest = Number(rows.at(-1)[1]);
+  const expectedChange = `+${((latest / reference - 1) * 100).toFixed(1)}%`;
+  const href = '/research/phillips-66-q1-losses/#summary-heading';
+  for (const file of ['index.html']) {
+    const html = read(join(DIST, file));
+    const features = [...html.matchAll(/<article\b[^>]*data-flagship-case="phillips-66-q1-losses"[^>]*>[\s\S]*?<\/article>/g)];
+    assert.equal(features.length, 1, `${file} must show one flagship feature`);
+    const feature = features[0][0];
+    assert.equal(Number(feature.match(/data-reference-close="([^"]+)"/)[1]), reference);
+    assert.equal(Number(feature.match(/data-review-close="([^"]+)"/)[1]), latest);
+    assert.equal(visibleText(feature.match(/<[^>]*data-flagship-change[^>]*>([^<]+)<\/[^>]+>/)[1]).trim(), expectedChange);
+    assert.ok(feature.includes(`href="${href}"`), `${file} must open the case study directly`);
+    assert.match(visibleText(feature), /Price change/);
+    assert.match(visibleText(feature), /Excluding dividends/);
+    const archive = html.indexOf('data-carousel');
+    assert.ok(features[0].index < archive, `${file} hides the flagship below its archive`);
+  }
+  const home = read(join(DIST, 'index.html'));
+  const hero = home.match(/<div[^>]*class="hero__actions"[^>]*>([\s\S]*?)<\/div>\s*<\/div>/)?.[1];
+  assert.ok(hero?.includes(`href="${href}"`), 'the opening needs a direct route to the flagship case');
+  const archive = read(join(DIST, 'research/index.html'));
+  assert.doesNotMatch(archive, /data-flagship-case=/, 'the research archive must not repeat the homepage feature');
+  assert.match(archive, /data-item[^>]*data-vt-key="phillips-66-q1-losses"/, 'the case must remain a normal research entry');
+});
+
 test('every internal link, image, stylesheet and document exists', () => {
   for (const page of pages) {
     const html = read(page);
