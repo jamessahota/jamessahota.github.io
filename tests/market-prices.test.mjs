@@ -11,6 +11,11 @@ const yahoo = (end = '2026-11-13T22:00:00Z') => ({ chart: { result: [{
   timestamp: ['2026-11-12T14:00:00Z', '2026-11-13T14:00:00Z'].map((day) => Date.parse(day) / 1000),
   indicators: { quote: [{ close: [96, 95.84] }] },
 }] } });
+const brent = (bars, session = {}) => ({ chart: { result: [{
+  meta: { symbol: 'BZ=F', currentTradingPeriod: { regular: session } },
+  timestamp: bars.map(([date]) => Date.parse(date) / 1000),
+  indicators: { quote: [{ close: bars.map(([, close]) => close) }] },
+}] } });
 
 test('FRED reads the configured daily series and skips unpublished observations', () => {
   assert.deepEqual(parseFred('observation_date,DDFUELNYH\n2026-11-11,4.204\n2026-11-12,.', 'DDFUELNYH', now),
@@ -24,6 +29,65 @@ test('Yahoo intraday bars are excluded until their declared trading session has 
   assert.deepEqual(parseYahoo(yahoo(), 'BZ=F', new Date('2026-11-13T22:30:00Z')),
     { value: 95.84, date: '2026-11-13' });
   assert.throws(() => parseYahoo(yahoo(), 'CL=F', now), /benchmark/);
+});
+
+test('Brent rejects the Sunday pseudo-close even after Yahoo declares its calendar day ended', () => {
+  const snapshot = brent([
+    ['2026-11-13T05:00:00Z', 95.84], ['2026-11-15T05:00:00Z', 95.27],
+  ], { start: Date.parse('2026-11-15T05:00:00Z') / 1000, end: Date.parse('2026-11-16T04:59:00Z') / 1000 });
+  assert.deepEqual(parseYahoo(snapshot, 'BZ=F', new Date('2026-11-16T04:59:10Z')),
+    { value: 95.84, date: '2026-11-13' });
+});
+
+test('Brent overnight bars remain unfinished across midnight and use the trading-day date when complete', () => {
+  const snapshot = brent([
+    ['2026-11-13T05:00:00Z', 95.84], ['2026-11-15T23:00:00Z', 95.27],
+  ], { start: Date.parse('2026-11-15T23:00:00Z') / 1000, end: Date.parse('2026-11-16T22:00:00Z') / 1000 });
+  for (const time of ['2026-11-16T04:59:10Z', '2026-11-16T05:24:00Z', '2026-11-16T21:59:00Z']) {
+    assert.deepEqual(parseYahoo(snapshot, 'BZ=F', new Date(time)), { value: 95.84, date: '2026-11-13' });
+  }
+  assert.deepEqual(parseYahoo(snapshot, 'BZ=F', new Date('2026-11-16T22:30:00Z')),
+    { value: 95.27, date: '2026-11-16' });
+});
+
+test('Brent accepts completed weekday closes after the publication buffer in both winter and summer', () => {
+  for (const [date, stamp, before, after, end] of [
+    ['2026-11-13', '2026-11-13T05:00:00Z', '2026-11-13T22:14:00Z', '2026-11-13T22:30:00Z', '2026-11-14T04:59:00Z'],
+    ['2026-07-15', '2026-07-15T04:00:00Z', '2026-07-15T21:14:00Z', '2026-07-15T21:30:00Z', '2026-07-16T03:59:00Z'],
+  ]) {
+    const snapshot = brent([[stamp, 95.84]], { end: Date.parse(end) / 1000 });
+    assert.throws(() => parseYahoo(snapshot, 'BZ=F', new Date(before)), /no completed/);
+    assert.deepEqual(parseYahoo(snapshot, 'BZ=F', new Date(after)), { value: 95.84, date });
+  }
+});
+
+test('Brent refuses an ambiguous latest bar after reopening but can retain a separated completed bar', () => {
+  const bars = [['2026-11-13T05:00:00Z', 96], ['2026-11-16T05:00:00Z', 95.84]];
+  assert.deepEqual(parseYahoo(brent(bars), 'BZ=F', new Date('2026-11-16T23:30:00Z')),
+    { value: 96, date: '2026-11-13' });
+  const next = [['2026-11-16T05:00:00Z', 95.84], ['2026-11-16T23:00:00Z', 95.27]];
+  assert.deepEqual(parseYahoo(brent(next), 'BZ=F', new Date('2026-11-16T23:30:00Z')),
+    { value: 95.84, date: '2026-11-16' });
+});
+
+test('Brent keeps the completed Friday close after the market shuts for the weekend', () => {
+  const snapshot = brent([['2026-11-13T05:00:00Z', 95.84]]);
+  for (const time of ['2026-11-13T23:30:00Z', '2026-11-14T12:00:00Z', '2026-11-15T12:00:00Z']) {
+    assert.deepEqual(parseYahoo(snapshot, 'BZ=F', new Date(time)), { value: 95.84, date: '2026-11-13' });
+  }
+});
+
+test('a delayed Yahoo payload cannot turn an overnight quote into a close at midnight', () => {
+  const snapshot = brent([['2026-11-13T05:00:00Z', 95.84], ['2026-11-16T05:00:00Z', 95.27]]);
+  snapshot.chart.result[0].meta.regularMarketTime = Date.parse('2026-11-17T04:58:00Z') / 1000;
+  for (const time of ['2026-11-17T04:59:00Z', '2026-11-17T05:05:00Z']) {
+    assert.deepEqual(parseYahoo(snapshot, 'BZ=F', new Date(time)), { value: 95.84, date: '2026-11-13' });
+  }
+});
+
+test('Yahoo cannot accept a future timestamp hidden inside the current calendar date', () => {
+  assert.throws(() => parseYahoo(brent([['2026-11-13T23:00:00Z', 95.84]]), 'BZ=F',
+    new Date('2026-11-13T22:30:00Z')), /future daily bar/);
 });
 
 test('invalid values and invented or future observation dates are rejected', () => {
@@ -61,6 +125,39 @@ test('a verified same-day provider correction survives a later refresh failure',
   assert.equal(prices.diesel.date, fred.date);
   const newerConfig = { ...fred, checkedAt: '2026-11-13T16:00:00Z' };
   assert.equal(mergeCachedPrices({ diesel: newerConfig }, priceCache({ diesel: corrected }), now).diesel.value, fred.value);
+});
+
+test('old Yahoo parser caches are discarded without losing other providers or the corrected fallback', async () => {
+  const configured = { label: 'Brent', unit: 'US$ per barrel', sourceUrl: 'https://finance.yahoo.com/quote/BZ%3DF/history/',
+    fetch: { provider: 'yahoo', ticker: 'BZ=F' }, value: 95.84, date: '2026-11-13' };
+  const saved = { ...configured, value: 95.27, date: '2026-11-15', checkedAt: '2026-11-16T04:59:10Z' };
+  const diesel = { ...fred, value: 4.25, date: '2026-11-12', checkedAt: '2026-11-13T16:00:00Z' };
+  const cache = priceCache({ brent: saved, diesel });
+  cache.entries.brent.identity = JSON.stringify({ label: configured.label, unit: configured.unit, fetch: configured.fetch });
+  const checked = new Date('2026-11-16T05:24:00Z');
+  const restored = mergeCachedPrices({ brent: configured, diesel: fred }, cache, checked);
+  assert.equal(restored.brent.value, 95.84);
+  assert.equal(restored.brent.date, '2026-11-13');
+  assert.equal(restored.diesel.value, 4.25);
+  const { prices } = await refreshPrices(restored, { now: checked, fetchImpl: async () => { throw new Error('offline'); } });
+  assert.equal(prices.brent.value, 95.84);
+  assert.equal(prices.brent.date, '2026-11-13');
+});
+
+test('completed closes saved by the corrected Yahoo parser survive a later source failure', async () => {
+  const configured = { label: 'Brent', unit: 'US$ per barrel', sourceUrl: 'https://finance.yahoo.com/quote/BZ%3DF/history/',
+    fetch: { provider: 'yahoo', ticker: 'BZ=F' }, value: 95.84, date: '2026-11-13' };
+  const checked = new Date('2026-11-16T22:30:00Z');
+  const updated = await refreshPrices({ brent: configured }, {
+    now: checked, fetchImpl: async () => ({ ok: true, json: async () => brent([['2026-11-16T05:00:00Z', 96.5]]) }),
+  });
+  assert.equal(updated.failures, 0);
+  const later = new Date('2026-11-17T05:30:00Z');
+  const restored = mergeCachedPrices({ brent: configured }, priceCache(updated.prices), later);
+  const { prices } = await refreshPrices(restored, { now: later, fetchImpl: async () => { throw new Error('offline'); } });
+  assert.equal(prices.brent.value, 96.5);
+  assert.equal(prices.brent.date, '2026-11-16');
+  assert.equal(prices.brent.checkedAt, checked.toISOString());
 });
 
 test('older provider observations are retained as failures, never published as a newer check', async () => {

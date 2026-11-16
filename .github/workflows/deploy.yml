@@ -11,10 +11,12 @@ on:
     branches: [main]
   # Allows a manual run from the Actions tab.
   workflow_dispatch:
-  # 22:30 UTC, Monday to Friday: after US markets close. Nothing is committed;
+  # 17:30 New York, Monday to Friday: after the close and before futures reopen.
+  # The timezone keeps this window correct through daylight-saving changes. Nothing is committed;
   # the refreshed prices go only into the published site.
   schedule:
-    - cron: '30 22 * * 1-5'
+    - cron: '30 17 * * 1-5'
+      timezone: America/New_York
 
 permissions:
   contents: read

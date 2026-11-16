@@ -1,6 +1,34 @@
 // Provider parsing and last-good observations. No network or file IO on import.
 export const isoDay = (now) => new Date(now).toISOString().slice(0, 10);
 const nyDay = (time) => new Date(time).toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+const nyClock = new Intl.DateTimeFormat('en-GB', {
+  timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+});
+const nyMinutes = (time) => {
+  const [hour, minute] = nyClock.format(new Date(time)).split(':').map(Number);
+  return hour * 60 + minute;
+};
+const nextDay = (date) => isoDay(Date.parse(`${date}T12:00:00Z`) + 86_400_000);
+const weekday = (date) => ![0, 6].includes(new Date(`${date}T12:00:00Z`).getUTCDay());
+
+// BZ trades Sunday–Friday, 18:00–17:00 New York, with a daily maintenance break.
+// Yahoo sometimes declares a calendar-day end of 23:59 instead of the exchange close.
+// Use the exchange day (and a 15-minute publication buffer), never that pseudo-close.
+// https://www.cmegroup.com/trading-hours.html
+function brentCloseDate(stamp, now, hasLaterBar) {
+  const barDate = nyDay(stamp);
+  const barMinute = nyMinutes(stamp);
+  const date = barMinute >= 18 * 60 ? nextDay(barDate) : barDate;
+  const today = nyDay(now);
+  const minute = nyMinutes(now);
+  if (!weekday(date) || date > today) return undefined;
+  if (date === today) {
+    if (minute < 17 * 60 + 15) return undefined;
+    // After reopening, an unseparated final calendar bar may be a live quote again.
+    if (minute >= 18 * 60 && weekday(nextDay(today)) && !hasLaterBar) return undefined;
+  }
+  return date;
+}
 
 export function validateObservation(observation, now = new Date()) {
   const { value, date } = observation ?? {};
@@ -32,11 +60,26 @@ export function parseYahoo(payload, ticker, now = new Date()) {
   const closes = result.indicators?.quote?.[0]?.close ?? [];
   const today = nyDay(now);
   const session = result.meta.currentTradingPeriod?.regular;
+  const latestBar = closes.findLastIndex((close) => close !== null && close !== undefined);
   for (let index = closes.length - 1; index >= 0; index -= 1) {
     if (closes[index] === null || closes[index] === undefined) continue;
     const stamp = result.timestamp?.[index];
     if (!Number.isFinite(stamp)) throw new Error('missing daily bar timestamp');
+    if (stamp * 1000 > +new Date(now)) throw new Error('future daily bar timestamp');
+    if (ticker === 'BZ=F') {
+      const quotedAt = result.meta.regularMarketTime * 1000;
+      // A cached response can cross midnight before Yahoo separates the next day's bar.
+      // Its own last-trade time still reveals that the final calendar bar was live overnight.
+      if (index === latestBar && Number.isFinite(quotedAt) && nyMinutes(quotedAt) >= 18 * 60 &&
+          weekday(nextDay(nyDay(quotedAt))) && nyDay(stamp * 1000) === nyDay(quotedAt)) continue;
+      const date = brentCloseDate(stamp * 1000, now, index < latestBar);
+      if (!date) continue;
+      return validateObservation({ value: Math.round(closes[index] * 1000) / 1000, date }, now);
+    }
     const date = nyDay(stamp * 1000);
+    // An active session can start on the previous calendar day.
+    if (Number.isFinite(session?.start) && Number.isFinite(session?.end) &&
+        stamp >= session.start && stamp < session.end && session.end * 1000 > +new Date(now)) continue;
     // Today's daily bar needs an explicitly elapsed session end before it is a close.
     if (date === today && !(Number.isFinite(session?.end) && nyDay(session.end * 1000) === today &&
         session.end * 1000 <= +new Date(now))) continue;
@@ -54,7 +97,11 @@ export async function fetchResponse(url, fetchImpl = fetch) {
   return response;
 }
 
-const identity = (entry) => JSON.stringify({ label: entry.label, unit: entry.unit, fetch: entry.fetch });
+const identity = (entry) => JSON.stringify({
+  label: entry.label, unit: entry.unit, fetch: entry.fetch,
+  // Old Yahoo cache entries may contain unfinished sessions; other caches remain valid.
+  ...(entry.fetch?.provider === 'yahoo' ? { dailyCloseVersion: 2 } : {}),
+});
 const fields = (entry) => Object.fromEntries(
   ['value', 'date', 'sourceUrl', 'checkedAt'].filter((key) => entry[key] !== undefined).map((key) => [key, entry[key]]),
 );
