@@ -4,8 +4,8 @@ name: James Sahota
 positioning: Research across energy and markets
 intro: >-
   I now study mathematics and economics at the University of Chicago and co-founded 6:05 Markets,
-  a student-led market research group. I’m looking for trading experience across equities,
-  derivatives and commodities.
+  a student-led market research group. I’m currently seeking Sales & Trading opportunities across equities,
+  derivatives and commodities, with a particular focus on energy markets.
 
 location: Chicago, IL
 email: jsahota@uchicago.edu
@@ -23,17 +23,31 @@ atAGlance:
     value: Research Contributor, Energy Flux
     href: https://www.energyflux.news/
 
+# Direct routes into the existing work, rather than additional report summaries.
+workHighlights:
+  - label: Oil-market scenarios
+    description: Conditional Brent ranges and the physical assumptions behind them.
+    href: /research/oil-above-100-supply-shock/#table-brent-price-scenarios-as-at-10-september-2026
+  - label: Forecast record
+    description: Dated calls, reference prices and assessed outcomes.
+    href: /research/#views
+  - label: Research-system approach
+    description: Point-in-time data, backtest controls and human review.
+    href: /projects/ai-commodities-research/#approach
+
 contactInvite: >-
-  I’d be happy to discuss trading opportunities across equities, derivatives and commodities.
-  I also welcome conversations about markets and research.
+  I’d be happy to discuss Sales & Trading opportunities across equities, derivatives and commodities,
+  particularly roles connected to energy markets.
+  I also welcome conversations about physical commodities trading, markets and research.
 
 # The panel beside the homepage About paragraph.
 lookingFor:
   label: What I’m looking for
-  title: Trading experience
+  title: Trading opportunities
   text: >-
-    My research asks what the market has priced in and what could prove a view wrong.
-    I’m looking for trading experience that puts those views to the test.
+    My immediate focus is Sales & Trading recruiting across equities, derivatives and commodities.
+    Longer term, I’m also interested in physical commodities trading, where supply, logistics
+    and market risk meet.
   markets:
     - Equities
     - Derivatives

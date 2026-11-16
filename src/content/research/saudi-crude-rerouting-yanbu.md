@@ -5,8 +5,9 @@ summary: >-
   the lost flow. The report assesses the limits at Yanbu and the risks transferred to the Red
   Sea.
 authors:
-  - Abraham Went
   - James Sahota
+editors:
+  - Abraham Went
 date: 2026-03-29
 topics:
   - shipping-chokepoints

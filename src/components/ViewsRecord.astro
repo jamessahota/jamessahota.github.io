@@ -57,6 +57,17 @@ const units: Record<string, string> = {
   'US$ per tonne': 'US$/t', 'US$ per gallon': 'US$/gal',
 };
 const unit = (value: string) => units[value] ?? value;
+const sourceLink = (url?: string, label?: string) => {
+  if (!url) return undefined;
+  const hostname = new URL(url).hostname.replace(/^www\./, '');
+  const providers: Record<string, string> = {
+    'finance.yahoo.com': 'Yahoo Finance',
+    'fred.stlouisfed.org': 'EIA / FRED',
+    'balticexchange.com': 'Baltic Exchange',
+    'tradingeconomics.com': 'CFD spot price quote',
+  };
+  return { provider: hostname, label: providers[hostname] ?? label ?? hostname, url };
+};
 
 // `status` is what the filter uses: inside, missed or open.
 const verdict = (view: View) => {
@@ -148,7 +159,7 @@ const filters = [
         )
       }
       <div class="record__legend" aria-label="Chart legend">
-        <span><i class="record__legend-entry" aria-hidden="true" />Entry line</span>
+        <span><i class="record__legend-entry" aria-hidden="true" />Reference line</span>
         <span><i class="record__legend-point" aria-hidden="true" />Current point</span>
         <span><i class="record__legend-band" aria-hidden="true" />Target band</span>
       </div>
@@ -170,9 +181,14 @@ const filters = [
               const unavailable = !view.outcome && !observation;
               const change = entryMove(view, prices, now);
               const sourceUrl = observation?.sourceUrl ?? configuredPrice?.sourceUrl;
+              const sources = [sourceLink(sourceUrl), sourceLink(view.entry?.sourceUrl, view.entry?.sourceLabel)]
+                .filter((source): source is NonNullable<typeof source> => Boolean(source))
+                .filter((source, index, links) => links.findIndex((link) => link.provider === source.provider) === index);
               const badge = observation?.kind === 'reference' ? (view.referenceTrack === 'jkm-indicative' ? 'Indicative' : 'Spot') : undefined;
+              const prePublication = view.entry && view.entry.date < view.formed;
+              const rowId = `view-${view.id}`;
               return (
-                <li class:list={['record__row', `record__row--${result.key}`]} style={`--i:${index}`} data-status={result.status} data-view-id={view.id}>
+                <li id={rowId} class:list={['record__row', `record__row--${result.key}`]} style={`--i:${index}`} data-status={result.status} data-view-id={view.id}>
                   <div class="record__what">
                     <p class="record__view" title={view.view}>{view.instrument}</p>
                     <p class="record__meta label">
@@ -180,11 +196,12 @@ const filters = [
                     </p>
                     {view.entry && (
                       <p class="record__detail" data-entry-price>
-                        Entry <strong>{formatPrice(view.entry.value)}</strong> <span class="record__unit" title={view.range.unit}>{unit(view.range.unit)}</span>
+                        Reference <strong>{formatPrice(view.entry.value)}</strong> <span class="record__unit" title={view.range.unit}>{unit(view.range.unit)}</span>
                         {' '}· <time datetime={view.entry.date}>{formatDateShort(view.entry.date)}</time>
                       </p>
                     )}
-                    {view.entryUnavailable && <p class="record__source" data-entry-unavailable title={view.entryUnavailable}>Entry unavailable</p>}
+                    {prePublication && <p class="record__source record__reference-timing">Pre-publication reference</p>}
+                    {view.entryUnavailable && <p class="record__source" data-entry-unavailable title={view.entryUnavailable}>Reference unavailable</p>}
                   </div>
                   <div class="record__visual">
                     <p class="record__detail record__target">
@@ -221,13 +238,12 @@ const filters = [
                       </p>
                     )}
                     {change && (
-                      <p class="record__detail record__move" data-price-change title={change.basis === 'reference' ? 'Related-market reference move since entry; not an assessed outcome' : 'Benchmark price move since entry'}>
-                        Move <strong>{signed(change.absolute)}</strong> <span class="record__unit">{unit(view.range.unit)}</span>{change.percent !== undefined ? ` (${signedPercent(change.percent)}%)` : ''}
+                      <p class="record__detail record__move" data-price-change title={change.basis === 'reference' ? 'Related-market price change from the dated reference; not an assessed outcome' : 'Benchmark price change from the dated reference'}>
+                        Price change <strong>{signed(change.absolute)}</strong> <span class="record__unit">{unit(view.range.unit)}</span>{change.percent !== undefined ? ` (${signedPercent(change.percent)}%)` : ''}
                       </p>
                     )}
                     <p class="record__source record__sources">
-                      {view.entry?.sourceUrl && <a href={view.entry.sourceUrl} title={view.entry.source}>{view.entry.sourceLabel ?? 'Entry source'}</a>}
-                      {sourceUrl && <a href={sourceUrl} title={observation?.source ?? configuredPrice?.source}>Price source</a>}
+                      {sources.map((source) => <a href={source.url}>{source.label}</a>)}
                     </p>
                     {unavailable && <p class="record__source" data-price-state="unavailable">Current unavailable</p>}
                     {!view.outcome && observation && freshness && (freshness.failed || freshness.stale) && (
@@ -243,27 +259,15 @@ const filters = [
         </div>
       ))}
       <p class="record__note">
-        Prices auto-refresh on weekdays; dates show the observation.{' '}
-        {views.some((view) => view.referenceTrack === 'jkm-indicative') && 'JKM CFD quotes are indicative. '}
-        Forecasts are assessed at their due dates; averages use the full period.
+        Prices auto-refresh on weekdays; dates show the observation.
       </p>
-      <details class="record__methodology">
-        <summary>Methodology and benchmark notes</summary>
-        <p class="record__source">
-          Every published call and dated base-case benchmark view is included, including misses. Duplicate calls appear once.
-          Entries are publication references, not executed trades. Moves are price changes, not forecast verdicts.
-          Brent uses front-month futures. Related spot or indicative points are chart context; outcomes use the stated benchmark.
-          Daily and weekly sources keep their actual observation dates.
-        </p>
-        {views.filter((view) => view.context).map((view) => <p class="record__source"><strong>{view.instrument}:</strong> {view.context}</p>)}
-        {views.filter((view) => view.basis === 'average').map((view) => <p class="record__source">{view.view}.</p>)}
-      </details>
     </section>
   )
 }
 
 <script>
   // Filter the record by result. The page lists every view without this.
+  let showAllViews: (() => void) | undefined;
   const filters = document.querySelector<HTMLElement>('[data-record-filters]');
   if (filters) {
     const record = filters.closest('.record')!;
@@ -277,9 +281,34 @@ const filters = [
       for (const group of groups) group.hidden = ![...group.querySelectorAll<HTMLElement>('.record__row')].some((row) => !row.hidden);
       if (empty) empty.hidden = rows.some((row) => !row.hidden);
     };
+    showAllViews = () => show('');
     for (const chip of chips) chip.addEventListener('click', () => show(chip.dataset.status ?? ''));
     filters.hidden = false;
   }
+
+  // A shared link must reveal its row even if the visitor has filtered it out.
+  const revealLinkedView = () => {
+    let id: string;
+    try {
+      id = decodeURIComponent(window.location.hash.slice(1));
+    } catch {
+      return;
+    }
+    const row = document.getElementById(id);
+    if (!row?.matches('.record__row')) return;
+    showAllViews?.();
+    let ancestor: HTMLElement | null = row;
+    while (ancestor) {
+      if (ancestor.hasAttribute('data-reveal')) {
+        ancestor.classList.remove('reveal-wait');
+        ancestor.classList.add('reveal-in');
+      }
+      ancestor = ancestor.parentElement;
+    }
+    requestAnimationFrame(() => row.scrollIntoView({ block: 'start' }));
+  };
+  window.addEventListener('hashchange', revealLinkedView);
+  revealLinkedView();
 </script>
 
 <style>
@@ -442,6 +471,13 @@ const filters = [
     gap: var(--space-4);
     padding-block: var(--space-5);
     border-bottom: 1px solid var(--line);
+    scroll-margin-top: var(--space-3);
+  }
+
+  .record__row:target {
+    background: color-mix(in srgb, var(--accent) 5%, transparent);
+    outline: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+    outline-offset: 0.5rem;
   }
 
   .record__row > div {
@@ -607,23 +643,13 @@ const filters = [
     gap: 0.25rem 1rem;
   }
 
+  .record__reference-timing {
+    margin-top: 0.2rem;
+  }
+
   .record__note {
     margin-top: var(--space-4);
     max-width: var(--measure);
-  }
-
-  .record__methodology {
-    margin-top: var(--space-2);
-    max-width: var(--measure);
-  }
-
-  .record__methodology summary {
-    min-height: 2.75rem;
-    padding-block: 0.65rem;
-    color: var(--muted);
-    font-family: var(--mono);
-    font-size: var(--text-xs);
-    cursor: pointer;
   }
 
   /* On arrival each band draws out from its low end, then the outcome lands on the scale. */
@@ -658,6 +684,15 @@ const filters = [
       transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) calc(0.85s + var(--i) * 120ms);
   }
 
+  /* Deep links settle the chart immediately, including before the reveal script runs. */
+  .record:has(.record__row:target) .record__band,
+  .record:has(.record__row:target) .record__latest,
+  .record:has(.record__row:target) .record__dot {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
   @media print {
     .record .record__band,
     .record .record__latest,
@@ -674,11 +709,6 @@ const filters = [
 
     .record__row {
       break-inside: avoid;
-    }
-
-    /* A closed disclosure cannot be opened on paper. */
-    .record__methodology {
-      display: none;
     }
   }
 </style>

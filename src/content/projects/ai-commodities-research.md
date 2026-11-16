@@ -24,24 +24,24 @@ Scheduled energy-data releases can move prices within hours. This project asks w
 
 ## My role
 
-I designed the research questions, selected the data and set the workflow, controls and evaluation rules. I used AI coding tools to build the system and reviewed the research outputs myself.
+I set the research questions, selected the data and defined the workflow, controls and evaluation rules. I used AI coding tools for implementation and reviewed the research outputs myself.
 
 ## Inputs
 
-The system combines market, macroeconomic and inventory data to test event-driven scenarios across energy futures, exchange-traded funds and equities.
+The test events are scheduled EIA petroleum inventory releases. Market, macroeconomic and inventory data inform scenarios across energy futures, exchange-traded funds and equities.
 
 ## Approach
 
-Four controls govern the backtest:
+The backtest follows four controls:
 
-- **Point-in-time data.** Each decision uses only information that would have been available when it was made.
-- **Calculations in code.** A deterministic Python engine performs the calculations. The AI agents interpret the information and draft the research.
-- **Costs and risk.** The backtest applies transaction costs, position sizing and risk controls to each US$100,000 paper portfolio.
-- **Human review.** I review the scope, uncertain sources and key assumptions before they enter the analysis.
+- **Point-in-time data.** Decisions use only information available at the time.
+- **Deterministic calculations.** A Python engine performs the calculations. AI agents interpret the information and draft the research.
+- **Costs and risk.** Transaction costs, position sizing and risk controls are applied to each US$100,000 simulated portfolio.
+- **Human review.** I review the scope, uncertain sources and key assumptions before including them in the analysis.
 
 ## Output
 
-The system produces point-in-time backtests and research reports, with the inputs, assumptions and calculations recorded alongside each result. That record makes the analysis traceable and reproducible.
+The outputs are research reports and point-in-time backtests. Inputs, assumptions and calculations are recorded alongside each result to make the reasoning traceable. The figures above describe the scale of these simulations, not forecast accuracy or trading returns.
 
 ## Limitations
 

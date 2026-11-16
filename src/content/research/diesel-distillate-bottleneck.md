@@ -12,9 +12,6 @@ authors:
   - James Sahota
   - Benjamin Lozovsky
   - Michael Wu
-authorshipNote: >-
-  In the published version, the sections on why diesel has outperformed crude and on the
-  replacement requirement are credited to Benjamin Lozovsky.
 date: 2026-10-18
 dataAsOf: Data to mid-October 2026
 topics:

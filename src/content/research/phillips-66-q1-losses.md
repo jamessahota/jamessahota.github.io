@@ -5,8 +5,9 @@ summary: >-
   examines its derivatives exposure and whether the hit represented a temporary dislocation
   or a wider earnings problem.
 authors:
-  - Abraham Went
   - James Sahota
+editors:
+  - Abraham Went
 date: 2026-04
 topics:
   - companies

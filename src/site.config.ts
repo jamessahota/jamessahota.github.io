@@ -5,7 +5,7 @@ export const SITE = {
   name: 'James Sahota',
   title: 'James Sahota | Research across energy and markets',
   description:
-    'James Sahota studies mathematics and economics at the University of Chicago, co-founded 6:05 Markets and is looking for trading experience across equities, derivatives and commodities.',
+    'James Sahota studies mathematics and economics at the University of Chicago and co-founded 6:05 Markets. His interests span Sales & Trading and physical commodities trading, with a focus on energy markets.',
 } as const;
 
 export const NAV = [

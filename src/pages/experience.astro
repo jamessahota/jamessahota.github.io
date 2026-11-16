@@ -1,6 +1,5 @@
 ---
 import Icon from '../components/Icon.astro';
-import ButtonLink from '../components/ButtonLink.astro';
 import RoleEntry from '../components/RoleEntry.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import {
@@ -37,9 +36,6 @@ const description =
   <header class="page-header container experience-header">
     <p class="label label--marked">Roles, education and skills</p>
     <h1 class="display">Experience</h1>
-    <div class="experience-header__lower">
-      <ButtonLink href="/cv/" label="View CV" icon="arrow-right" />
-    </div>
     <nav class="experience-jumps" aria-label="On this page">
       <a href="#roles-heading">Roles <Icon name="arrow-down" /></a>
       {projects.length > 0 && <a href="#projects-heading">Independent project <Icon name="arrow-down" /></a>}
@@ -201,7 +197,6 @@ const description =
     line-height: 1;
   }
 
-  .experience-header__lower { margin-top: var(--space-6); }
   .experience-jumps { display: flex; flex-wrap: wrap; gap: 0.4rem 2rem; margin-top: var(--space-7); padding-block: 1rem; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
   .experience-jumps a { display: inline-flex; align-items: center; gap: 0.75em; padding-block: 0.3rem; font-family: var(--mono); font-size: 0.6875rem; text-transform: uppercase; text-decoration: none; letter-spacing: 0.04em; }
   .experience-jumps a :global(.icon) { transition: transform 350ms var(--ease); }

@@ -87,6 +87,17 @@ const jsonLd = {
           <ButtonLink href="/research/" label={`All ${researchCount} pieces`} variant="secondary" icon="arrow-right" />
         </div>
 
+        {profile.workHighlights && (
+          <nav class="work-highlights" aria-label="Explore the research evidence" data-reveal>
+            {profile.workHighlights.map((highlight) => (
+              <a class="work-highlights__link" href={highlight.href}>
+                <span class="work-highlights__title">{highlight.label}<Icon name="arrow-up-right" /></span>
+                <span class="work-highlights__description">{highlight.description}</span>
+              </a>
+            ))}
+          </nav>
+        )}
+
         <div class="cells selected" data-carousel>
           {selected.map((entry, position) => (
             <ResearchCard entry={entry} index={position + 1} />
@@ -110,7 +121,7 @@ const jsonLd = {
             </p>
             <h2 id="project-heading"><span style={`view-transition-name: project-title-${project.id.replace(/[^a-zA-Z0-9_-]/g, '-')}`}>{project.data.title}</span></h2>
             <p class="project__summary">{project.data.summary}</p>
-            <ButtonLink href={projectPath(project)} label="Read the case study" icon="arrow-right" />
+            <ButtonLink href={projectPath(project)} label="Explore the project" icon="arrow-right" />
           </div>
           <div class="project__system">
             <ProjectFlow compact />
@@ -376,6 +387,75 @@ const jsonLd = {
     font-size: var(--text-lg);
     line-height: 1.3;
     letter-spacing: -0.02em;
+  }
+
+  .work-highlights {
+    display: grid;
+    margin-bottom: var(--space-6);
+    border-block: 1px solid var(--line);
+  }
+
+  .work-highlights__link {
+    min-width: 0;
+    padding: var(--space-4) 0;
+    text-decoration: none;
+  }
+
+  .work-highlights__link + .work-highlights__link {
+    border-top: 1px solid var(--line);
+  }
+
+  .work-highlights__title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    font-size: var(--text-base);
+    font-weight: 600;
+    transition: color 0.2s var(--ease);
+  }
+
+  .work-highlights__title :global(svg) {
+    flex: 0 0 1rem;
+    width: 1rem;
+    height: 1rem;
+    transition: transform 0.3s var(--ease-out);
+  }
+
+  .work-highlights__description {
+    display: block;
+    margin-top: var(--space-2);
+    max-width: 34ch;
+    color: var(--muted);
+    font-size: var(--text-sm);
+    line-height: 1.5;
+  }
+
+  .work-highlights__link:is(:hover, :focus-visible) .work-highlights__title {
+    color: var(--accent-text);
+  }
+
+  .work-highlights__link:is(:hover, :focus-visible) :global(svg) {
+    transform: translate(2px, -2px);
+  }
+
+  @media (min-width: 52rem) {
+    .work-highlights {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .work-highlights__link {
+      padding-inline: var(--space-5);
+    }
+
+    .work-highlights__link:first-child {
+      padding-left: 0;
+    }
+
+    .work-highlights__link + .work-highlights__link {
+      border-top: 0;
+      border-left: 1px solid var(--line);
+    }
   }
 
   /* Selected research: four cells, two by two. On a phone, one card at a time in a

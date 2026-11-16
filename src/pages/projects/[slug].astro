@@ -46,7 +46,7 @@ const sections = headings.filter((heading) => heading.depth === 2);
 
     <div class="container">
       <div class="project-scene" data-reveal><ProjectFlow /></div>
-      {data.facts && <KeyNumbers items={data.facts} note={data.factsNote} heading="Project figures" />}
+      {data.facts && <KeyNumbers items={data.facts} note={data.factsNote} heading="Simulation scope" />}
       {data.figures?.map((figure) => <Figure {...figure} />)}
 
       <div class:list={['body', { 'body--with-contents': sections.length > 1 }]}>

@@ -76,7 +76,7 @@ const research = defineCollection({
       // The opening paragraph on the report's own page.
       standfirst: z.string().optional(),
       authors: z.array(z.string()).min(1),
-      authorshipNote: z.string().optional(),
+      editors: z.array(z.string()).default([]),
       date: partialDate.optional(),
       updated: partialDate.optional(),
       dataAsOf: z.string().optional(),
@@ -277,6 +277,7 @@ const profile = defineCollection({
     email: z.email(),
     linkedin: httpsUrl,
     atAGlance: z.array(z.object({ label: z.string(), value: z.string(), href: link.optional() })),
+    workHighlights: z.array(z.object({ label: z.string(), description: z.string(), href: link })).min(1).max(3).optional(),
     contactInvite: z.string(),
     // The panel beside the homepage About paragraph: what James is looking for next.
     lookingFor: z.object({ label: z.string(), title: z.string(), text: z.string(), markets: z.array(z.string()).min(1) }),

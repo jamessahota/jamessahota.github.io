@@ -16,9 +16,6 @@ authors:
   - Monty Brown
   - Tomas Hernandez
   - Audrey Levin Kim
-authorshipNote: >-
-  A team report by the 6:05 Markets oil and gas desk. Individual sections of the published
-  report are credited to the analysts who wrote them.
 date: 2026-11
 dataAsOf: EIA weekly data to 23 October 2026
 topics:

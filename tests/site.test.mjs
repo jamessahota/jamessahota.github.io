@@ -33,7 +33,11 @@ test('trading views keep rows compact and plot entry and current reference price
     }
     const text = row.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
     assert.doesNotMatch(text, /to the verified outcome|to the latest observation|Latest price:|Daily observations; refreshed automatically/);
+    const sources = row.match(/<p[^>]*class="[^"]*record__sources[^"]*"[^>]*>([\s\S]*?)<\/p>/)?.[1] ?? '';
+    assert.equal([...sources.matchAll(/<a\b/g)].length, 1, `${id} should have one named provider link`);
+    assert.doesNotMatch(sources, />Price source</);
   }
+  assert.doesNotMatch(html, /Methodology and benchmark notes|data-copy-view|data-view-link/);
   for (const id of ['jkm-q4-2026', 'blpg3-q4-2026']) {
     const row = rows.find((row) => row[1] === id)[2];
     if (today <= '2026-12-31' && !row.includes('>Outcome<')) {
@@ -74,6 +78,21 @@ test('all trading-view call dates match the report publication dates', () => {
   }
 });
 
+test('view targets remain stable and earlier reference dates are disclosed', () => {
+  const html = readFileSync(join(DIST, 'research/index.html'), 'utf8');
+  const content = readFileSync(join(ROOT, 'src/content/views.yaml'), 'utf8');
+  for (const block of content.split(/(?=^- id: )/m).slice(1)) {
+    const id = block.match(/^- id: (.+)$/m)[1];
+    const formed = block.match(/^  formed: (.+)$/m)[1];
+    const referenceDate = block.match(/^  entry:\n(?:    [^\n]*\n)*?    date: (\d{4}-\d{2}-\d{2})$/m)?.[1];
+    const row = html.match(new RegExp(`<li[^>]*id="view-${id}"[^>]*>([\\s\\S]*?)<\\/li>`))?.[1];
+    assert.ok(row, `${id} has no shareable target`);
+    assert.equal(html.split(` id="view-${id}"`).length - 1, 1, `${id} has duplicate targets`);
+    assert.doesNotMatch(row, /data-copy-view|data-view-link/, `${id} still has sharing controls`);
+    assert.equal(row.includes('Pre-publication reference'), Boolean(referenceDate && referenceDate < formed), `${id} has an incorrect reference-date disclosure`);
+  }
+});
+
 const walk = (dir) =>
   readdirSync(dir).flatMap((name) => {
     const path = join(dir, name);
@@ -110,6 +129,7 @@ const research = readdirSync(RESEARCH_DIR)
     const source = read(join(RESEARCH_DIR, file));
     const field = (key) => source.match(new RegExp(`^${key}:\\s*["']?(.+?)["']?\\s*$`, 'm'))?.[1];
     const authorBlock = source.match(/^authors:[ \t]*\n((?:[ \t]+-[^\n]*(?:\n|$))+)/m)?.[1] ?? '';
+    const editorBlock = source.match(/^editors:[ \t]*\n((?:[ \t]+-[^\n]*(?:\n|$))+)/m)?.[1] ?? '';
     return {
       slug: file.replace(/\.md$/, ''),
       title: field('title'),
@@ -117,6 +137,7 @@ const research = readdirSync(RESEARCH_DIR)
       status: field('publicationStatus'),
       type: field('type'),
       authors: [...authorBlock.matchAll(/^[ \t]+-[ \t]+(.+)$/gm)].map((match) => match[1].replace(/^["']|["']$/g, '')),
+      editors: [...editorBlock.matchAll(/^[ \t]+-[ \t]+(.+)$/gm)].map((match) => match[1].replace(/^["']|["']$/g, '')),
     };
   });
 
@@ -197,9 +218,17 @@ test('co-authors are credited on detail pages and omitted from selected research
     } else {
       assert.ok(!credits, `${entry.slug} should not have a co-author credit`);
     }
+    if (entry.editors.length) {
+      const editorCredit = html.match(/<[^>]*data-research-editors[^>]*>([\s\S]*?)<\/(?:span|p)>/)?.[1];
+      assert.ok(editorCredit, `${entry.slug} has no editor credit`);
+      const structured = JSON.parse(html.match(/<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/)[1]).mainEntity;
+      assert.deepEqual(structured.author.map((person) => person.name), entry.authors);
+      assert.deepEqual(structured.editor.map((person) => person.name), entry.editors);
+      for (const editor of entry.editors) assert.ok(visibleText(editorCredit).includes(editor), `${entry.slug} omits its editor`);
+    }
   }
   const home = visibleText(read(join(DIST, 'index.html')));
-  assert.doesNotMatch(home, /Co-authored with|Co-authors:|Sole author/i, 'author credits appear on the homepage');
+  assert.doesNotMatch(home, /Co-authored with|Co-authors:|Sole author|Edited by/i, 'author credits appear on the homepage');
 });
 
 test('every former orbit illustration is replaced by a sourced report-specific exhibit', () => {

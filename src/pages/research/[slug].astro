@@ -75,6 +75,7 @@ const jsonLd = {
     ...(data.date ? { datePublished: data.date } : {}),
     publisher: { '@type': 'Organization', name: data.venue.name },
     author: data.authors.map((name) => ({ '@type': 'Person', name })),
+    ...(data.editors.length ? { editor: data.editors.map((name) => ({ '@type': 'Person', name })) } : {}),
     ...(data.originalUrl ? { url: data.originalUrl } : {}),
   },
 };
@@ -101,8 +102,14 @@ const jsonLd = {
       {coAuthors.length > 0 && (
         <div class="report-header__credits" data-research-credits>
           <p>Co-authored with {formatAuthors(coAuthors)}.</p>
-          {data.authorshipNote && <p class="report-header__credit-note">{data.authorshipNote}</p>}
+          {data.editors.length > 0 && <p data-research-editors>Edited by {formatAuthors(data.editors)}.</p>}
         </div>
+      )}
+      {data.authors.length === 1 && data.authors[0] === profile.name && (
+        <p class="report-header__credits" data-research-author>
+          Written by {profile.name}.
+          {data.editors.length > 0 && <>{' '}<span data-research-editors>Edited by {formatAuthors(data.editors)}.</span></>}
+        </p>
       )}
       <div class="report-header__mobile">
         <p class="report-header__byline">
@@ -463,11 +470,6 @@ const jsonLd = {
     color: var(--muted);
     font-size: var(--text-sm);
     line-height: 1.55;
-  }
-
-  .report-header__credit-note {
-    margin-top: var(--space-2);
-    font-size: var(--text-xs);
   }
 
   .report-header__mobile {
