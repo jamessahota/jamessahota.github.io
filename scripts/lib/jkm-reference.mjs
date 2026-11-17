@@ -13,6 +13,24 @@ function positive(value) {
   return typeof value === 'number' && Number.isFinite(value) && value > 0;
 }
 
+// The public quotation rounds decimal prices half up. Binary toFixed can round
+// 27.575 to 27.57, incorrectly rejecting the page's correctly rounded 27.58.
+// Compare integer decimal units, preserving the quotation's stated precision.
+function roundsToQuotation(value, quotation) {
+  const precision = quotation.split('.')[1]?.length ?? 0;
+  const [coefficient, exponent = '0'] = String(value).split('e');
+  const fractional = coefficient.split('.')[1]?.length ?? 0;
+  const digits = BigInt(coefficient.replace('.', ''));
+  const shift = precision + Number(exponent) - fractional;
+  let rounded;
+  if (shift >= 0) rounded = digits * 10n ** BigInt(shift);
+  else {
+    const divisor = 10n ** BigInt(-shift);
+    rounded = (digits + divisor / 2n) / divisor;
+  }
+  return rounded === BigInt(quotation.replace('.', ''));
+}
+
 function observations(document) {
   if (Array.isArray(document)) return document.flatMap(observations);
   if (!document || typeof document !== 'object') return [];
@@ -69,8 +87,7 @@ export function parseJkmReference(html, { now = new Date() } = {}) {
     fail('invalid chart metadata');
   }
   if (contract.symbol !== 'LNGJKM:COM' || contract.ticker !== 'LNGJKM:COM' || contract.full_name !== NAME || contract.name !== 'LNG JKM' || contract.type !== 'Commodity') fail('unexpected chart instrument');
-  const decimals = quote[1].split('.')[1]?.length ?? 0;
-  if (!positive(contract.value) || !positive(contract.last) || contract.value !== contract.last || Number(contract.value.toFixed(decimals)) !== value) fail('chart price disagrees with dated quotation');
+  if (!positive(contract.value) || !positive(contract.last) || contract.value !== contract.last || !roundsToQuotation(contract.value, quote[1])) fail('chart price disagrees with dated quotation');
   return { value, date, sourceUrl: JKM_REFERENCE_URL };
 }
 

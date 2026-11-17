@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { fetchJkmReference, JKM_REFERENCE_URL, parseJkmReference } from '../scripts/lib/jkm-reference.mjs';
+import { mergeCachedPrices, priceCache, refreshPrices } from '../scripts/lib/market-prices.mjs';
 
 // Minimal public markup captured from Trading Economics on 15 November 2026.
 // Keeps source observation (13th), modification (13th) and page update (14th) separate.
@@ -35,6 +36,81 @@ const now = new Date('2026-11-15T12:00:00Z');
 
 test('JKM reference uses the dated rounded public quotation, not the access/update date', () => {
   assert.deepEqual(parseJkmReference(fixture(), { now }), { value: 31.35, date: '2026-11-13', sourceUrl: JKM_REFERENCE_URL });
+});
+
+// Reproduces the public page captured on 16 November: its dated quotation and
+// visible price both say 27.58, while the higher-precision chart value is 27.575.
+const november16Page = () => fixture({
+  data: {
+    ...dataset,
+    description: description.replace('31.35 USD', '27.58 USD').replace('November 13, 2026', 'November 16, 2026'),
+    temporalCoverage: '2012-09-27/2026-11-16',
+    dateModified: '20261116T12:00:00.00Z',
+  },
+  meta: { ...metadata, value: 27.575, last: 27.575, converted_value: 27.575 },
+  visible: '27.58',
+}).replace('202611141716', '202611170000');
+
+test('the 16 November decimal midpoint refreshes to the dated public quote', () => {
+  assert.deepEqual(parseJkmReference(november16Page(), { now: new Date('2026-11-17T00:30:00Z') }), {
+    value: 27.58, date: '2026-11-16', sourceUrl: JKM_REFERENCE_URL,
+  });
+});
+
+test('chart validation rounds decimal midpoints and carries at the quotation precision', () => {
+  for (const [raw, quoted] of [
+    [27.575, '27.58'], [31.345, '31.35'], [31.355, '31.36'],
+    [1.005, '1.01'], [9.995, '10.00'], [27.5749, '27.57'],
+    [27.55, '27.6'], [27.5, '28'], [0.00000015, '0.0000002'],
+    [1000000000000000000000, '1000000000000000000000'],
+  ]) {
+    const html = fixture({
+      data: { ...dataset, description: description.replace('31.35 USD', `${quoted} USD`) },
+      meta: { ...metadata, value: raw, last: raw },
+      visible: quoted,
+    });
+    assert.equal(parseJkmReference(html, { now }).value, Number(quoted), `${raw} should agree with ${quoted}`);
+  }
+});
+
+test('rounding support still rejects chart prices outside the quoted rounding interval', () => {
+  for (const raw of [31.3449, 31.355, 31.36, 32.15]) {
+    assert.throws(() => parseJkmReference(fixture({ meta: { ...metadata, value: raw, last: raw } }), { now }), /chart price disagrees/);
+  }
+});
+
+test('a corrected JKM refresh advances the saved quote, clears failure and survives cache restore', async () => {
+  const checked = new Date('2026-11-17T00:30:00Z');
+  const config = { jkm: {
+    label: 'JKM (indicative CFD)', unit: 'US$ per MMBtu', sourceUrl: JKM_REFERENCE_URL,
+    fetch: { provider: 'tradingeconomics', series: 'jkm-indicative' },
+    value: 31.35, date: '2026-11-13', checkedAt: now.toISOString(), refreshStatus: 'failed',
+  } };
+  const options = { now: checked, jkmLoader: fetchJkmReference,
+    fetchImpl: async () => new Response(november16Page(), { headers: { 'content-type': 'text/html' } }),
+  };
+  const { prices, failures } = await refreshPrices(config, options);
+  assert.equal(failures, 0);
+  assert.equal(config.jkm.value, 31.35);
+  assert.equal(prices.jkm.value, 27.58);
+  assert.equal(prices.jkm.date, '2026-11-16');
+  assert.equal(prices.jkm.checkedAt, checked.toISOString());
+  assert.equal(prices.jkm.refreshStatus, 'ok');
+  const restored = mergeCachedPrices(config, priceCache(prices), checked);
+  assert.equal(restored.jkm.value, 27.58);
+  assert.equal(restored.jkm.date, '2026-11-16');
+  const repeated = await refreshPrices(restored, options);
+  assert.equal(repeated.failures, 0);
+  assert.equal(repeated.prices.jkm.refreshStatus, 'ok');
+  assert.equal(repeated.prices.jkm.value, 27.58);
+  const unavailable = await refreshPrices(repeated.prices, {
+    ...options, fetchImpl: async () => new Response('unavailable', { status: 503 }),
+  });
+  assert.equal(unavailable.failures, 1);
+  assert.equal(unavailable.prices.jkm.value, 27.58);
+  assert.equal(unavailable.prices.jkm.date, '2026-11-16');
+  assert.equal(unavailable.prices.jkm.checkedAt, checked.toISOString());
+  assert.equal(unavailable.prices.jkm.refreshStatus, 'failed');
 });
 
 test('a wrong commodity, currency, unit, or unidentified reference basis cannot refresh JKM', () => {

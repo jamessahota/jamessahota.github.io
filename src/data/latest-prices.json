@@ -78,10 +78,10 @@
       "provider": "tradingeconomics",
       "series": "jkm-indicative"
     },
-    "value": 31.35,
-    "date": "2026-11-13",
-    "lastAttemptAt": "2026-11-16T05:57:42.878Z",
-    "checkedAt": "2026-11-16T05:57:42.878Z",
+    "value": 27.58,
+    "date": "2026-11-16",
+    "lastAttemptAt": "2026-11-17T00:23:18.915Z",
+    "checkedAt": "2026-11-17T00:23:18.915Z",
     "refreshStatus": "ok"
   }
 }
