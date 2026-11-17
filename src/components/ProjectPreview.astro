@@ -1,0 +1,102 @@
+---
+import ButtonLink from './ButtonLink.astro';
+import InvestmentBridge from './InvestmentBridge.astro';
+import ProjectFlow from './ProjectFlow.astro';
+import { projectPath, type Project } from '../lib/content';
+import { formatPeriod } from '../lib/dates';
+
+interface Props {
+  entry: Project;
+  heading?: 'h2' | 'h3';
+  id?: string;
+}
+
+const { entry, heading: Heading = 'h3', id } = Astro.props;
+const { data } = entry;
+const investment = data.investmentCase;
+const headingId = `${entry.id}-preview-heading`;
+const title = investment ? data.title.split(':')[0] : data.title;
+---
+
+<article id={id} class:list={['project-preview', { 'project-preview--investment': Boolean(investment) }]} aria-labelledby={headingId}>
+  <div class="project-preview__text" data-reveal>
+    <p class="label label--accent">{investment ? `Investment proposal · ${formatPeriod(data.start, data.end)}` : 'Research system'}</p>
+    <Heading class="project-preview__title" id={headingId}>
+      <span style={`view-transition-name: project-title-${entry.id.replace(/[^a-zA-Z0-9_-]/g, '-')}`}>{title}</span>
+    </Heading>
+    {investment && <p class="project-preview__context">Prepared for {investment.preparedFor}</p>}
+    <p class="project-preview__summary">{data.homeSummary ?? data.summary}</p>
+    <ButtonLink href={projectPath(entry)} label={investment ? 'Explore the proposal' : 'Explore the project'} icon="arrow-right" />
+  </div>
+  <div class="project-preview__system">
+    {investment ? (
+      <InvestmentBridge items={investment.ebitdaBridge} compact />
+    ) : (
+      <>
+        <ProjectFlow compact />
+        {data.facts && (
+          <div class="project-preview__facts" data-reveal="2">
+            <dl>
+              {data.facts.map((fact, position) => (
+                <div style={`--i:${position}`}>
+                  <dt class="numeric"><span>{fact.value}</span></dt>
+                  <dd>{fact.label}</dd>
+                </div>
+              ))}
+            </dl>
+            {data.factsNote && <p class="project-preview__note">{data.factsNote}</p>}
+          </div>
+        )}
+      </>
+    )}
+  </div>
+</article>
+
+<style>
+  .project-preview {
+    display: grid;
+    gap: var(--space-5);
+    padding: clamp(1.25rem, 2.3vw, 2rem);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--surface);
+    scroll-margin-top: calc(var(--header-height) + var(--space-5));
+  }
+
+  .project-preview + .project-preview { margin-top: var(--space-4); }
+  .project-preview--investment { background: transparent; border-radius: 0; }
+  .project-preview__text { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-3); }
+  .project-preview__title { font-family: var(--display); font-size: clamp(2rem, 3.2vw, 3.1rem); font-weight: 400; line-height: 1.05; text-transform: uppercase; letter-spacing: -.02em; }
+  .project-preview__title span { display: block; }
+  .project-preview__context { color: var(--muted); font-size: var(--text-sm); }
+  .project-preview__summary { max-width: 36rem; font-size: var(--text-base); line-height: 1.5; color: var(--ink-2); }
+  .project-preview__system { min-width: 0; display: grid; gap: var(--space-4); }
+
+  .project-preview__facts dl {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.7fr);
+    gap: var(--space-3);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--line);
+  }
+
+  .project-preview__facts dl > div { display: grid; min-width: 0; align-content: start; row-gap: var(--space-2); }
+  .project-preview__facts dt { overflow: clip; font-size: clamp(1.125rem, 2vw, 1.75rem); font-weight: 560; line-height: 1; letter-spacing: -.045em; white-space: nowrap; }
+  .project-preview__facts dt span { display: block; padding-bottom: .06em; }
+  .project-preview__facts dd { font-size: var(--text-xs); line-height: 1.45; color: var(--muted); }
+  .project-preview__note { margin-top: var(--space-3); font-family: var(--mono); font-size: var(--text-xs); line-height: 1.55; color: var(--muted); }
+
+  .project-preview__facts:global(.reveal-wait) dt span { transform: translateY(115%); }
+  .project-preview__facts:global(.reveal-in) dt span { transform: none; transition: transform .9s var(--ease-out) calc(.2s + var(--i) * 110ms); }
+  .project-preview__facts:global(.reveal-wait) dd { opacity: 0; }
+  .project-preview__facts:global(.reveal-in) dd { opacity: 1; transition: opacity .6s var(--ease) calc(.5s + var(--i) * 110ms); }
+
+  @media (min-width: 62rem) {
+    .project-preview { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); align-items: center; }
+  }
+
+  @media print {
+    .project-preview__facts dt span { transform: none !important; }
+    .project-preview__facts dd { opacity: 1 !important; }
+  }
+</style>

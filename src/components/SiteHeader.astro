@@ -21,14 +21,14 @@ const current = (href: string) => (path === href ? 'page' : path.startsWith(href
       <span class="nav-toggle__icon" aria-hidden="true"></span>
     </button>
 
-    <nav id="site-nav" class="nav" aria-label="Primary">
+    <nav id="site-nav" class="nav" aria-label="Primary" style={`--nav-last-order:${NAV.length + 1}`}>
       <p class="nav__eyebrow label">Navigation</p>
       <ul>
         {
           NAV.map((item, index) => (
             <li style={`--nav-order:${index}`}>
               <a class="nav__link" href={item.href} aria-current={current(item.href)}>
-                <span class="nav__number" aria-hidden="true">0{index + 1}</span>
+                <span class="nav__number" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
                 <span>{item.label}</span>
                 <span class="nav__arrow" aria-hidden="true"><Icon name="arrow-up-right" /></span>
                 {current(item.href) && <span class="nav__underline" aria-hidden="true" />}
@@ -36,15 +36,15 @@ const current = (href: string) => (path === href ? 'page' : path.startsWith(href
             </li>
           ))
         }
-        <li style="--nav-order:3">
+        <li style={`--nav-order:${NAV.length}`}>
           <a class="nav__link nav__link--cv" href="/cv/" aria-current={current('/cv/')}>
-            <span class="nav__number" aria-hidden="true">04</span><span>CV</span>
+            <span class="nav__number" aria-hidden="true">{String(NAV.length + 1).padStart(2, '0')}</span><span>CV</span>
             <span class="nav__arrow" aria-hidden="true"><Icon name="arrow-up-right" /></span>
           </a>
         </li>
-        <li style="--nav-order:4">
+        <li style={`--nav-order:${NAV.length + 1}`}>
           <a class="nav__link nav__link--contact" href="#contact">
-            <span class="nav__number" aria-hidden="true">05</span><span>Contact</span>
+            <span class="nav__number" aria-hidden="true">{String(NAV.length + 2).padStart(2, '0')}</span><span>Contact</span>
             <span class="nav__arrow" aria-hidden="true"><Icon name="arrow-up-right" /></span>
           </a>
         </li>
@@ -709,7 +709,7 @@ const current = (href: string) => (path === href ? 'page' : path.startsWith(href
     :global(.has-nav-toggle) .nav[data-closing] li {
       transform: translateY(-1rem);
       transition-duration: 300ms;
-      transition-delay: calc((4 - var(--nav-order, 0)) * 30ms);
+      transition-delay: calc((var(--nav-last-order, 4) - var(--nav-order, 0)) * 30ms);
     }
 
     :global(.has-nav-toggle) .nav__contact {

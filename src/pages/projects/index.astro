@@ -1,0 +1,24 @@
+---
+import ProjectPreview from '../../components/ProjectPreview.astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getPublicProjects } from '../../lib/content';
+
+const projects = (await getPublicProjects()).sort((a, b) => Number(b.data.featured) - Number(a.data.featured));
+const description = 'Independent projects by James Sahota in AI-assisted commodities research and European infrastructure investment.';
+---
+
+<BaseLayout title="Projects" description={description}>
+  <header class="page-header container">
+    <p class="label"><span class="label--accent">{String(projects.length).padStart(2, '0')}</span> / Independent projects</p>
+    <h1 class="display">Projects</h1>
+    <p class="lede">Independent work in commodities research and infrastructure investment.</p>
+  </header>
+
+  <section class="container projects-list" aria-label="Independent projects">
+    {projects.map((entry) => <ProjectPreview entry={entry} heading="h2" />)}
+  </section>
+</BaseLayout>
+
+<style>
+  .projects-list { padding-bottom: clamp(4rem, 7vw, 7rem); }
+</style>

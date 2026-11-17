@@ -28,9 +28,9 @@ const sections = headings.filter((heading) => heading.depth === 2);
 <BaseLayout title={data.title} description={data.summary} ogType="article">
   <article>
     <header class="container page-header project-header">
-      <a class="arrow-link arrow-link--back" href="/experience/">
+      <a class="arrow-link arrow-link--back" href="/projects/">
         <Icon name="arrow-left" />
-        Experience
+        All projects
       </a>
       <p class="label label--marked kicker">
         {data.kind} · {formatPeriod(data.start, data.end)}
@@ -84,9 +84,9 @@ const sections = headings.filter((heading) => heading.depth === 2);
         </div>
       </div>
 
-      <a class="arrow-link arrow-link--back back" href="/experience/">
+      <a class="arrow-link arrow-link--back back" href="/projects/">
         <Icon name="arrow-left" />
-        Back to experience
+        Back to projects
       </a>
     </div>
   </article>

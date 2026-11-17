@@ -2,11 +2,10 @@
 import ButtonLink from '../components/ButtonLink.astro';
 import FlowPanel from '../components/FlowPanel.astro';
 import FlagshipCase from '../components/FlagshipCase.astro';
-import InvestmentBridge from '../components/InvestmentBridge.astro';
 import LookingFor from '../components/LookingFor.astro';
 import Icon from '../components/Icon.astro';
 import ResearchCard from '../components/ResearchCard.astro';
-import ProjectFlow from '../components/ProjectFlow.astro';
+import ProjectPreview from '../components/ProjectPreview.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import {
   getExperience,
@@ -16,7 +15,6 @@ import {
   getPublicProjects,
   getPublicResearch,
   hasDetailPage,
-  projectPath,
   researchPath,
 } from '../lib/content';
 import { formatPeriod } from '../lib/dates';
@@ -138,42 +136,11 @@ const jsonLd = {
             <p class="label"><span class="label--accent">02</span> / Projects</p>
             <h2 id="projects-heading">Independent projects</h2>
           </div>
+          <ButtonLink href="/projects/" label="All projects" variant="secondary" icon="arrow-right" />
         </div>
-        <article class="panel panel--surface project" aria-labelledby="project-heading">
-          <div class="project__text" data-reveal>
-            <p class="label label--accent">Research system</p>
-            <h3 id="project-heading"><span style={`view-transition-name: project-title-${project.id.replace(/[^a-zA-Z0-9_-]/g, '-')}`}>{project.data.title}</span></h3>
-            <p class="project__summary">{project.data.homeSummary ?? project.data.summary}</p>
-            <ButtonLink href={projectPath(project)} label="Explore the project" icon="arrow-right" />
-          </div>
-          <div class="project__system">
-            <ProjectFlow compact />
-          {project.data.facts && (
-            <div class="project__facts" data-reveal="2">
-              <dl>
-                {project.data.facts.map((fact, position) => (
-                  <div style={`--i:${position}`}>
-                    <dt class="numeric"><span>{fact.value}</span></dt>
-                    <dd>{fact.label}</dd>
-                  </div>
-                ))}
-              </dl>
-              {project.data.factsNote && <p class="project__note">{project.data.factsNote}</p>}
-            </div>
-          )}
-          </div>
-        </article>
+        <ProjectPreview entry={project} />
         {investmentProject?.data.investmentCase && (
-          <article id="investment-proposal" class="investment-project" aria-labelledby="investment-project-heading">
-            <div class="project__text" data-reveal>
-              <p class="label label--accent">Investment proposal · {formatPeriod(investmentProject.data.start, investmentProject.data.end)}</p>
-              <h3 id="investment-project-heading"><span style={`view-transition-name: project-title-${investmentProject.id}`}>Bioenerys Agri</span></h3>
-              <p class="investment-project__context">Prepared for {investmentProject.data.investmentCase.preparedFor}</p>
-              <p class="project__summary">{investmentProject.data.homeSummary ?? investmentProject.data.summary}</p>
-              <ButtonLink href={projectPath(investmentProject)} label="Explore the proposal" icon="arrow-right" />
-            </div>
-            <InvestmentBridge items={investmentProject.data.investmentCase.ebitdaBridge} compact />
-          </article>
+          <ProjectPreview entry={investmentProject} id="investment-proposal" />
         )}
       </section>
     )
@@ -391,13 +358,7 @@ const jsonLd = {
   .flagship-section { padding-top:clamp(2.5rem,5vw,5rem); }
   .home-experience { position:relative; overflow:hidden; padding:clamp(1.5rem,5vw,4.5rem); background:radial-gradient(ellipse at 100% 100%,#3c251d,transparent 70%),#111719; }
   .roles__index { font-family:var(--display); font-size:3rem; color:#ff6a33; line-height:1; }
-  .project__system { min-width:0; display:grid; gap:var(--space-4); }
-  .projects-section, .investment-project { scroll-margin-top:calc(var(--header-height) + var(--space-5)); }
-  .investment-project { display:grid; gap:var(--space-5); margin-top:var(--space-4); padding:clamp(1.25rem,2.3vw,2rem); border:1px solid var(--line); }
-  .investment-project__context { color:var(--muted); font-size:var(--text-sm); }
-  @media(min-width:62rem) { .investment-project { grid-template-columns:minmax(0,1fr) minmax(0,1.1fr); align-items:center; } }
-  .project__text h3 { font-family:var(--display); font-size:clamp(2rem,3.2vw,3.1rem); font-weight:400; line-height:1.05; text-transform:uppercase; letter-spacing:-.02em; }
-  .project__text h3 span { display:block; }
+  .projects-section { scroll-margin-top:calc(var(--header-height) + var(--space-5)); }
   .home-about { display:grid; align-items:center; gap:clamp(2rem,5vw,5rem); }
   .home-about .closing__text { max-width:42rem; font-size:clamp(1.6rem,2.8vw,2.8rem); line-height:1.2; }
   @media(min-width:56rem) { .home-about { grid-template-columns:repeat(2,minmax(0,1fr)); } }
@@ -405,14 +366,6 @@ const jsonLd = {
   @media(max-width:47.99rem) {
     .roles__index { font-size:2.5rem; }
   }
-  /* The project's figures land whole, one after another, like the key numbers in a report. */
-  .project__facts dt { overflow:clip; }
-  .project__facts dt span { display:block; padding-bottom:.06em; }
-  .project__facts:global(.reveal-wait) dt span { transform:translateY(115%); }
-  .project__facts:global(.reveal-in) dt span { transform:none; transition:transform .9s var(--ease-out) calc(.2s + var(--i)*110ms); }
-  .project__facts:global(.reveal-wait) dd { opacity:0; }
-  .project__facts:global(.reveal-in) dd { opacity:1; transition:opacity .6s var(--ease) calc(.5s + var(--i)*110ms); }
-  @media print { .project__facts dt span { transform:none !important; } .project__facts dd { opacity:1 !important; } }
 
   .glance {
     margin-top: var(--gutter);
@@ -660,72 +613,6 @@ const jsonLd = {
   .roles__summary {
     max-width: 34rem;
     color: color-mix(in srgb, var(--panel-ink) 84%, transparent);
-  }
-
-  /* Project */
-  .project {
-    display: grid;
-    gap: var(--space-5);
-    padding: clamp(1.25rem, 2.3vw, 2rem);
-  }
-
-  @media (min-width: 62rem) {
-    .project {
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
-      align-items: center;
-    }
-  }
-
-  .project__text {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--space-3);
-  }
-
-  .project__summary {
-    max-width: 36rem;
-    font-size: var(--text-base);
-    line-height: 1.5;
-    color: var(--ink-2);
-  }
-
-  /* Keep the simulation figures in a compact row beneath the workflow. */
-  .project__facts dl {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.7fr);
-    gap: var(--space-3);
-    padding-top: var(--space-4);
-    border-top: 1px solid var(--line);
-  }
-
-  .project__facts dl > div {
-    display: grid;
-    min-width: 0;
-    align-content: start;
-    row-gap: var(--space-2);
-  }
-
-  .project__facts dt {
-    font-size: clamp(1.125rem, 2vw, 1.75rem);
-    font-weight: 560;
-    line-height: 1;
-    letter-spacing: -0.045em;
-    white-space: nowrap;
-  }
-
-  .project__facts dd {
-    font-size: var(--text-xs);
-    line-height: 1.45;
-    color: var(--muted);
-  }
-
-  .project__note {
-    margin-top: var(--space-3);
-    font-family: var(--mono);
-    font-size: var(--text-xs);
-    line-height: 1.55;
-    color: var(--muted);
   }
 
   /* About */
