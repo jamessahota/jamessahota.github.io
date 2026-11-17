@@ -42,8 +42,10 @@ const sections = headings.filter((heading) => heading.depth === 2);
         <div class="project-actions">
           <ButtonLink href={data.investmentCase.pdf} label="View pitch (PDF)" icon="arrow-up-right" />
           <ButtonLink href={data.investmentCase.slides} label="Download slides" variant="secondary" icon="download" download />
+          {data.investmentCase.workbook && <ButtonLink href={data.investmentCase.workbook} label="Download model (Excel)" variant="secondary" icon="download" download />}
         </div>
       )}
+      {data.investmentCase?.workbook && <p class="project-model-note">Bull and Bear cases use clearly flagged, reconstructed assumptions.</p>}
       {sections.length > 0 && (
         <nav class="project-jumps side-scroll" aria-label="Jump to project section">
           {sections.map((section) => (
@@ -114,6 +116,7 @@ const sections = headings.filter((heading) => heading.depth === 2);
   .project-header .lede { max-width: 47rem; }
   .project-prepared { margin-top: var(--space-3); color: var(--muted); font-size: var(--text-sm); }
   .project-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-5); }
+  .project-model-note { margin-top: var(--space-3); color: var(--muted); font-size: var(--text-sm); }
   .investment-scene { margin-top: var(--space-7); }
   .project-jumps { display: flex; flex-wrap: wrap; gap: 0.2rem 1.5rem; margin-top: var(--space-5); }
   .project-jumps .arrow-link { font-size: 0.6875rem; }

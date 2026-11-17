@@ -25,6 +25,7 @@ investmentCase:
   preparedFor: Vesper Infrastructure Partners
   pdf: /presentations/bioenerys-agri-investment-proposal.pdf
   slides: /presentations/bioenerys-agri-investment-proposal.pptx
+  workbook: /models/bioenerys-agri-operating-model.xlsx
   ebitdaBridge:
     - label: At closing
       value: 20.2

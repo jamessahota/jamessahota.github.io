@@ -287,6 +287,7 @@ const projects = defineCollection({
       preparedFor: z.string(),
       pdf: publicFile,
       slides: publicFile,
+      workbook: publicFile.optional(),
       ebitdaBridge: z.array(z.object({
         label: z.string(),
         value: z.number(),
