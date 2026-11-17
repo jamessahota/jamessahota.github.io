@@ -324,7 +324,9 @@ test('the flagship case appears on the homepage only and uses the approved refer
   }
   const home = read(join(DIST, 'index.html'));
   const hero = home.match(/<div[^>]*class="hero__actions"[^>]*>([\s\S]*?)<\/div>\s*<\/div>/)?.[1];
-  assert.ok(hero?.includes(`href="${href}"`), 'the opening needs a direct route to the flagship case');
+  assert.ok(hero?.includes('href="/research/"'), 'the opening needs a clear route to the research archive');
+  assert.match(visibleText(hero), /Explore research/i);
+  assert.ok(!hero.includes(`href="${href}"`), 'the opening should introduce the research before a specific case study');
   const archive = read(join(DIST, 'research/index.html'));
   assert.doesNotMatch(archive, /data-flagship-case=/, 'the research archive must not repeat the homepage feature');
   assert.match(archive, /data-item[^>]*data-vt-key="phillips-66-q1-losses"/, 'the case must remain a normal research entry');

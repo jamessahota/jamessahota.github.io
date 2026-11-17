@@ -15,7 +15,6 @@ import {
   getPublicProjects,
   getPublicResearch,
   hasDetailPage,
-  researchPath,
 } from '../lib/content';
 import { formatPeriod } from '../lib/dates';
 
@@ -53,13 +52,7 @@ const jsonLd = {
       <div class="hero__lower">
         <p class="hero__intro">{profile.intro}</p>
         <div class="hero__actions">
-          {flagship ? (
-            <div class="hero__flagship-action" data-vt-key={flagship.id}>
-              <ButtonLink href={`${researchPath(flagship)}#summary-heading`} label="View case study" variant="on-dark" icon="arrow-right" />
-            </div>
-          ) : (
-            <ButtonLink href="/research/" label="Explore research" variant="on-dark" icon="arrow-right" />
-          )}
+          <ButtonLink href="/research/" label="Explore research" variant="on-dark" icon="arrow-right" />
           <ButtonLink href="/cv/" label="View CV" variant="outline-dark" />
         </div>
       </div>
@@ -321,10 +314,6 @@ const jsonLd = {
     flex-wrap: wrap;
     gap: var(--space-3);
     animation: hero-detail-in 1s var(--ease-out) 0.7s both;
-  }
-
-  .hero__flagship-action {
-    display: flex;
   }
 
   @keyframes hero-line-in {
