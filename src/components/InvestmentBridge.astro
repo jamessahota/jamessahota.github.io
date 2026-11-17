@@ -1,0 +1,89 @@
+---
+interface Props {
+  items: { label: string; value: number; kind: 'total' | 'change' }[];
+  compact?: boolean;
+}
+
+const { items, compact = false } = Astro.props;
+const ceiling = Math.ceil(Math.max(...items.map((item) => item.value),
+  items[0]!.value + items.slice(1, -1).filter((item) => item.value > 0).reduce((sum, item) => sum + item.value, 0)) / 20) * 20;
+let running = 0;
+const shortLabels: Record<string, string> = {
+  'At closing': 'Start', Conversions: 'Build', Feedstock: 'Feed', Reliability: 'Ops',
+  'Cost inflation': 'Costs', Other: 'Other', '2031 EBITDA': '2031',
+};
+const bars = items.map((item) => {
+  const before = item.kind === 'total' ? 0 : running;
+  const after = item.kind === 'total' ? item.value : running + item.value;
+  running = after;
+  return { ...item, bottom: Math.min(before, after) / ceiling * 100, height: Math.abs(after - before) / ceiling * 100,
+    high: Math.max(before, after) / ceiling * 100,
+    display: `${item.kind === 'change' && item.value > 0 ? '+' : item.value < 0 ? '−' : ''}${Math.abs(item.value).toFixed(1)}` };
+});
+---
+
+<figure class:list={['investment-bridge', { 'investment-bridge--compact': compact }]} data-reveal data-investment-bridge>
+  <div class="bridge__heading">
+    <p class="label">Modelled EBITDA · €m</p>
+    <p class="bridge__title">Where the earnings growth comes from</p>
+  </div>
+  <div class="bridge__chart">
+    <div class="bridge__axis numeric" aria-hidden="true">
+      {[0, 20, 40, 60].filter((tick) => tick <= ceiling).map((tick) => <span style={`bottom:${tick / ceiling * 100}%`}>{tick}</span>)}
+    </div>
+    <ol class="bridge__bars" role="list">
+      {bars.map((bar, index) => (
+        <li style={`--i:${index}`} aria-label={`${bar.label}: ${bar.display} million euros`}>
+          <div class="bridge__plot">
+            <span class:list={['bridge__bar', { 'bridge__bar--total': bar.kind === 'total', 'bridge__bar--negative': bar.value < 0 }]}
+              style={`bottom:${bar.bottom}%;height:${bar.height}%`} aria-hidden="true" />
+            <span class="bridge__value numeric" style={`bottom:${bar.high}%`} aria-hidden="true">{bar.display}</span>
+          </div>
+          <span class="bridge__label" title={bar.label} aria-hidden="true"><span class="bridge__label-full">{bar.label}</span><span class="bridge__label-short">{shortLabels[bar.label] ?? bar.label}</span></span>
+        </li>
+      ))}
+    </ol>
+  </div>
+  <figcaption>Closing run rate to 2031. Projections from the October 2026 proposal, slide 14.</figcaption>
+</figure>
+
+<style>
+  .investment-bridge { --plot-height: clamp(12rem, 22vw, 19rem); container-type: inline-size; min-width: 0; padding: clamp(1.25rem, 3vw, 2.5rem); background: var(--surface); border: 1px solid var(--line); }
+  .bridge__heading .label { color: var(--muted); }
+  .bridge__title { margin-top: .65rem; max-width: 24ch; font-size: clamp(1.4rem, 2.8vw, 2.5rem); font-weight: 550; line-height: 1.08; letter-spacing: -.04em; }
+  .bridge__chart { position: relative; margin-top: 3rem; padding-left: 1.7rem; }
+  .bridge__axis { position: absolute; top: 0; left: 0; height: var(--plot-height); font-family: var(--mono); font-size: .625rem; color: var(--muted); }
+  .bridge__axis span { position: absolute; transform: translateY(50%); }
+  .bridge__bars { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: clamp(.2rem, 1vw, 1rem); padding: 0; list-style: none; }
+  .bridge__bars li { min-width: 0; }
+  .bridge__plot { position: relative; height: var(--plot-height); border-bottom: 1px solid var(--ink); background: repeating-linear-gradient(to top, transparent 0, transparent calc(33.333% - 1px), var(--line) calc(33.333% - 1px), var(--line) 33.333%); }
+  .bridge__bar { position: absolute; left: 10%; width: 80%; background: var(--accent); min-height: 2px; }
+  .bridge__bar--total { background: var(--ink); }
+  .bridge__bar--negative { background: #a74732; }
+  .bridge__value { position: absolute; left: 50%; transform: translate(-50%, -.4rem); font-size: clamp(.66rem, 1.6vw, 1rem); font-weight: 600; white-space: nowrap; }
+  .bridge__label { display: block; margin-top: .75rem; font-size: clamp(.6rem, 1vw, .8rem); line-height: 1.35; }
+  .bridge__label-short { display: none; }
+  @container (max-width: 32rem) {
+    .bridge__label-full { display: none; }
+    .bridge__label-short { display: inline; }
+  }
+  figcaption { margin-top: 1.25rem; font-family: var(--mono); font-size: var(--text-xs); line-height: 1.6; color: var(--muted); }
+  .investment-bridge--compact { --plot-height: 8rem; padding: 1rem; }
+  .investment-bridge--compact .bridge__title { max-width: 30ch; font-size: 1.2rem; }
+  .investment-bridge--compact .bridge__chart { margin-top: 2.25rem; }
+  .investment-bridge--compact .bridge__value { font-size: .75rem; }
+  .investment-bridge--compact .bridge__label { font-size: .625rem; }
+  .investment-bridge--compact figcaption { margin-top: .75rem; font-size: .625rem; }
+  @media (max-width: 35rem) {
+    .investment-bridge--compact { padding: 0; border: 0; background: transparent; }
+    .investment-bridge--compact .bridge__value { font-size: .625rem; }
+    .investment-bridge--compact .bridge__label { white-space: nowrap; }
+  }
+  .investment-bridge:global(.reveal-in) .bridge__bar { animation: bridge-arrive 1s var(--ease-out) calc(var(--i) * 90ms) both; }
+  .investment-bridge:global(.reveal-in) .bridge__bar--negative { animation-name: bridge-arrive-negative; }
+  @keyframes bridge-arrive { from { clip-path: inset(100% 0 0); } to { clip-path: inset(0); } }
+  @keyframes bridge-arrive-negative { from { clip-path: inset(0 0 100%); } to { clip-path: inset(0); } }
+  @media (prefers-reduced-motion: reduce) { .bridge__bar { animation: none !important; } }
+  :global([data-motion='paused']) .bridge__bar { animation: none !important; }
+  @media print { .bridge__bar { animation: none !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; } }
+</style>

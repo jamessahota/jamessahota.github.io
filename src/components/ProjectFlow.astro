@@ -14,7 +14,7 @@ const stages = [
 
 <figure class:list={['project-flow', { 'project-flow--compact': compact }]} data-project-flow data-loop-host aria-label="Research workflow">
   <div class="project-flow__field" aria-hidden="true">
-    <svg viewBox="0 0 1000 260" width="1000" height="260" fill="none" focusable="false">
+    <svg viewBox={compact ? '0 35 1000 200' : '0 0 1000 260'} width="1000" height={compact ? 200 : 260} fill="none" focusable="false">
       <g class="project-flow__wires">
         <path d="M-30 130H110C210 130 185 50 275 50H390C475 50 470 130 515 130H650C730 130 735 210 820 210H1030" />
         <path d="M-30 130H110C210 130 185 210 275 210H390C475 210 470 130 515 130H650C730 130 735 50 820 50H1030" />
@@ -135,7 +135,8 @@ const stages = [
   .project-flow__index { font-family: var(--mono); font-size: 0.65rem; color: #ff8a5c; }
   .project-flow__name { font-size: clamp(0.9rem, 0.8rem + 0.6vw, 1.25rem); font-weight: 550; letter-spacing: -0.02em; }
   .project-flow__stage p { max-width: 23ch; color: #aeb7bd; font-size: 0.875rem; line-height: 1.5; }
-  .project-flow--compact .project-flow__stages { padding-bottom: 1.5rem; }
+  .project-flow--compact .project-flow__field { padding-top: .5rem; }
+  .project-flow--compact .project-flow__stages { padding-bottom: .75rem; }
   .project-flow--compact .project-flow__stage { gap: 0.4rem; padding-inline: 0.5rem; }
   .project-flow--compact .project-flow__name { font-size: clamp(0.75rem, 0.65rem + 0.5vw, 1rem); }
   /* The compact flow sits in a narrow column on laptops too, so it goes two by two by its own width. */

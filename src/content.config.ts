@@ -275,6 +275,7 @@ const projects = defineCollection({
   schema: z.object({
     title: z.string(),
     summary: z.string().min(40).max(340),
+    homeSummary: z.string().min(40).max(200).optional(),
     kind: z.string(),
     start: partialDate,
     end: partialDate.optional(),
@@ -282,6 +283,22 @@ const projects = defineCollection({
     featured: z.boolean().default(false),
     facts: z.array(keyNumber).min(1).max(4).optional(),
     factsNote: z.string().optional(),
+    investmentCase: z.object({
+      preparedFor: z.string(),
+      pdf: publicFile,
+      slides: publicFile,
+      ebitdaBridge: z.array(z.object({
+        label: z.string(),
+        value: z.number(),
+        kind: z.enum(['total', 'change']),
+      })).min(3).refine((items) => {
+        const first = items[0]!;
+        const last = items.at(-1)!;
+        return first.kind === 'total' && last.kind === 'total' &&
+          items.slice(1, -1).every((item) => item.kind === 'change') &&
+          Math.abs(first.value + items.slice(1, -1).reduce((sum, item) => sum + item.value, 0) - last.value) < 0.05;
+      }, 'The modelled EBITDA bridge must reconcile to its final total'),
+    }).optional(),
     // Screenshots or sample outputs, shown above the case study text.
     figures: z.array(figure).min(1).optional(),
   }),

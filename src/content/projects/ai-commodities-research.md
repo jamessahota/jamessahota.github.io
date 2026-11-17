@@ -4,6 +4,9 @@ summary: >-
   A multi-agent research system that turns scheduled EIA releases into scenario forecasts and
   point-in-time backtests of hypothetical positions in energy futures, ETFs and equities, after
   transaction costs and risk controls.
+homeSummary: >-
+  A multi-agent system that turns EIA releases into scenario forecasts and backtests
+  hypothetical energy positions after costs and risk controls.
 kind: Independent project
 start: 2026-07
 visibility: public

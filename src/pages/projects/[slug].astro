@@ -1,7 +1,9 @@
 ---
 import { render } from 'astro:content';
+import ButtonLink from '../../components/ButtonLink.astro';
 import Figure from '../../components/Figure.astro';
 import Icon from '../../components/Icon.astro';
+import InvestmentBridge from '../../components/InvestmentBridge.astro';
 import KeyNumbers from '../../components/KeyNumbers.astro';
 import ProjectFlow from '../../components/ProjectFlow.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
@@ -33,8 +35,15 @@ const sections = headings.filter((heading) => heading.depth === 2);
       <p class="label label--marked kicker">
         {data.kind} · {formatPeriod(data.start, data.end)}
       </p>
+      {data.investmentCase && <p class="project-prepared">Prepared for {data.investmentCase.preparedFor}</p>}
       <h1 style={`view-transition-name: project-title-${entry.id.replace(/[^a-zA-Z0-9_-]/g, '-')}`}>{data.title}</h1>
       <p class="lede">{data.summary}</p>
+      {data.investmentCase && (
+        <div class="project-actions">
+          <ButtonLink href={data.investmentCase.pdf} label="View pitch (PDF)" icon="arrow-up-right" />
+          <ButtonLink href={data.investmentCase.slides} label="Download slides" variant="secondary" icon="download" download />
+        </div>
+      )}
       {sections.length > 0 && (
         <nav class="project-jumps side-scroll" aria-label="Jump to project section">
           {sections.map((section) => (
@@ -45,8 +54,9 @@ const sections = headings.filter((heading) => heading.depth === 2);
     </header>
 
     <div class="container">
-      <div class="project-scene" data-reveal><ProjectFlow /></div>
-      {data.facts && <KeyNumbers items={data.facts} note={data.factsNote} heading="Simulation scope" />}
+      {!data.investmentCase && <div class="project-scene" data-reveal><ProjectFlow /></div>}
+      {data.facts && <KeyNumbers items={data.facts} note={data.factsNote} heading={data.investmentCase ? 'Proposed investment and modelled returns' : 'Simulation scope'} />}
+      {data.investmentCase && <div class="investment-scene"><InvestmentBridge items={data.investmentCase.ebitdaBridge} /></div>}
       {data.figures?.map((figure) => <Figure {...figure} />)}
 
       <div class:list={['body', { 'body--with-contents': sections.length > 1 }]}>
@@ -102,6 +112,9 @@ const sections = headings.filter((heading) => heading.depth === 2);
   }
 
   .project-header .lede { max-width: 47rem; }
+  .project-prepared { margin-top: var(--space-3); color: var(--muted); font-size: var(--text-sm); }
+  .project-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-5); }
+  .investment-scene { margin-top: var(--space-7); }
   .project-jumps { display: flex; flex-wrap: wrap; gap: 0.2rem 1.5rem; margin-top: var(--space-5); }
   .project-jumps .arrow-link { font-size: 0.6875rem; }
   .project-scene { margin-bottom: var(--space-7); }
@@ -170,6 +183,11 @@ const sections = headings.filter((heading) => heading.depth === 2);
   .case :global(h2:first-child) {
     margin-top: 0;
   }
+
+  .case :global(table) { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: var(--text-sm); }
+  .case :global(th), .case :global(td) { padding: .75rem .4rem; border-bottom: 1px solid var(--line); }
+  .case :global(th:first-child), .case :global(td:first-child) { width: 36%; text-align: left; }
+  .case :global(th) { font-weight: 550; }
 
   .back {
     margin-top: var(--space-7);

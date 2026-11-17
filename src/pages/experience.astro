@@ -38,7 +38,7 @@ const description =
     <h1 class="display">Experience</h1>
     <nav class="experience-jumps" aria-label="On this page">
       <a href="#roles-heading">Roles <Icon name="arrow-down" /></a>
-      {projects.length > 0 && <a href="#projects-heading">Independent project <Icon name="arrow-down" /></a>}
+      {projects.length > 0 && <a href="#projects-heading">Independent projects <Icon name="arrow-down" /></a>}
       <a href="#education">Education <Icon name="arrow-down" /></a>
       {university && <a href="#coursework">Coursework <Icon name="arrow-down" /></a>}
       <a href="#capabilities">Skills <Icon name="arrow-down" /></a>
@@ -59,7 +59,7 @@ const description =
       projects.length > 0 && (
         <section class="group" aria-labelledby="projects-heading">
           <div class="section-head">
-            <h2 id="projects-heading">Independent project</h2>
+            <h2 id="projects-heading">Independent projects</h2>
           </div>
           <div class="cells stack" data-reveal>
             {projects.map((project) => (
