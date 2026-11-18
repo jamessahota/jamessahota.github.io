@@ -45,6 +45,16 @@ The original system structured the process from company evidence to an investmen
 
 This work established the financial modelling and review framework that the energy and trading tools now use.
 
+<aside id="caterpillar-example" class="sample-output" aria-labelledby="caterpillar-example-title">
+  <p class="sample-output__meta">Equity workflow · 18 November 2026</p>
+  <h3 id="caterpillar-example-title">Example output: Caterpillar</h3>
+  <p class="sample-output__description">A demonstration of the equity workflow, with operating forecasts, separate industrial and finance valuations, and a formula-driven Excel model.</p>
+  <div class="sample-output__actions">
+    <a class="btn btn--primary" href="/reports/caterpillar-equity-research.pdf"><span>Read report</span></a>
+    <a class="btn btn--secondary" href="/models/caterpillar-equity-model.xlsx" download><span>Download model</span></a>
+  </div>
+</aside>
+
 ## Energy research and reporting
 
 The next stage shifted the focus towards oil, natural gas, LNG, refining and the infrastructure connecting them. The research workflow brings together official releases, market observations and source-based analysis of supply, demand, inventories and transport constraints.

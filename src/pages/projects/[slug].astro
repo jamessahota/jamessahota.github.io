@@ -190,6 +190,39 @@ const sections = headings.filter((heading) => heading.depth === 2);
     margin-top: 0;
   }
 
+  .case :global(.sample-output) {
+    scroll-margin-top: calc(var(--header-height) + var(--space-5));
+    margin-block: var(--space-6);
+    padding: clamp(1.25rem, 2.5vw, 1.75rem);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    background: var(--surface);
+  }
+
+  .case :global(.sample-output__meta) {
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: var(--text-sm);
+  }
+
+  .case :global(.sample-output h3) {
+    margin-top: var(--space-3);
+    font-size: 1.25rem;
+    line-height: 1.25;
+  }
+
+  .case :global(.sample-output__description) {
+    margin-top: var(--space-3);
+    font-size: var(--text-base);
+  }
+
+  .case :global(.sample-output__actions) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    margin-top: var(--space-4);
+  }
+
   .case :global(table) { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: var(--text-sm); }
   .case :global(th), .case :global(td) { padding: .75rem .4rem; border-bottom: 1px solid var(--line); }
   .case :global(th:first-child), .case :global(td:first-child) { width: 36%; text-align: left; }
