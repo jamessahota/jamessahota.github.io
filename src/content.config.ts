@@ -34,7 +34,7 @@ const partialDate = z.preprocess(
 
 const httpsUrl = z.url().refine((url) => url.startsWith('https://'), 'Links must start with https://');
 
-// A file served from public/, written as it appears in the address bar: /James-Sahota-CV.pdf
+// A file served from public/, written as it appears in the address bar: /James-Sahota-Resume.pdf
 const publicFile = z
   .string()
   .regex(/^\/[A-Za-z0-9._\-/]+$/, 'Use a path that starts with / and has no spaces')

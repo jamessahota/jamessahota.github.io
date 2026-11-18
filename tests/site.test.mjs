@@ -153,7 +153,7 @@ test('the main pages are built', () => {
     '/robots.txt',
     '/favicon.svg',
     '/og-default.png',
-    '/James-Sahota-CV.pdf',
+    '/James-Sahota-Resume.pdf',
   ]) {
     assert.ok(built.has(page), `${page} was not built`);
   }

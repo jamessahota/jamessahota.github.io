@@ -81,5 +81,5 @@ awards:
 cv:
   # The CV shown on the site: a PDF saved in the public/ folder.
   # To replace it, save the new file under the same name.
-  pdf: /James-Sahota-CV.pdf
+  pdf: /James-Sahota-Resume.pdf
   updated: November 2026

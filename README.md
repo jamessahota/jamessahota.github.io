@@ -124,7 +124,7 @@ Edit `src/content/experience.yaml`. Each role has an `order` (1 comes first), da
 
 ### Replace the CV
 
-The CV on the site is the PDF itself. Save the new file as `public/James-Sahota-CV.pdf`, replacing the old one, and update `cv.updated` in `src/content/profile.yaml`. Nothing else restates the CV, so there is nothing to keep in step except the Experience page.
+The CV on the site is the PDF itself. Save the new file as `public/James-Sahota-Resume.pdf`, replacing the old one, and update `cv.updated` in `src/content/profile.yaml`. Nothing else restates the CV, so there is nothing to keep in step except the Experience page.
 
 Anything in the PDF is public once the site is live, including a phone number.
 
