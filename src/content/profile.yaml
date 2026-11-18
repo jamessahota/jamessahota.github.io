@@ -25,9 +25,9 @@ atAGlance:
 
 # Direct routes into the existing work, rather than additional report summaries.
 workHighlights:
-  - label: Oil-market scenarios
-    description: Conditional Brent ranges and the physical assumptions behind them.
-    href: /research/oil-above-100-supply-shock/#table-brent-price-scenarios-as-at-10-september-2026
+  - label: Forward-looking trade proposal
+    description: A conditional Brent short with an entry, target and risk limits.
+    href: /research/oil-above-100-supply-shock/#trade-setup
   - label: Forecast record
     description: Dated calls, reference prices and assessed outcomes.
     href: /research/#views

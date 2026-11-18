@@ -169,6 +169,7 @@ const filters = [
           {!report && (
             <p class="record__report label">
               From <a href={researchPath(group.piece)}>{group.piece.data.title}</a>
+              {group.piece.data.tradeSetup && <a class="record__trade-link" href={`${researchPath(group.piece)}#trade-setup`}>Trade proposal →</a>}
             </p>
           )}
           <ol class="record__list">
@@ -313,6 +314,7 @@ const filters = [
 </script>
 
 <style>
+  .record__trade-link { display: inline-block; margin-top: .6rem; margin-left: 1rem; color: var(--accent-text); white-space: nowrap; }
   .record {
     container-type: inline-size;
     margin-top: clamp(2rem, 1.4rem + 2.6vw, 3.5rem);

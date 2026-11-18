@@ -26,6 +26,49 @@ originalUrl: https://605-markets.com/report/oil-above-100-is-a-real-supply-shock
 fullReportMinutes: 19
 featured: true
 order: 1
+tradeSetup:
+  asOf: 2026-11-17
+  title: "Brent: waiting for a better price"
+  thesis: >-
+    My September report argued that oil above US$100 reflected a real physical shortage,
+    while weakening demand and alternative supply routes limited the case for permanently
+    higher prices. My base case was US$85–100 at year-end 2026 and a US$70–90 average in 2027.
+  pricing: >-
+    February Brent was already near US$90 in the dated market snapshot. I would wait for a
+    renewed rally that offered a better balance between potential reward and disruption risk.
+  instrument: ICE Brent · February 2027
+  direction: short
+  contractSize: 1000
+  contractExpiry: 2026-12-30
+  entry: 105
+  target: 90
+  riskExit: 115
+  entryDeadline: 2026-12-11
+  finalExit: 2026-12-18
+  illustrativeCapital: 1000000
+  snapshot:
+    value: 90.24
+    date: 2026-11-17
+    time: 11:06 GMT
+    source: ICE
+    url: https://www.ice.com/products/219/Brent-Crude-Futures/data?marketId=5617230
+  enterIf: >-
+    Consider a short around US$105 only if delivered supply continues to recover, insured
+    shipping becomes more reliable and physical premiums ease. Reaching the price alone
+    would not trigger an entry.
+  exitIf: >-
+    Exit earlier if attacks materially reduce delivered supply, production recovery reverses
+    or physical premiums widen persistently. In those conditions, the higher price could be justified.
+  risk: >-
+    Another disruption could push prices through the risk exit before the longer-term thesis
+    plays out. Gaps and slippage can increase losses, and margin requirements are separate
+    from the planned risk budget.
+  evidence:
+    text: >-
+      The IEA’s November report supports the supply-recovery argument, but also identifies
+      exceptionally low on-land inventories and continuing shipping risks.
+    label: IEA · November 2026
+    url: https://www.iea.org/reports/oil-market-report-november-2026
 
 keyNumbers:
   - value: US$105.26

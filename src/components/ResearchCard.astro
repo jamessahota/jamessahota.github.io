@@ -7,6 +7,7 @@ import { formatDateShort } from '../lib/dates';
 import { RESEARCH_TYPES, TOPICS } from '../site.config';
 import Icon from './Icon.astro';
 import ResearchCardFigure from './ResearchCardFigure.astro';
+import TradeProposalLink from './TradeProposalLink.astro';
 
 interface Props {
   entry: Research;
@@ -36,6 +37,7 @@ const venue = data.venue.name !== '6:05 Markets' ? data.venue.name : undefined;
   <span class="go" aria-hidden="true"><Icon name="arrow-right" /></span>
 
   <div class="rcard__body">
+    {data.tradeSetup && <TradeProposalLink entry={entry} />}
     <h3 class="rcard__title">
       <a class="stretched" href={researchPath(entry)}><span class="research-title" data-vt-title>{data.title}</span></a>
     </h3>

@@ -1,0 +1,161 @@
+---
+import type { Research } from '../lib/content';
+import { formatDate, formatDateShort } from '../lib/dates';
+
+interface Props { entry: Research }
+const { entry } = Astro.props;
+const setup = entry.data.tradeSetup!;
+const profit = Math.abs(setup.entry - setup.target) * setup.contractSize;
+const risk = Math.abs(setup.riskExit - setup.entry) * setup.contractSize;
+const riskPercent = risk / setup.illustrativeCapital * 100;
+const number = (value: number) => value.toLocaleString('en-GB', { maximumFractionDigits: 2 });
+const money = (value: number) => `US$${number(value)}`;
+// A price scale, not an invented path or an automatically monitored trade.
+const values = [setup.target, setup.entry, setup.riskExit, setup.snapshot.value];
+const spread = Math.max(...values) - Math.min(...values);
+const min = Math.min(...values) - spread * 0.2;
+const max = Math.max(...values) + spread * 0.2;
+const x = (value: number) => 24 + (value - min) / (max - min) * 472;
+const rewardStart = Math.min(x(setup.target), x(setup.entry));
+const riskStart = Math.min(x(setup.entry), x(setup.riskExit));
+---
+
+<section id="trade-setup" class="trade" aria-labelledby="trade-heading" data-trade-proposal>
+  <header class="trade__header">
+    <p class="label label--marked">Forward-looking trade proposal</p>
+    <p class="trade__date label"><time datetime={setup.asOf}>{formatDate(setup.asOf)}</time> · Hypothetical</p>
+  </header>
+
+  <div class="trade__layout">
+    <div class="trade__copy">
+      <p class="trade__status label"><span aria-hidden="true" />Waiting for entry <span class="trade__status-date">· as at {formatDateShort(setup.asOf)}</span></p>
+      <h2 id="trade-heading">{setup.title}</h2>
+      <p>{setup.thesis}</p>
+      <p>{setup.pricing}</p>
+      <p class="trade__basis">Original research: <time datetime={entry.data.date}>{formatDate(entry.data.date!)}</time>. Proposed terms below are newly dated; no position has been opened as at {formatDateShort(setup.asOf)}.</p>
+    </div>
+
+    <div class="trade__plan">
+      <p class="trade__instrument label"><span>{setup.direction === 'short' ? 'Proposed short' : 'Proposed long'}</span> · {setup.instrument}</p>
+      <dl class="trade__levels">
+        <div><dt>Entry</dt><dd class="numeric">${number(setup.entry)}</dd></div>
+        <div><dt>Target</dt><dd class="numeric">${number(setup.target)}</dd></div>
+        <div><dt>Risk exit</dt><dd class="numeric">${number(setup.riskExit)}</dd></div>
+      </dl>
+
+      <figure class="trade__scale">
+        <svg viewBox="0 0 520 104" role="img" aria-labelledby="trade-scale-title trade-scale-desc">
+          <title id="trade-scale-title">Proposed Brent trade levels, US dollars per barrel</title>
+          <desc id="trade-scale-desc">Dated February 2027 quote: {setup.snapshot.value}. Proposed {setup.direction} entry: {setup.entry}, target: {setup.target}, risk exit: {setup.riskExit}. This shows price levels, not a price history.</desc>
+          <line x1="24" y1="49" x2="496" y2="49" class="trade__axis" />
+          <rect x={rewardStart} y="38" width={Math.abs(x(setup.entry) - x(setup.target))} height="22" class="trade__reward" />
+          <rect x={riskStart} y="38" width={Math.abs(x(setup.riskExit) - x(setup.entry))} height="22" class="trade__risk-band" />
+          {[setup.target, setup.entry, setup.riskExit].map((value) => <line x1={x(value)} y1="32" x2={x(value)} y2="66" class="trade__tick" />)}
+          <line x1={x(setup.snapshot.value)} y1="22" x2={x(setup.snapshot.value)} y2="38" class="trade__reference-line" />
+          <circle cx={x(setup.snapshot.value)} cy="22" r="4" class="trade__reference" />
+          <text x="24" y="11" class="trade__reference-label">Dated quote ${setup.snapshot.value.toFixed(2)}</text>
+          <text x={x(setup.target)} y="89" text-anchor="middle">Target ${number(setup.target)}</text>
+          <text x={x(setup.entry)} y="89" text-anchor="middle">Entry ${number(setup.entry)}</text>
+          <text x={x(setup.riskExit)} y="89" text-anchor="middle">Exit ${number(setup.riskExit)}</text>
+        </svg>
+        <figcaption>
+          US$/bbl · Feb 2027 · <time datetime={setup.snapshot.date}>{formatDateShort(setup.snapshot.date)}</time>, {setup.snapshot.time} · Delayed · <a href={setup.snapshot.url}>{setup.snapshot.source}</a>
+        </figcaption>
+      </figure>
+
+      <div class="trade__payoffs">
+        <p><strong class="numeric">{money(profit)}</strong><span>Potential profit</span></p>
+        <p><strong class="numeric">{money(risk)}</strong><span>Planned loss</span></p>
+      </div>
+      <p class="trade__sizing">Per {number(setup.contractSize)}-barrel contract, before costs. Illustrative size: one contract per {money(setup.illustrativeCapital)} of capital ({number(riskPercent)}% planned risk).</p>
+      <dl class="trade__timing">
+        <div><dt>Enter by</dt><dd><time datetime={setup.entryDeadline}>{formatDateShort(setup.entryDeadline)}</time></dd></div>
+        <div><dt>Close by</dt><dd><time datetime={setup.finalExit}>{formatDateShort(setup.finalExit)}</time></dd></div>
+      </dl>
+      <p class="trade__expiry">Exit ahead of the contract’s <a href="https://www.ice.com/products/219/Brent-Crude-Futures/expiry">{formatDateShort(setup.contractExpiry)} expiry</a>.</p>
+    </div>
+  </div>
+
+  <div class="trade__conditions">
+    <div><h3>Enter only if</h3><p>{setup.enterIf}</p></div>
+    <div><h3>What would change my view</h3><p>{setup.exitIf}</p></div>
+  </div>
+  <details class="trade__details">
+    <summary>Evidence and position risk</summary>
+    <div>
+      <p>{setup.evidence.text} <a href={setup.evidence.url}>{setup.evidence.label}</a>.</p>
+      <p>{setup.risk}</p>
+      <p>Contract size: <a href="https://www.ice.com/api/productguide/spec/219/pdf">ICE specifications</a>. The original year-end forecast and 2027 average remain separate from this proposed trade.</p>
+    </div>
+  </details>
+</section>
+
+<style>
+  .trade {
+    min-width: 0;
+    padding: clamp(1.25rem, 3vw, 2.5rem);
+    border: 1px solid var(--line);
+    border-top: 3px solid var(--accent);
+    border-radius: var(--radius);
+    background: var(--surface);
+    scroll-margin-top: calc(var(--header-height) + 1.5rem);
+  }
+  .trade__header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: .75rem 1.5rem; padding-bottom: 1.25rem; border-bottom: 1px solid var(--line); }
+  .trade__header > .label { color: var(--accent-text); }
+  .trade__header .trade__date { color: var(--muted); font-size: .625rem; }
+  .trade__layout { display: grid; gap: 2rem; margin-top: 1.75rem; }
+  .trade__copy, .trade__plan { min-width: 0; }
+  .trade__status { display: flex; flex-wrap: wrap; gap: .5em; align-items: center; color: var(--accent-text); font-size: .625rem; }
+  .trade__status > span:first-child { width: 6px; height: 6px; border: 1px solid currentColor; }
+  .trade__status-date { color: var(--muted); }
+  h2 { margin-top: 1rem; max-width: 19ch; font-size: clamp(1.8rem, 2.6vw, 2.6rem); line-height: 1.06; letter-spacing: -.045em; text-wrap: balance; }
+  .trade__copy > p:not(.label) { margin-top: 1.1rem; color: var(--ink-2); font-size: var(--text-base); line-height: 1.65; }
+  .trade__copy > .trade__basis { padding-top: 1rem; border-top: 1px solid var(--line); color: var(--muted) !important; font-size: .75rem !important; line-height: 1.55 !important; }
+  .trade__plan { padding-top: 1.5rem; border-top: 1px solid var(--line); }
+  .trade__instrument { font-size: .625rem; line-height: 1.6; }
+  .trade__instrument > span { color: var(--accent-text); }
+  .trade__levels { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .65rem; margin-top: 1.3rem; }
+  .trade__levels dt { color: var(--muted); font-family: var(--mono); font-size: .625rem; text-transform: uppercase; letter-spacing: .06em; }
+  .trade__levels dd { margin-top: .4rem; font-size: clamp(1.75rem, 3vw, 2.8rem); font-weight: 550; line-height: 1; letter-spacing: -.05em; white-space: nowrap; }
+  .trade__levels > div:first-child dd { color: var(--accent-text); }
+  .trade__scale { margin-top: 1.5rem; }
+  .trade__scale svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .trade__scale svg text { font-family: var(--mono); font-size: 11px; fill: var(--muted); }
+  .trade__axis { stroke: var(--line); stroke-width: 1; }
+  .trade__reward { fill: var(--accent); opacity: .2; }
+  .trade__risk-band { fill: var(--muted); opacity: .16; }
+  .trade__tick { stroke: var(--ink); stroke-width: 1; }
+  .trade__reference-line { stroke: var(--ink); stroke-width: 1; stroke-dasharray: 2 2; }
+  .trade__reference { fill: var(--ink); }
+  .trade__scale svg .trade__reference-label { fill: var(--ink); }
+  figcaption { color: var(--muted); font-family: var(--mono); font-size: .625rem; line-height: 1.7; }
+  .trade a { text-underline-offset: .2em; }
+  .trade__payoffs { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--line); }
+  .trade__payoffs strong { display: block; font-size: clamp(1.25rem, 2vw, 1.65rem); font-weight: 550; line-height: 1.2; letter-spacing: -.035em; }
+  .trade__payoffs span { display: block; margin-top: .3rem; color: var(--muted); font-size: .75rem; }
+  .trade__sizing { margin-top: .85rem; color: var(--muted); font-size: .6875rem; line-height: 1.65; }
+  .trade__timing { display: flex; flex-wrap: wrap; gap: .75rem 1.5rem; margin-top: 1.2rem; padding-top: 1rem; border-top: 1px solid var(--line); font-size: .75rem; }
+  .trade__timing div { display: flex; flex-wrap: wrap; gap: .4rem; }
+  .trade__timing dt { color: var(--muted); }
+  .trade__timing dd { font-variant-numeric: tabular-nums; }
+  .trade__expiry { margin-top: .5rem; color: var(--muted); font-size: .625rem; }
+  .trade__conditions { display: grid; gap: 1.3rem; margin-top: 1.75rem; padding-top: 1.5rem; border-top: 1px solid var(--line); }
+  .trade__conditions h3 { font-size: var(--text-base); font-weight: 550; letter-spacing: -.02em; }
+  .trade__conditions p { margin-top: .6rem; color: var(--ink-2); font-size: .8125rem; line-height: 1.65; }
+  .trade__details { margin-top: 1.4rem; padding-top: 1rem; border-top: 1px solid var(--line); font-size: .75rem; line-height: 1.65; }
+  .trade__details summary { width: fit-content; padding-block: .25rem; color: var(--muted); cursor: pointer; text-underline-offset: .2em; }
+  .trade__details summary:is(:hover, :focus-visible) { color: var(--accent-text); }
+  .trade__details > div { display: grid; gap: .75rem; max-width: 75ch; padding-top: .75rem; color: var(--ink-2); }
+  @media (min-width: 48rem) {
+    .trade__layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: clamp(1.5rem, 4vw, 4rem); }
+    .trade__plan { padding-top: 0; padding-left: clamp(1.5rem, 3vw, 3rem); border-top: 0; border-left: 1px solid var(--line); }
+    .trade__conditions { grid-template-columns: 1fr 1fr; gap: clamp(1.5rem, 4vw, 4rem); }
+  }
+  @media (max-width: 35.99rem) {
+    .trade__header { gap: .5rem; }
+    .trade__layout { gap: 1.5rem; margin-top: 1.25rem; }
+    .trade__copy > p:not(.label) { font-size: .875rem; }
+    .trade__scale { margin-top: 1.25rem; }
+  }
+  @media print { .trade { break-inside: avoid; } .trade__details > div { display: grid; } }
+</style>

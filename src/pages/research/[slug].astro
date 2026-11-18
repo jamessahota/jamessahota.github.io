@@ -9,6 +9,7 @@ import Icon from '../../components/Icon.astro';
 import KeyNumbers from '../../components/KeyNumbers.astro';
 import ResearchCard from '../../components/ResearchCard.astro';
 import ResearchVisual from '../../components/ResearchVisual.astro';
+import TradeSetup from '../../components/TradeSetup.astro';
 import ViewChangers from '../../components/ViewChangers.astro';
 import ViewsRecord from '../../components/ViewsRecord.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
@@ -126,6 +127,7 @@ const jsonLd = {
       <div class:list={['report-header__visual', { 'report-header__visual--exhibit': Boolean(data.headerVisual), 'report-header__visual--data': headerChart || headerNumbers }]}><ResearchVisual entry={entry} compact /></div>
       </div>
       <nav class="report-sections side-scroll" aria-label="On this page">
+        {data.tradeSetup && <a href="#trade-setup">Trade proposal</a>}
         {hasBody && <a href="#summary-heading">{data.reviewAsOf ? 'Case study' : 'Summary'}</a>}
         {reviewSections.map((section) => <a href={`#${section.slug}`}>{section.text}</a>)}
         {data.keyFindings.length > 0 && <a href="#findings-heading">{data.reviewAsOf ? 'Original findings' : 'Key findings'}</a>}
@@ -136,6 +138,8 @@ const jsonLd = {
         {data.sources && <a href="#sources-heading">Sources</a>}
       </nav>
     </header>
+
+    {data.tradeSetup && <div class="container report-trade"><TradeSetup entry={entry} /></div>}
 
     <div class="container report-body">
       <div class="report-main">
@@ -260,7 +264,9 @@ const jsonLd = {
             )
           }
           <p class="closing__note">
-            {data.reviewAsOf
+            {data.tradeSetup
+              ? `Original research from ${formatDate(data.date!)}; hypothetical trade proposal dated ${formatDate(data.tradeSetup.asOf)}.`
+              : data.reviewAsOf
               ? `Original view${data.date ? ` from ${formatDate(data.date)}` : ''}; historical review through ${formatDate(data.reviewAsOf)}.`
               : `${data.date ? `Dated analysis from ${formatDate(data.date)}. ` : ''}${hasViews ? 'Views and price ranges' : 'Views'} reflect the information available at the time and have not been updated.`}
             {' '}Nothing here is investment advice.
@@ -515,6 +521,8 @@ const jsonLd = {
     padding-top: clamp(1.5rem, 1rem + 2vw, 2.5rem);
     border-top: 1px solid var(--ink);
   }
+
+  .report-trade { margin-bottom: clamp(2rem, 4vw, 4rem); }
 
   @media (min-width: 64rem) {
     .report-header__layout { grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); gap: clamp(2rem, 4vw, 5rem); }

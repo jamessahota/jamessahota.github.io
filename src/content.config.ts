@@ -52,6 +52,7 @@ const link = z.union([
 ]);
 
 const keyNumber = z.object({ value: z.string(), label: z.string() });
+const fullDate = partialDate.refine((value) => value.length === 10, 'Use a full date: YYYY-MM-DD');
 
 // An image shown with a caption and credit. Width and height are the image's size in pixels.
 const figure = z.object({
@@ -91,6 +92,42 @@ const research = defineCollection({
           label: z.string().min(1),
           close: z.number().positive(),
         })).min(2).max(4),
+      }).optional(),
+      // A newly dated hypothetical proposal, separate from the published forecast record.
+      tradeSetup: z.object({
+        asOf: fullDate,
+        title: z.string().min(3),
+        thesis: z.string().min(40),
+        pricing: z.string().min(30),
+        instrument: z.string().min(3),
+        direction: z.enum(['long', 'short']),
+        contractSize: z.number().int().positive(),
+        contractExpiry: fullDate,
+        entry: z.number().positive(),
+        target: z.number().positive(),
+        riskExit: z.number().positive(),
+        entryDeadline: fullDate,
+        finalExit: fullDate,
+        illustrativeCapital: z.number().positive(),
+        snapshot: z.object({
+          value: z.number().positive(),
+          date: fullDate,
+          time: z.string().min(3),
+          source: z.string().min(2),
+          url: httpsUrl,
+        }),
+        enterIf: z.string().min(30),
+        exitIf: z.string().min(30),
+        risk: z.string().min(30),
+        evidence: z.object({ text: z.string().min(30), label: z.string(), url: httpsUrl }),
+      }).superRefine((setup, ctx) => {
+        const ordered = setup.direction === 'short'
+          ? setup.target < setup.entry && setup.entry < setup.riskExit
+          : setup.riskExit < setup.entry && setup.entry < setup.target;
+        if (!ordered) ctx.addIssue({ code: 'custom', message: 'Target and risk exit must be on opposite sides of the entry, in the trade direction' });
+        if (setup.snapshot.date > setup.asOf || setup.asOf >= setup.entryDeadline || setup.entryDeadline >= setup.finalExit || setup.finalExit >= setup.contractExpiry) {
+          ctx.addIssue({ code: 'custom', message: 'Use a dated snapshot, a future entry deadline, and an exit before contract expiry' });
+        }
       }).optional(),
       dataAsOf: z.string().optional(),
       topics: z.array(z.enum(TOPIC_IDS)).min(1).max(3),
@@ -225,6 +262,9 @@ const research = defineCollection({
       related: z.array(z.string()).max(3).optional(),
     })
     .superRefine((data, ctx) => {
+      if (data.tradeSetup && (!data.date || data.tradeSetup.asOf < data.date)) {
+        ctx.addIssue({ code: 'custom', path: ['tradeSetup', 'asOf'], message: 'A trade proposal must be dated on or after the original report' });
+      }
       if (data.flagshipCase) {
         const prices = data.flagshipCase.prices;
         if (!data.reviewAsOf || prices[0]!.date !== data.date || prices.at(-1)!.date !== data.reviewAsOf) {

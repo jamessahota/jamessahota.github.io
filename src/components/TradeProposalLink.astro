@@ -1,0 +1,49 @@
+---
+import { researchPath, type Research } from '../lib/content';
+import Icon from './Icon.astro';
+
+interface Props { entry: Research }
+const { entry } = Astro.props;
+---
+
+<a
+  class="proposal-link"
+  href={`${researchPath(entry)}#trade-setup`}
+  aria-label={`Read the forward-looking trade proposal for ${entry.data.title}`}
+  data-trade-proposal-link
+>
+  <span>Forward-looking trade proposal</span>
+  <Icon name="arrow-right" />
+</a>
+
+<style>
+  .proposal-link {
+    /* Above the report title's stretched hit area, so this opens the proposal directly. */
+    position: relative;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .7rem;
+    width: fit-content;
+    max-width: 100%;
+    margin-bottom: .9rem;
+    padding: .45rem .65rem;
+    border: 1px solid color-mix(in srgb, var(--cell-accent, var(--accent-text)) 55%, transparent);
+    border-radius: var(--radius-sm);
+    color: var(--cell-accent, var(--accent-text));
+    font-family: var(--mono);
+    font-size: .625rem;
+    line-height: 1.5;
+    letter-spacing: .035em;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: background-color .2s var(--ease), color .2s var(--ease), border-color .2s var(--ease);
+  }
+  .proposal-link:is(:hover, :focus-visible) {
+    border-color: currentColor;
+    background: color-mix(in srgb, var(--cell-accent, var(--accent-text)) 10%, transparent);
+  }
+  .proposal-link :global(svg) { width: .8rem; height: .8rem; flex: none; }
+  @media (pointer: coarse) { .proposal-link { min-height: 2.75rem; } }
+</style>
