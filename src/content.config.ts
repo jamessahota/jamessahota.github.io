@@ -323,6 +323,12 @@ const projects = defineCollection({
     featured: z.boolean().default(false),
     facts: z.array(keyNumber).min(1).max(4).optional(),
     factsNote: z.string().optional(),
+    development: z.array(z.object({
+      label: z.string().min(1),
+      title: z.string().min(1),
+      text: z.string().min(20),
+      section: z.string().regex(/^[a-z0-9-]+$/),
+    })).min(2).max(4).optional(),
     investmentCase: z.object({
       preparedFor: z.string(),
       pdf: publicFile,

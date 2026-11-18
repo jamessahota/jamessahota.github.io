@@ -5,6 +5,7 @@ import Figure from '../../components/Figure.astro';
 import Icon from '../../components/Icon.astro';
 import InvestmentBridge from '../../components/InvestmentBridge.astro';
 import KeyNumbers from '../../components/KeyNumbers.astro';
+import ProjectDevelopment from '../../components/ProjectDevelopment.astro';
 import ProjectFlow from '../../components/ProjectFlow.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getPublicProjects, type Project } from '../../lib/content';
@@ -56,7 +57,9 @@ const sections = headings.filter((heading) => heading.depth === 2);
     </header>
 
     <div class="container">
-      {!data.investmentCase && <div class="project-scene" data-reveal><ProjectFlow /></div>}
+      {data.development ? (
+        <div class="project-scene"><ProjectDevelopment stages={data.development} /></div>
+      ) : !data.investmentCase && <div class="project-scene" data-reveal><ProjectFlow /></div>}
       {data.facts && <KeyNumbers items={data.facts} note={data.factsNote} heading={data.investmentCase ? 'Proposed investment and modelled returns' : 'Project scope'} />}
       {data.investmentCase && <div class="investment-scene"><InvestmentBridge items={data.investmentCase.ebitdaBridge} /></div>}
       {data.figures?.map((figure) => <Figure {...figure} />)}

@@ -1,0 +1,47 @@
+---
+import Icon from './Icon.astro';
+
+interface Props {
+  stages: { label: string; title: string; text: string; section: string }[];
+}
+
+const { stages } = Astro.props;
+---
+
+<section class="development" aria-label="How the project developed">
+  <p class="label development__label">How the project developed</p>
+  <ol class="development__stages">
+    {stages.map((stage, index) => (
+      <li>
+        <a href={`#${stage.section}`} class="development__stage">
+          <span class="development__meta label"><span class="numeric">0{index + 1}</span>{stage.label}</span>
+          <span class="development__title">{stage.title}<Icon name="arrow-down" /></span>
+          <span class="development__text">{stage.text}</span>
+        </a>
+      </li>
+    ))}
+  </ol>
+</section>
+
+<style>
+  .development { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+  .development__label { padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--line); }
+  .development__stages { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .development__stages li + li { border-left: 1px solid var(--line); }
+  .development__stage { display: flex; flex-direction: column; gap: var(--space-3); height: 100%; padding: clamp(1.25rem, 2.5vw, 2rem); text-decoration: none; transition: background-color 180ms var(--ease); }
+  .development__stage:hover, .development__stage:focus-visible { background: var(--bg); }
+  .development__meta { display: flex; gap: var(--space-3); color: var(--muted); font-size: var(--text-xs); }
+  .development__meta .numeric { color: var(--accent-text); }
+  .development__title { display: flex; align-items: start; justify-content: space-between; gap: var(--space-3); font-size: var(--text-xl); font-weight: 550; letter-spacing: -.035em; line-height: 1.2; }
+  .development__title :global(.icon) { flex-shrink: 0; margin-top: .15em; color: var(--accent-text); transition: transform 180ms var(--ease); }
+  .development__stage:hover :global(.icon) { transform: translateY(3px); }
+  .development__text { color: var(--ink-2); font-size: var(--text-sm); line-height: 1.6; }
+  @media (max-width: 48rem) {
+    .development__stages { grid-template-columns: minmax(0, 1fr); }
+    .development__stages li + li { border-left: 0; border-top: 1px solid var(--line); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .development__stage, .development__title :global(.icon) { transition: none; }
+    .development__stage:hover :global(.icon) { transform: none; }
+  }
+</style>
