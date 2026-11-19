@@ -216,6 +216,16 @@ const sections = headings.filter((heading) => heading.depth === 2);
     font-size: var(--text-base);
   }
 
+  .case :global(.sample-output__method),
+  .case :global(.sample-output__status) {
+    margin-top: var(--space-3);
+  }
+
+  .case :global(.sample-output__source) {
+    margin-top: var(--space-2);
+    font-size: var(--text-sm);
+  }
+
   .case :global(.sample-output__actions) {
     display: flex;
     flex-wrap: wrap;

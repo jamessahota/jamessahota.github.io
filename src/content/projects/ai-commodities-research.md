@@ -65,14 +65,23 @@ The reporting workflow combines the evidence, physical-market analysis, scenario
 
 ## Trading research and evaluation
 
-The latest stage connects the research process to instrument selection, risk and evaluation.
+The trading tools let me compare ways to express a market view and test what happens after the signal.
 
-- **Trade construction.** Compare outright futures, bought calls and puts, directional option spreads and dynamically hedged option positions. Analysis includes dollar exposure, Greeks, option premiums, transaction costs, downside, liquidity and sensitivity to volatility and forecast conviction.
-- **Historical testing.** Price-based and EIA-event studies examine trading hypotheses after costs. Testing spans energy, equity-index and currency futures, with separate development and evaluation periods.
-- **Prospective forecasts.** A dated record preserves the direction, probability, horizon and original terms of a forecast before its outcome. The current scoring protocol covers Brent and Henry Hub, comparing results with historical frequencies and volatility baselines.
-- **Forward testing.** A crude-inventory hypothesis is frozen for evaluation on new releases, with a fixed rule and assessment point. Results are recorded as they arrive.
+- **Trade construction.** Compare outright futures, calendar spreads and refining crack spreads by dollar exposure, margin and historical risk. Options scenarios use ETF proxies where direct futures-option data are unavailable.
+- **Historical testing.** Replay fixed rules on dated contracts, record why any release was skipped, and compare the result with a benchmark on the same dates.
+- **Forecast scoring.** Log the direction, probability and horizon before the outcome, then compare the forecast with historical-frequency and volatility benchmarks.
 
-The current trade-comparison tools cover Brent, Henry Hub and WTI; options comparisons use energy ETFs as proxies where direct futures-option data is unavailable. The forecast record, historical studies and hypothetical trade comparisons remain separately identifiable.
+<aside id="cushing-spread-test" class="sample-output" aria-labelledby="cushing-spread-title">
+  <p class="sample-output__meta">Paper testing · 19 November 2026</p>
+  <h3 id="cushing-spread-title">Cushing inventories and the WTI calendar spread</h3>
+  <p class="sample-output__description">Does a draw in Cushing crude stocks strengthen the nearest eligible WTI contract relative to the next month?</p>
+  <ul class="sample-output__method">
+    <li><strong>Signal.</strong> After a draw, buy the nearer contract and sell the next month. A build reverses the position. A second study flips this rule and uses a fair-coin benchmark.</li>
+    <li><strong>Timing.</strong> Record the EIA release before entry. Model entry 5–7 minutes after release and exit 60–62 minutes after release using delayed same-minute trades in both contracts.</li>
+  </ul>
+  <p class="sample-output__status"><strong>0 completed paper trades in each study.</strong> The first release is scheduled for 25 November 2026. Each study reviews performance after 60 completed primary trades.</p>
+  <p class="sample-output__source"><a href="https://www.eia.gov/petroleum/supply/weekly/">EIA Weekly Petroleum Status Report, Table 4</a></p>
+</aside>
 
 ## Shared infrastructure
 
@@ -86,6 +95,6 @@ Much of the work sits beneath the individual research outputs:
 
 ## What comes next
 
-The next phase extends prospective scoring to WTI and additional financial futures, develops longer forecast horizons, and adds calendar-spread and crack-spread analysis. These extensions are in development and will be assessed against their own data, contract and testing requirements before being included as working capabilities.
+The next phase collects forward results and checks how sensitive the spread studies are to entry timing and available quotes. Longer forecast horizons and scoring for additional financial futures remain in development.
 
 *Trading results are simulated. The system is used for research and paper testing, with no live execution.*
