@@ -72,15 +72,20 @@ The trading tools let me compare ways to express a market view and test what hap
 - **Forecast scoring.** Log the direction, probability and horizon before the outcome, then compare the forecast with historical-frequency and volatility benchmarks.
 
 <aside id="cushing-spread-test" class="sample-output" aria-labelledby="cushing-spread-title">
-  <p class="sample-output__meta">Paper testing · 19 November 2026</p>
+  <p class="sample-output__meta">Forward paper testing</p>
   <h3 id="cushing-spread-title">Cushing inventories and the WTI calendar spread</h3>
   <p class="sample-output__description">Does a draw in Cushing crude stocks strengthen the nearest eligible WTI contract relative to the next month?</p>
   <ul class="sample-output__method">
     <li><strong>Signal.</strong> After a draw, buy the nearer contract and sell the next month. A build reverses the position. A second study flips this rule and uses a fair-coin benchmark.</li>
     <li><strong>Timing.</strong> Record the EIA release before entry. Model entry 5–7 minutes after release and exit 60–62 minutes after release using delayed same-minute trades in both contracts.</li>
   </ul>
-  <p class="sample-output__status"><strong>0 completed paper trades in each study.</strong> The first release is scheduled for 25 November 2026. Each study reviews performance after 60 completed primary trades.</p>
-  <p class="sample-output__source"><a href="https://www.eia.gov/petroleum/supply/weekly/">EIA Weekly Petroleum Status Report, Table 4</a></p>
+  <p class="sample-output__status">Each study reviews performance after 60 completed primary trades.</p>
+  <!-- cushing-release-log:start -->
+  <div class="sample-output__release-log" id="cushing-release-log">
+    <h4>EIA release log</h4>
+    <p>First review pending for the <time datetime="2026-11-25">25 November 2026</time> release.</p>
+  </div>
+  <!-- cushing-release-log:end -->
 </aside>
 
 ## Shared infrastructure
