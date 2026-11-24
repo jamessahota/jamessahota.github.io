@@ -3,7 +3,7 @@
 
   // Historical scenarios: ten real trading days each.
   //
-  // PRICES are real. They are the U.S. Energy Information Administration's daily
+  // Observed prices are the U.S. Energy Information Administration's daily
   // series for the Cushing, Oklahoma WTI spot price and for NYMEX light sweet crude
   // futures contracts 1 to 4 (settlement prices, dollars per barrel), read from
   // https://www.eia.gov/dnav/pet/pet_pri_spt_s1_d.htm and
@@ -31,9 +31,9 @@
       months: ["May", "Jun", "Jul", "Aug", "Sep"],
       // The May contract's last trading day was 21 April, the seventh day played.
       expiry: 7,
-      // September only becomes the fourth listed month the next day, and the source has no price
-      // for it on 21 April. This one is August's settlement plus the next day's August-to-September gap.
-      afterExpiry: { price: 2362, estimated: true },
+      // The four source series stop at August on 21 April. Extend that day's July–August
+      // spread for a display-only September estimate. Keep the old fill price for saved v5 tickets.
+      afterExpiry: { price: 2453, estimated: true, legacyPrice: 2362 },
       prices: cents([
         [22.90, 22.76, 28.82, 32.00, 33.12],
         [22.36, 22.41, 29.26, 32.96, 34.42],
@@ -50,7 +50,7 @@
       // Storage is what everyone wants: clients queue for space, overflow is dear and sellers are desperate.
       terminal: { clientTight: 85, clientLoose: 70, rateScale: 2.5, storageScale: 4, events: ["surplus", "surplus", "surplus", "maintenance", "pipeline"] },
       intro: "Lockdowns have cut world fuel use by roughly 30%, and crude is piling up in storage, including at Cushing. May WTI settled at $22.76 on Thursday 9 April, about $6 below June. US markets were closed on Good Friday.",
-      note: "Most of this result comes from one ticket. On 21 April the hedge had to move out of May, at −$37.63, and into June, at $20.43. That gap of $58 a barrel is what storage at Cushing was worth that day.",
+      note: "On 20 April May settled at −$37.63 and June at $20.43. The $58.06 gap showed how far the expiring contract had diverged from later oil prices as storage and liquidity tightened. May expired the following day at $10.01. Your exposure across both dates depended on when you closed or rolled the hedge.",
       days: [
         { known: "OPEC+ ministers are trying to agree a record output cut. World fuel use is down roughly 30%, and storage is filling.",
           happened: "On Sunday OPEC+ agreed to cut 9.7 million barrels a day from 1 May, after Mexico held up the deal for days. Goldman Sachs called it historic yet insufficient. WTI settled at $22.41, down 35 cents." },
@@ -62,7 +62,7 @@
           happened: "OPEC forecast that world oil demand would fall by 6.9 million barrels a day in 2020. ConocoPhillips said it would cut about 225,000 barrels a day of US and Canadian output. WTI settled unchanged at $19.87." },
         { known: "The May contract expires on Tuesday 21 April, and trading is moving to June. Producers have begun to announce output cuts.",
           happened: "May WTI fell 8% to settle at $18.27 as holders rolled into June, which settled at $25.03. Government data showed Cushing 69% full, up from 49% four weeks earlier. Baker Hughes counted 66 fewer US oil rigs." },
-        { known: "The May contract expires on Tuesday. June settled $6.76 above it today. Anyone still holding May at expiry must take delivery at Cushing, where tanks are filling fast.",
+        { known: "The May contract expires on Tuesday. June settled $6.76 above it today. At expiry, open May longs must take delivery at Cushing and open shorts must make delivery. Tanks there are filling fast.",
           happened: "With few buyers able to take delivery, the May contract fell $55.90 to settle at −$37.63, the first negative settlement on record, after trading as low as −$40.32. June settled at $20.43." },
         { known: "May settled at −$37.63 today and expires tomorrow. June is $58 higher, at $20.43. A negative price means sellers are paying to be rid of crude they cannot store.",
           happened: "The May contract expired at $10.01. June fell 43% to $11.57 on record volume. President Trump said he had ordered a plan to make funds available to the oil industry. Texas regulators delayed a vote on output limits." },
@@ -146,7 +146,7 @@
       ]),
       // Nobody pays to store oil when prompt barrels are the dearest on the curve.
       terminal: { clientTight: 30, clientLoose: 15, rateScale: 0.8, storageScale: 1, events: ["refinery", "refinery", "firm", "firm", "pipeline"] },
-      intro: "Earlier in the week Russia sent troops into two breakaway regions of eastern Ukraine. The US, EU, Britain and others sanctioned Russian banks and individuals, and Germany halted the Nord Stream 2 pipeline, but oil and gas flows were not targeted. WTI closed at $92.10 on 23 February.",
+      intro: "Earlier in the week Russia sent troops into two breakaway regions of eastern Ukraine. The US, EU, Britain and others sanctioned Russian banks and individuals while leaving oil and gas flows alone. Germany suspended certification of the Nord Stream 2 pipeline. WTI closed at $92.10 on 23 February.",
       note: "",
       days: [
         { known: "Russian troops are in eastern Ukraine, and the first sanctions have left oil and gas flows alone. Talks to revive the Iran nuclear deal are advancing. The weekly EIA stocks report is due tomorrow.",

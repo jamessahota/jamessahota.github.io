@@ -256,24 +256,33 @@
     if (!scenario || typeof scenario !== "object") fail("is not an object");
     const rows = totalCycles + 1;
     if (!Array.isArray(scenario.dates) || scenario.dates.length !== rows) fail("needs " + rows + " dates");
-    scenario.dates.forEach((date, index) => {
-      if (typeof date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(new Date(date + "T12:00:00Z").getTime())) fail("has a bad date, " + date);
+    for (const [index, date] of scenario.dates.entries()) {
+      if (typeof date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(date)) fail("has a bad date, " + date);
+      const parsed = new Date(date + "T12:00:00Z");
+      if (!Number.isFinite(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== date) fail("has a bad date, " + date);
       if (index && date <= scenario.dates[index - 1]) fail("dates are out of order at " + date);
-    });
+    }
     if (!Array.isArray(scenario.prices) || scenario.prices.length !== rows) fail("needs " + rows + " price rows");
     for (const row of scenario.prices) {
-      if (!Array.isArray(row) || row.length !== 5 || !row.every(Number.isSafeInteger)) fail("needs five whole-cent prices on every row");
+      if (!Array.isArray(row) || row.length !== 5 || ![...row].every(Number.isSafeInteger)) fail("needs five whole-cent prices on every row");
     }
     const expiry = scenario.expiry ?? null;
     // The front month can expire on any day but the last, when the run closes everything anyway.
     if (expiry !== null && !(Number.isSafeInteger(expiry) && expiry >= 1 && expiry < totalCycles)) fail("expiry must be a day from 1 to " + (totalCycles - 1) + ", or null");
-    if (!Array.isArray(scenario.months) || scenario.months.length !== (expiry ? 5 : 4) || !scenario.months.every(name => typeof name === "string" && name)) {
+    if (!Array.isArray(scenario.months) || scenario.months.length !== (expiry ? 5 : 4) || ![...scenario.months].every(name => typeof name === "string" && name)) {
       fail("needs " + (expiry ? "five month names, because one expires" : "four month names"));
     }
     if (expiry && !Number.isSafeInteger(scenario.afterExpiry?.price)) fail("needs afterExpiry.price in whole cents for the newly listed month");
-    if (!Array.isArray(scenario.days) || scenario.days.length !== totalCycles) fail("needs " + totalCycles + " days of news");
-    for (const key of scenario.terminal?.events || []) {
-      if (!terminalEvents.some(item => item.key === key)) fail("names an unknown terminal event, " + key);
+    if (!Array.isArray(scenario.days) || scenario.days.length !== totalCycles ||
+        ![...scenario.days].every(day => typeof day?.known === "string" && typeof day?.happened === "string")) {
+      fail("needs " + totalCycles + " days of news");
+    }
+    const events = scenario.terminal?.events;
+    if (events !== undefined) {
+      if (!Array.isArray(events) || !events.length) fail("needs at least one terminal event");
+      for (const key of events) {
+        if (!terminalEvents.some(item => item.key === key)) fail("names an unknown terminal event, " + key);
+      }
     }
     return scenario;
   }
@@ -287,7 +296,7 @@
   }
 
   // One real trading day: from the prices the ticket was written against to that day's settlement.
-  function scenarioMove(scenario, market) {
+  function scenarioMove(scenario, market, legacyEstimate) {
     const next = market.day + 1;
     let prices = scenario.prices[next].slice();
     let firstMonth = market.firstMonth;
@@ -298,7 +307,9 @@
       // and the curve moves up a month. The newly listed fourth month has no price in the
       // source data until the next day, so the scenario supplies one and says if it is an estimate.
       expired = { month: firstMonth, name: scenario.months[firstMonth], price: prices[1] };
-      prices = [prices[0], prices[2], prices[3], prices[4], scenario.afterExpiry.price];
+      const newMark = legacyEstimate && Number.isSafeInteger(scenario.afterExpiry.legacyPrice) ?
+        scenario.afterExpiry.legacyPrice : scenario.afterExpiry.price;
+      prices = [prices[0], prices[2], prices[3], prices[4], newMark];
       estimated = !!scenario.afterExpiry.estimated;
       firstMonth++;
     }
@@ -456,6 +467,55 @@
     return leases.reduce((total, lease) => lease.fromCycle <= cycle && lease.throughCycle >= cycle ? total + lease.barrels : total, 0);
   }
 
+  const deliveryVolume = (contracts) => contracts.reduce((total, contract) => total + contract.barrels, 0);
+
+  function deliveryCalendar(book, round) {
+    if (round?.phase !== "am" || book.day >= totalCycles - 1) return null;
+    const market = book.market;
+    const months = market.prices.slice(1).flatMap((price, slot) => {
+      if (market.estimated && slot === 3) return [];
+      const month = market.firstMonth + slot;
+      return [{ month, name: book.ctx.months[month], price }];
+    });
+    const draw = randomStream(book.ctx.seed, book.day, "delivery-calendar");
+    const cycles = [];
+    for (let cycle = book.day + 2; cycle <= totalCycles; cycle++) {
+      const due = book.deliveries.filter((contract) => contract.cycle === cycle);
+      const localMax = 12000 - deliveryVolume(due.filter((contract) => contract.route === "local"));
+      const gulfMax = 4000 - deliveryVolume(due.filter((contract) => contract.route === "gulf"));
+      cycles.push({ cycle, routes: {
+        local: { basis: draw(-105, -48), tariff: 0, max: localMax },
+        gulf: { basis: draw(-27, 32), tariff: draw(55, 105), max: gulfMax },
+      } });
+    }
+    return { months, cycles };
+  }
+
+  function deliveryQuote(state, draft, available, errors) {
+    if (draft === undefined || draft === null) return null;
+    const calendar = state.deliveryOptions;
+    if (!calendar) {
+      errors.delivery = "Forward deliveries can only be booked on a morning ticket before the final cycle.";
+      return null;
+    }
+    const { cycle, barrels, route, month } = draft;
+    const day = calendar.cycles.find((option) => option.cycle === cycle);
+    const quote = route === "local" || route === "gulf" ? day?.routes[route] : null;
+    const reference = calendar.months.find((option) => option.month === month);
+    if (!quote || !reference) {
+      errors.delivery = "Choose a future delivery cycle, route and available WTI month.";
+      return null;
+    }
+    const max = Math.min(available, quote.max);
+    if (!Number.isSafeInteger(barrels) || barrels < 1 || barrels > max) {
+      errors.delivery = max ? "Book 1 to " + formatVolume(max) + " on this route." : "No owned barrels or delivery capacity are available for this booking.";
+      return null;
+    }
+    const fixedGross = reference.price + quote.basis;
+    return { cycle, barrels, route, month, monthName: reference.name, fixedGross, basis: quote.basis,
+      tariff: quote.tariff, tariffCost: barrels * quote.tariff, netVsSpot: barrels * (fixedGross - quote.tariff - state.market.prices[0]) };
+  }
+
   function record(book, category, label, detail, cents) {
     book.entries.push({ category, label, detail, cents, cycle: book.day + 1 });
     book.realized[category] += cents;
@@ -515,13 +575,20 @@
   function marked(book) {
     const spot = book.market.prices[0];
     return {
-      physical: book.realized.physical + book.crude.reduce((total, batch) => total + batch.barrels * (spot - batch.price), 0),
+      physical: book.realized.physical + book.crude.reduce((total, batch) => total + batch.barrels * (spot - batch.price), 0) +
+        book.deliveries.reduce((total, contract) => total + contract.barrels * (contract.fixedGross - spot), 0),
       hedge: futuresBook(book).reduce((total, month) => total + month.pnl, 0),
       logistics: book.realized.logistics,
     };
   }
 
   const sumComponents = (components) => components.physical + components.hedge + components.logistics;
+
+  function markDrawdown(book, components = marked(book)) {
+    const net = sumComponents(components);
+    book.peak = Math.max(book.peak, net);
+    book.maxDrawdown = Math.max(book.maxDrawdown, book.peak - net);
+  }
 
   // --- What the player can trade against --------------------------------------------
 
@@ -531,6 +598,7 @@
     // A scenario can make clients, storage and the mix of terminal events fit its period.
     const tuning = book.ctx.scenario?.terminal || {};
     const owned = ownedBarrels(book);
+    const available = owned - deliveryVolume(book.deliveries);
     const layout = storageLayout(owned, clientBarrels(book));
     const free = capacity - layout.occupancy;
     const spot = book.market.prices[0];
@@ -551,13 +619,15 @@
     const storagePrice = Math.round((event?.key === "maintenance" ? draw(12, 20) : draw(7, 14)) * (tuning.storageScale ?? 1));
     const shortfall = Math.max(0, layout.ownedOverflow + layout.clientOverflow - leaseCapacity(book.leases, day + 1));
     const bid = spot + bidPremium;
-    const offer = spot + offerPremium;
+    const offer = Math.max(spot + offerPremium, bid + 1);
+    const emergencyMax = Math.min(available, Math.max(0, shortfall - storageMax));
 
     let ship = null;
     if (owned && (final || event?.key === "pipeline")) {
-      const max = Math.min(owned, (final ? draw(3, 6) : draw(2, 5)) * lot);
+      const max = Math.min(available, (final ? draw(3, 6) : draw(2, 5)) * lot);
       const price = spot + (final ? draw(70, 145) : draw(63, 144));
-      ship = { price, max, tariff: final ? draw(38, 95) : draw(44, 94) };
+      const tariff = final ? draw(38, 95) : draw(44, 94);
+      if (max) ship = { price, max, tariff };
     }
 
     let client = null;
@@ -580,7 +650,7 @@
     }
 
     // Kept for the afternoon, which trades against the same buyers in thinner size.
-    book.session = { bidPremium, offerPremium, buyMax, sellLimit, storagePrice };
+    book.session = { bidPremium, offerPremium: offer - spot, buyMax, sellLimit, storagePrice };
 
     const shortage = Math.max(0, inbound - free);
     const title = final ? "Close out the campaign." :
@@ -602,9 +672,10 @@
       marketNote: client && event ? event.title : null,
       incoming: inbound,
       orderBook: {
-        buy: { price: Math.max(offer, bid + 1), max: buyMax },
-        sell: { price: bid, max: Math.min(owned, Math.max(sellLimit, shortfall)) },
+        buy: { price: offer, max: buyMax },
+        sell: { price: bid, max: Math.min(available, Math.max(sellLimit, shortfall)) },
         ship,
+        emergency: emergencyMax ? { price: bid - 125, max: emergencyMax } : null,
         storage: { price: storagePrice, max: storageMax, maxCycles: totalCycles - day },
         client,
         tankLease,
@@ -616,7 +687,7 @@
     const market = book.market;
     const session = book.session;
     const spot = market.prices[0];
-    const owned = ownedBarrels(book);
+    const available = ownedBarrels(book) - deliveryVolume(book.deliveries);
     // The afternoon is thinner: ten cents worse each way, and half the size.
     const bid = spot + session.bidPremium - 10;
     const offer = spot + session.offerPremium + 10;
@@ -633,7 +704,7 @@
       incoming: 0,
       orderBook: {
         buy: { price: Math.max(offer, bid + 1), max: half(session.buyMax) },
-        sell: { price: bid, max: Math.min(owned, half(session.sellLimit)) },
+        sell: { price: bid, max: Math.min(available, half(session.sellLimit)) },
         ship: null,
         storage: { price: session.storagePrice, max: 0, maxCycles: 1 },
         client: null,
@@ -680,7 +751,7 @@
 
   // --- Checking and pricing a ticket ---------------------------------------------------
 
-  function preview(state, draft = {}) {
+  function preview(state, draft = {}, { allowEstimatedTrade = false } = {}) {
     const round = state?.round;
     if (!round || !draft || typeof draft !== "object") return { ok: false, errors: { side: "The book is closed." } };
 
@@ -691,7 +762,7 @@
 
     // Physical order, at the firm price or at one agreed by negotiation.
     const side = draft.side;
-    let route = ["buy", "sell", "ship"].includes(side) ? terms[side] : null;
+    let route = ["buy", "sell", "ship", "emergency"].includes(side) ? terms[side] : null;
     let haggle = null;
     if (draft.haggle !== undefined && draft.haggle !== null) {
       haggle = negotiate(state, draft.haggle.side, draft.haggle.asks);
@@ -707,7 +778,11 @@
         }
       }
     }
-    const physicalLimit = route?.max || 0;
+    if (side === "emergency" && (!route || haggle?.side !== "sell" || haggle.status !== "walked")) {
+      errors.side = "Emergency sales are available only if a local buyer walks away and you need to clear tank space.";
+      route = null;
+    }
+    const physicalLimit = route ? (side === "buy" ? route.max : Math.min(route.max, state.availableBarrels)) : 0;
     if (side !== "hold" && !route && !errors.side) errors.side = "This physical route is unavailable.";
     if (side === "hold" && draft.barrels !== 0) errors.barrels = "A hold order must have zero barrels.";
     if (route && (!whole(draft.barrels) || draft.barrels === 0 || draft.barrels > physicalLimit)) {
@@ -715,6 +790,9 @@
     }
     const ordered = Math.min(amount(draft.barrels), physicalLimit);
     const barrels = state.barrels + (side === "buy" ? ordered : -ordered);
+    const delivery = deliveryQuote(state, draft.delivery, barrels - state.reserved, errors);
+    const reserved = state.reserved + (delivery?.barrels || 0);
+    const availableBarrels = barrels - reserved;
 
     // Client delivery
     const client = terms.client;
@@ -747,17 +825,18 @@
         (accepted ? "Sell crude or change the client plan." : "Sell at least " + formatVolume(unmet) + " of crude.");
     }
 
-    // A client's barrels must have somewhere to sit for their whole stay,
-    // even if you later sell every barrel of your own.
-    if (accepted && !errors.storage && !errors.storageCycles) {
-      const commitments = [...state.storageCommitments, { barrels: accepted, throughCycle: client.throughCycle }];
+    // Client cargo and barrels sold forward need confirmed space through delivery.
+    if ((accepted || delivery) && !errors.storage && !errors.storageCycles) {
+      const commitments = state.storageCommitments.slice();
+      if (accepted) commitments.push({ barrels: accepted, throughCycle: client.throughCycle });
+      if (delivery) commitments.push({ barrels: delivery.barrels, throughCycle: delivery.cycle });
       for (let next = cycle + 1; next <= totalCycles; next++) {
         const committed = commitments.reduce((total, claim) => total + (claim.throughCycle >= next ? claim.barrels : 0), 0);
         const required = Math.max(0, committed - capacity);
         const available = leaseCapacity(state.activeLeases, next) + (storageThroughCycle >= next ? booked : 0);
         if (required > available) {
-          errors.storageCycles = "Client cargo alone needs " + formatVolume(required) + " of overflow in cycle " + next +
-            ". Extend or enlarge the booking, or change the client plan.";
+          errors.storageCycles = "Committed cargo needs " + formatVolume(required) + " of overflow in cycle " + next +
+            ". Extend or enlarge the booking, or reduce your client or delivery commitments.";
           break;
         }
       }
@@ -767,8 +846,10 @@
     let futuresPositions = state.futuresPositions;
     const trades = draft.futuresTrades;
     if (!Array.isArray(trades) || trades.length !== 4 ||
-        !trades.every((quantity) => Number.isSafeInteger(quantity) && Math.abs(quantity) <= 2 * maxFuturesLots)) {
+        ![...trades].every((quantity) => Number.isSafeInteger(quantity) && Math.abs(quantity) <= 2 * maxFuturesLots)) {
       errors.futuresTrades = "Enter a whole number of lots for each month.";
+    } else if (state.market.estimated && trades[3] && !allowEstimatedTrade) {
+      errors.futuresTrades = state.months[3] + " has an estimated mark today. Trading opens at its next settlement.";
     } else {
       futuresPositions = futuresPositions.map((holding, slot) => holding + trades[slot]);
       if (grossLots(futuresPositions) > maxFuturesLots) {
@@ -778,7 +859,7 @@
 
     // Flat-price limit across crude and futures together
     const futuresNet = sum(futuresPositions);
-    const exposure = barrels / lot + futuresNet;
+    const exposure = availableBarrels / lot + futuresNet;
     const overBy = (lots) => Math.ceil(Math.abs(lots) - netLimitLots);
     if (!errors.futuresTrades && !errors.barrels && Math.abs(exposure) > netLimitLots) {
       const over = overBy(exposure);
@@ -800,7 +881,7 @@
 
     // How the book left by this ticket responds to the market: to a move in every
     // price, to a move in spot alone, and to the event on watch if there is one.
-    const outcome = (effect) => barrels * (effect.flat + effect.premium) + futuresNet * lot * effect.flat;
+    const outcome = (effect) => availableBarrels * (effect.flat + effect.premium) + futuresNet * lot * effect.flat;
     const watch = state.market?.watch || null;
 
     const fee = draft.client === "redirect" ? client?.redirect.fee || 0 : draft.client === "defer" ? client?.defer?.fee || 0 : 0;
@@ -811,6 +892,9 @@
       awaitingClient: awaitingClient && keys.length === 1,
       errors,
       barrels,
+      reserved,
+      availableBarrels,
+      delivery,
       physicalLimit,
       price: route?.price ?? null,
       haggle,
@@ -835,9 +919,34 @@
     };
   }
 
+  function hedgeOrder(state, draft) {
+    const slot = state.expiryToday ? 1 : 0;
+    const trades = draft.futuresTrades.slice();
+    if (state.expiryToday) trades[0] = -state.futuresPositions[0];
+    if (trades.some((value, index) => index !== slot && (!Number.isSafeInteger(value) || Math.abs(value) > 2 * maxFuturesLots))) {
+      return { message: "Enter valid whole-lot orders in the other months first." };
+    }
+    const current = preview(state, draft);
+    if (current.errors.side || current.errors.barrels || current.errors.haggle || current.errors.delivery) {
+      return { message: "Enter a valid physical order and delivery before adjusting the hedge." };
+    }
+    const others = state.futuresPositions.map((position, index) => index === slot ? 0 : position + trades[index]);
+    const room = maxFuturesLots - grossLots(others);
+    if (room < 0) return { message: "Reduce open lots in the other months before adjusting the hedge." };
+    const target = clamp(-Math.round(current.availableBarrels / lot + sum(others)), -room, room);
+    trades[slot] = target - state.futuresPositions[slot];
+    const adjusted = preview(state, { ...draft, futuresTrades: trades });
+    if (adjusted.errors.futuresTrades || adjusted.errors.exposure || adjusted.errors.expiry) {
+      return { message: "The hedge cannot fit within the desk limits. Change the physical order or reduce positions in another month." };
+    }
+    return { trades, netLots: adjusted.netLots, limited: Math.abs(adjusted.netLots) > 0.5 };
+  }
+
   function snapshot(book, round) {
     const { seed, months, expiryDay, scenario } = book.ctx;
     const barrels = ownedBarrels(book);
+    const reserved = deliveryVolume(book.deliveries);
+    const availableBarrels = barrels - reserved;
     const clients = clientBarrels(book);
     const layout = storageLayout(barrels, clients);
     const market = book.market;
@@ -852,6 +961,11 @@
       stage: book.day,
       phase: round?.phase ?? "close",
       barrels,
+      reserved,
+      availableBarrels,
+      deliveryOptions: deliveryCalendar(book, round),
+      deliveryContracts: book.deliveries.slice(),
+      deliveryHistory: book.delivered.slice(),
       cargoCost: barrels ? Math.round(book.crude.reduce((basis, batch) => basis + batch.barrels * batch.price, 0) / barrels) : null,
       // The four months listed today, nearest first.
       months: [0, 1, 2, 3].map(slot => months[market.firstMonth + slot]),
@@ -862,7 +976,7 @@
       scenario: scenario ? scenario.key : null,
       futuresPositions,
       futuresGross: grossLots(held),
-      netLots: barrels / lot + sum(held),
+      netLots: availableBarrels / lot + sum(held),
       futuresBook: futuresBook(book),
       clientTotal: clients,
       clientInTank: clients - layout.clientOverflow,
@@ -870,7 +984,10 @@
       ownedOverflow: layout.ownedOverflow,
       occupancy: layout.occupancy,
       clientLoads: book.loads.map(load => ({ barrels: load.barrels, throughCycle: load.releaseStage })),
-      storageCommitments: book.loads.map(load => ({ barrels: load.barrels, throughCycle: load.releaseStage })),
+      storageCommitments: [
+        ...book.loads.map(load => ({ barrels: load.barrels, throughCycle: load.releaseStage })),
+        ...book.deliveries.map(contract => ({ barrels: contract.barrels, throughCycle: contract.cycle })),
+      ],
       activeLeases: book.leases.slice(),
       storageBooked,
       storageUsed,
@@ -904,19 +1021,30 @@
       parts.trading += order.barrels * (spotBefore - estimate.price);
       labels.push("Buy " + volume);
       outcomes.push("Bought " + volume + " at " + priceLabel(estimate.price) + ".");
-    } else if (order.side === "sell" || order.side === "ship") {
+    } else if (order.side === "sell" || order.side === "ship" || order.side === "emergency") {
       const gulf = order.side === "ship";
-      sellCrude(book, order.barrels, estimate.price, gulf ? "Gulf Coast crude sale" : "Local crude sale");
+      const emergency = order.side === "emergency";
+      sellCrude(book, order.barrels, estimate.price, emergency ? "Emergency crude sale" : gulf ? "Gulf Coast crude sale" : "Local crude sale");
       parts.trading += order.barrels * (estimate.price - spotBefore);
       if (gulf) {
         record(book, "logistics", "Pipeline tariff", volume + " @ " + priceLabel(terms.ship.tariff), -estimate.transportCost);
         parts.costs -= estimate.transportCost;
       }
-      labels.push((gulf ? "Ship " : "Sell ") + volume);
-      outcomes.push((gulf ? "Shipped " : "Sold ") + volume + " at " + priceLabel(estimate.price) + ".");
+      labels.push((emergency ? "Emergency sale " : gulf ? "Ship " : "Sell ") + volume);
+      outcomes.push((gulf ? "Shipped " : "Sold ") + volume + " at " + priceLabel(estimate.price) + (emergency ? " to clear tank space." : "."));
     }
     if (estimate.haggle?.status === "deal" && estimate.haggle.side === order.side) {
       outcomes.push("Agreed with " + estimate.haggle.name + ", " + priceLabel(estimate.haggle.improve) + " better than their opening price.");
+    }
+
+    if (estimate.delivery) {
+      const contract = estimate.delivery;
+      book.deliveries.push(contract);
+      record(book, "physical", "Forward delivery booked", formatVolume(contract.barrels) + " at " + priceLabel(contract.fixedGross) +
+        " · cycle " + contract.cycle, 0);
+      parts.trading += contract.barrels * (contract.fixedGross - spotBefore);
+      labels.push("Book forward delivery");
+      outcomes.push("Fixed " + formatVolume(contract.barrels) + " at " + priceLabel(contract.fixedGross) + " for cycle " + contract.cycle + ".");
     }
 
     const client = terms.client;
@@ -963,13 +1091,15 @@
     }
 
     const held = ownedBarrels(book);
+    const unpricedHeld = held - deliveryVolume(book.deliveries);
     const lots = lotsHeld(book);
     if (!outcomes.length) outcomes.push(held ? "Held " + formatVolume(held) + " of crude." : "Stayed flat.");
 
     // The market moves: to the afternoon if midday brings news, otherwise through to the next morning.
+    markDrawdown(book);
     const path = [before];
     if (scenario) {
-      path.push(scenarioMove(scenario, before));
+      path.push(scenarioMove(scenario, before, book.ctx.legacyEstimate));
     } else if (round.phase === "am") {
       const midday = middayMove(seed, before);
       path.push(midday);
@@ -978,15 +1108,18 @@
       path.push(overnightMove(book.ctx, before));
     }
     const after = path.at(-1);
-    book.market = after;
+    for (const mark of path.slice(1)) {
+      book.market = mark;
+      markDrawdown(book);
+    }
 
     // The move, split three ways: the whole curve moving on the net position,
     // spot moving against the front month on the crude, and the months moving against each other.
     const front = before.firstMonth;
     const frontMove = monthPrice(after, front) - before.prices[1];
     const spotMove = after.prices[0] - spotBefore;
-    parts.price += (held + sum(lots) * lot) * frontMove;
-    parts.basis += held * (spotMove - frontMove);
+    parts.price += (unpricedHeld + sum(lots) * lot) * frontMove;
+    parts.basis += unpricedHeld * (spotMove - frontMove);
     lots.forEach((position, month) => {
       if (position) parts.spreads += position * lot * (monthPrice(after, month) - monthPrice(before, month) - frontMove);
     });
@@ -998,12 +1131,25 @@
 
     if (after.phase !== "pm") {
       // A day has ended.
+      const due = book.deliveries.filter((contract) => contract.cycle === book.day + 1);
+      book.deliveries = book.deliveries.filter((contract) => contract.cycle > book.day + 1);
+      for (const contract of due) {
+        const route = contract.route === "gulf" ? "Gulf Coast" : "Local";
+        sellCrude(book, contract.barrels, contract.fixedGross, route + " forward delivery");
+        if (contract.tariffCost) {
+          record(book, "logistics", "Forward pipeline tariff", formatVolume(contract.barrels) + " @ " + priceLabel(contract.tariff), -contract.tariffCost);
+          parts.costs -= contract.tariffCost;
+        }
+        book.delivered.push({ ...contract, settledCycle: book.day + 1 });
+        outcomes.push("Delivered " + formatVolume(contract.barrels) + " at the fixed " + priceLabel(contract.fixedGross) + ".");
+      }
       if (after.phase === "close") {
-        if (held) {
+        const remaining = ownedBarrels(book);
+        if (remaining) {
           const auction = after.prices[0] - 18;
-          sellCrude(book, held, auction, "Closing auction");
-          parts.trading -= 18 * held;
-          outcomes.push("The closing auction took " + formatVolume(held) + " at " + priceLabel(auction) + ".");
+          sellCrude(book, remaining, auction, "Closing auction");
+          parts.trading -= 18 * remaining;
+          outcomes.push("The closing auction took " + formatVolume(remaining) + " at " + priceLabel(auction) + ".");
         }
         lotsHeld(book).forEach((position, month) => {
           if (position) tradeFutures(book, month, -position, monthPrice(after, month));
@@ -1017,9 +1163,8 @@
 
     const components = marked(book);
     const netAfter = sumComponents(components);
-    book.peak = Math.max(book.peak, netAfter);
-    book.maxDrawdown = Math.max(book.maxDrawdown, book.peak - netAfter);
-    book.exposureDays.push(Math.abs(held / lot + sum(lots)));
+    markDrawdown(book, components);
+    book.exposureDays.push(Math.abs(unpricedHeld / lot + sum(lots)));
     book.decisions.push(order);
     book.history.push({
       cycle: before.day + 1,
@@ -1061,6 +1206,8 @@
       futuresRealized: ctx.months.map(() => 0),
       loads: [],
       leases: [],
+      deliveries: [],
+      delivered: [],
       queued: [],
       entries: [],
       realized: { physical: 0, hedge: 0, logistics: 0 },
@@ -1078,16 +1225,24 @@
 
   // An invalid decision stops the replay at the last valid ticket.
   // Pass a scenario to play real prices instead of a generated market.
-  function replay(seed, decisions = [], { withReview = true, scenario = null } = {}) {
+  function replay(seed, decisions = [], { withReview = true, scenario = null, legacyEstimateThrough = 0 } = {}) {
     const runSeed = typeof seed === "string" && seed.trim() ? seed.trim() : "CUSHING";
-    const book = newBook(context(runSeed, scenario));
+    const ctx = context(runSeed, scenario);
+    ctx.legacyEstimate = scenario?.expiry < legacyEstimateThrough && !!decisions?.[scenario.expiry]?.futuresTrades?.[3];
+    const book = newBook(ctx);
     let round = nextRound(book, runSeed);
     for (const decision of Array.isArray(decisions) ? decisions : []) {
       if (!round || !decision || typeof decision !== "object") break;
       const { side, barrels, storage, storageCycles, client, futuresTrades, haggle } = decision;
       const order = { side, barrels, storage, storageCycles: storage ? storageCycles : 0, client, futuresTrades };
-      if (haggle && haggle.side === side) order.haggle = { side: haggle.side, asks: Array.isArray(haggle.asks) ? haggle.asks.slice(0, 2) : [] };
-      const estimate = preview(snapshot(book, round), order);
+      if (decision.delivery !== undefined && decision.delivery !== null) {
+        const { cycle, barrels, route, month } = decision.delivery;
+        order.delivery = { cycle, barrels, route, month };
+      }
+      if (haggle && (haggle.side === side || (side === "emergency" && haggle.side === "sell"))) {
+        order.haggle = { side: haggle.side, asks: Array.isArray(haggle.asks) ? haggle.asks.slice(0, 2) : [] };
+      }
+      const estimate = preview(snapshot(book, round), order, { allowEstimatedTrade: ctx.legacyEstimate && book.decisions.length < legacyEstimateThrough });
       if (!estimate.ok) break;
       order.futuresTrades = futuresTrades.slice();
       execute(book, round, order, estimate);
@@ -1159,7 +1314,7 @@
   }
 
   const game = {
-    replay, preview, negotiate, dateLabel, totalCycles, capacity, lot, monthNames, maxFuturesLots, netLimitLots, tankLease,
+    replay, preview, hedgeOrder, negotiate, dateLabel, totalCycles, capacity, lot, monthNames, maxFuturesLots, netLimitLots, tankLease,
     shockChance, expiryCycle: expiryDay + 1, reportCycles: reportDays.map(day => day + 1),
   };
   if (typeof module !== "undefined" && module.exports) module.exports = game;

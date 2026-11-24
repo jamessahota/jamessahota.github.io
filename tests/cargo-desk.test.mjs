@@ -299,3 +299,210 @@ test('the expiring contract in a scenario settles at its real final price', () =
   assert.equal(expired.price, scenario.prices[scenario.expiry][1], 'the expiring month must settle at the front-month price of its last day');
   assert.equal(state.months[0], scenario.months[1], 'the next month should be the front month after expiry');
 });
+
+test('the hedge shortcut keeps a valid gross-limit spread intact', () => {
+  const state = game.replay('review-ui-0', [], quiet);
+  const ticket = {
+    side: 'buy', barrels: 2000, client: 'redirect', storage: 0, storageCycles: 0,
+    futuresTrades: [0, 7, 0, -7],
+  };
+  assert.equal(game.preview(state, ticket).ok, true);
+  const adjusted = game.hedgeOrder(state, ticket);
+  assert.deepEqual(adjusted.trades, ticket.futuresTrades);
+  assert.equal(adjusted.limited, true);
+  assert.equal(game.preview(state, { ...ticket, futuresTrades: adjusted.trades }).ok, true);
+});
+
+test('an emergency sale relieves a storage shortage after a local buyer walks', () => {
+  const seed = 'review0';
+  const first = {
+    side: 'buy', barrels: 3000, client: 'accept', storage: 6000, storageCycles: 1,
+    futuresTrades: [-3, 0, 0, 0],
+  };
+  const state = game.replay(seed, [first], quiet);
+  assert.equal(state.storageShortfall, 5000);
+  assert.equal(state.round.orderBook.storage.max, 4000);
+  const ticket = {
+    side: 'emergency', barrels: 1000, client: 'redirect', storage: 4000, storageCycles: 1,
+    futuresTrades: [1, 0, 0, 0],
+  };
+  assert.equal(game.preview(state, ticket).ok, false);
+  const haggle = { side: 'sell', asks: [80, 80] };
+  assert.equal(game.preview(state, { ...ticket, haggle }).ok, true);
+  const next = game.replay(seed, [first, { ...ticket, haggle }], quiet);
+  assert.equal(next.history.length, 2);
+  assert.ok(next.entries.some(entry => entry.label === 'Emergency crude sale'));
+});
+
+test('drawdown includes quiet midday marks between tickets', () => {
+  const state = game.replay('risk-audit-1', [{
+    side: 'hold', barrels: 0, client: 'redirect', storage: 0, storageCycles: 0,
+    futuresTrades: [0, 0, 0, 0],
+  }], quiet);
+  assert.equal(state.net, 173000);
+  assert.equal(state.maxDrawdown, 289000);
+});
+
+test('afternoon asks worsen against spot from the firm morning quote', () => {
+  let state = game.replay('audit-0', [], quiet);
+  while (state.stage < 2) state = game.replay(state.seed, [...state.decisions, complete(state, safeOrders(state)[0])], quiet);
+  const next = game.replay(state.seed, [...state.decisions, complete(state, safeOrders(state)[0])], quiet);
+  assert.equal(next.phase, 'pm');
+  assert.equal(next.round.orderBook.buy.price - next.market.prices[0],
+    state.round.orderBook.buy.price - state.market.prices[0] + 10);
+});
+
+test('an estimated post-expiry mark cannot be used for a fresh trade', () => {
+  const scenario = scenarios.find(item => item.key === 'apr2020');
+  const options = { ...quiet, scenario };
+  let state = game.replay('scenario-apr2020', [], options);
+  while (state.stage < scenario.expiry) state = game.replay(state.seed, [...state.decisions, complete(state, safeOrders(state)[0])], options);
+  assert.equal(state.market.estimated, true);
+  const order = complete(state, safeOrders(state)[0]);
+  order.futuresTrades[3] = 1;
+  assert.match(game.preview(state, order).errors.futuresTrades, /estimated mark/);
+  assert.equal(game.replay(state.seed, [...state.decisions, order], options).history.length, scenario.expiry);
+  assert.equal(game.replay(state.seed, [...state.decisions, order], {
+    ...options, legacyEstimateThrough: scenario.expiry + 1,
+  }).futuresBook.at(-1).averageEntry, scenario.afterExpiry.legacyPrice);
+});
+
+const deliveryReplayOptions = { withReview: false };
+
+function order(state, changes = {}) {
+  const ticket = {
+    side: "hold", barrels: 0, storage: 0, storageCycles: 0,
+    client: state.incoming ? "redirect" : "none",
+    ...changes,
+  };
+  const traded = ticket.side === "buy" ? ticket.barrels : -ticket.barrels;
+  const open = state.availableBarrels + traded - (ticket.delivery?.barrels ?? 0);
+  return { ...ticket, futuresTrades: changes.futuresTrades ?? hedge(state, open) };
+}
+
+function entry(state, changes, options = deliveryReplayOptions) {
+  const ticket = order(state, changes);
+  const quote = game.preview(state, ticket);
+  assert.equal(quote.ok, true, JSON.stringify(quote.errors));
+  const next = game.replay(state.seed, [...state.decisions, ticket], options);
+  const step = next.history.at(-1);
+  assert.equal(next.history.length, state.history.length + 1);
+  assert.equal(Object.values(step.parts).reduce((total, value) => total + value, 0), step.delta);
+  assert.equal(next.reserved + next.availableBarrels, next.barrels);
+  return next;
+}
+
+test("a forward fixes the physical mark and leaves futures as independent orders", () => {
+  const start = game.replay("fixed-local");
+  const delivery = { cycle: 4, barrels: 6000, route: "local", month: 1 };
+  const ticket = order(start, { delivery, futuresTrades: [6, 0, 0, 0] });
+  const estimate = game.preview(start, ticket);
+  const contract = estimate.delivery;
+  assert.equal(contract.fixedGross, start.market.prices[2] + contract.basis);
+  assert.equal(contract.netVsSpot, 6000 * (contract.fixedGross - start.market.prices[0]));
+  assert.equal(estimate.reserved, 6000);
+  assert.equal(estimate.availableBarrels, 0);
+  assert.equal(estimate.netLots, 0);
+  assert.equal(estimate.perSpotDime, 0);
+  assert.equal(estimate.perDollar, 0);
+  const after = entry(start, ticket);
+  assert.deepEqual(after.decisions[0].delivery, delivery);
+  assert.equal(after.deliveryContracts[0].fixedGross, contract.fixedGross);
+  assert.equal(after.components.physical, 6000 * (contract.fixedGross - start.cargoCost));
+  assert.equal(after.futuresGross, 0);
+  assert.equal(after.history[0].parts.trading, contract.netVsSpot);
+
+  const invalidSale = order(after, { side: "sell", barrels: 1 });
+  assert.equal(game.preview(after, invalidSale).physicalLimit, 0);
+  assert.equal(game.preview(after, invalidSale).ok, false);
+});
+
+test("the ticket can buy and book the same crude", () => {
+  const start = game.replay("buy-and-book");
+  const delivery = { cycle: 6, barrels: 7000, route: "local", month: 2 };
+  const after = entry(start, { side: "buy", barrels: 1000, delivery });
+  assert.equal(after.reserved, 7000);
+  assert.equal(after.availableBarrels, 0);
+  assert.equal(after.futuresGross, 0);
+  assert.equal(after.occupancy, 7000);
+});
+
+test("committed client and forward barrels require overflow through delivery", () => {
+  const start = game.replay("committed-storage");
+  const delivery = { cycle: 5, barrels: 6000, route: "local", month: 0 };
+  const shortLease = order(start, { client: "accept", storage: 2000, storageCycles: 1, delivery });
+  const estimate = game.preview(start, shortLease);
+  assert.equal(estimate.storageRequired, 2000);
+  assert.match(estimate.errors.storageCycles, /Committed cargo needs 2,000 bbl of overflow in cycle 2/);
+  const term = start.round.orderBook.client.throughCycle;
+  const next = entry(start, { ...shortLease, storageCycles: term });
+  assert.equal(next.clientTotal, 6000);
+  assert.equal(next.occupancy, 10000);
+  assert.equal(next.storageBooked, 2000);
+  assert.equal(next.storageShortfall, 0);
+});
+
+test("Gulf capacity is reduced by prior bookings and tariffs settle only once", () => {
+  const start = game.replay("gulf-capacity");
+  const first = { cycle: 4, barrels: 2500, route: "gulf", month: 1 };
+  const booked = game.preview(start, order(start, { delivery: first })).delivery;
+  assert.equal(booked.tariffCost, 2500 * booked.tariff);
+  let state = entry(start, { delivery: first });
+  assert.ok(!state.entries.some(item => item.label === "Forward pipeline tariff"));
+  while (state.stage < 1 || state.phase === "pm") state = entry(state);
+  assert.equal(state.deliveryOptions.cycles.find(day => day.cycle === 4).routes.gulf.max, 1500);
+  const over = order(state, { delivery: { ...first, barrels: 1501 } });
+  assert.match(game.preview(state, over).errors.delivery, /Book 1 to 1,500 bbl/);
+  state = entry(state, { delivery: { ...first, barrels: 1500 } });
+  while (state.stage < 4) state = entry(state);
+  assert.equal(state.deliveryContracts.length, 0);
+  assert.equal(state.deliveryHistory.length, 2);
+  assert.equal(state.barrels, 2000);
+  assert.equal(state.availableBarrels, 2000);
+  assert.equal(state.deliveryHistory[0].fixedGross, booked.fixedGross);
+  assert.equal(state.deliveryHistory[0].settledCycle, 4);
+  const charges = state.entries.filter(item => item.label === "Forward pipeline tariff");
+  assert.equal(charges.length, 2);
+  assert.equal(charges[0].cents, -booked.tariffCost);
+  assert.equal(charges[0].cycle, 4);
+});
+
+test("cycle ten settles the contracted cargo before the auction", () => {
+  const start = game.replay("forward-to-close");
+  const delivery = { cycle: 10, barrels: 4000, route: "local", month: 0 };
+  let state = entry(start, { delivery });
+  while (state.round) state = entry(state);
+  assert.equal(state.deliveryContracts.length, 0);
+  assert.equal(state.deliveryHistory.length, 1);
+  assert.equal(state.deliveryHistory[0].settledCycle, 10);
+  assert.equal(state.deliveryHistory[0].monthName, "Dec");
+  assert.equal(state.barrels, 0);
+  assert.equal(state.futuresGross, 0);
+  const [sold, auction] = state.entries.filter(item => /Local forward delivery|Closing auction/.test(item.label));
+  assert.match(sold.detail, /^4,000 bbl/);
+  assert.match(auction.detail, /^2,000 bbl/);
+  assert.equal(state.entries.reduce((total, item) => total + item.cents, 0), state.net);
+  assert.equal(game.replay(state.seed, state.decisions).review.opening, 120000);
+});
+
+test("the calendar rules reject same-day bookings, unavailable months, and afternoon orders", () => {
+  let state = game.replay("calendar-rules");
+  const delivery = { cycle: 2, barrels: 1000, route: "local", month: 0 };
+  assert.ok(game.preview(state, order(state, { delivery: { ...delivery, cycle: 1 } })).errors.delivery);
+  assert.ok(game.preview(state, order(state, { delivery: { ...delivery, month: 4 } })).errors.delivery);
+  while (state.phase !== "pm" && state.round) state = entry(state);
+  assert.equal(state.phase, "pm");
+  assert.equal(state.deliveryOptions, null);
+  assert.ok(game.preview(state, order(state, { delivery: { ...delivery, cycle: state.stage + 2 } })).errors.delivery);
+});
+
+test("saved orders without delivery selections still replay", () => {
+  const start = game.replay("legacy-order");
+  const orders = [{ side: "hold", barrels: 0, storage: 0, storageCycles: 0, client: "redirect", futuresTrades: [0, 0, 0, 0] }];
+  const after = game.replay(start.seed, orders);
+  assert.equal(after.history.length, 1);
+  assert.deepEqual(after.decisions, orders);
+  assert.equal(after.reserved, 0);
+  assert.equal(after.availableBarrels, start.barrels);
+  assert.deepEqual(game.replay(start.seed, [{ ...orders[0], delivery: null }]), after);
+});

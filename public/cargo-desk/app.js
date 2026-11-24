@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const { replay, preview, negotiate, dateLabel, totalCycles, capacity, lot, maxFuturesLots, netLimitLots } = window.CargoDesk;
+  const { replay, preview, hedgeOrder, negotiate, dateLabel, totalCycles, capacity, lot, maxFuturesLots, netLimitLots } = window.CargoDesk;
   // Historical scenarios: real prices in place of the generated market.
   const scenarios = window.CargoScenarios || [];
   const { transition, reveal } = window.CargoMotion;
@@ -19,8 +19,10 @@
   const money = (value) => (value < 0 ? "−\u2060" : value > 0 ? "+" : "") + unsignedMoney(value);
   const tone = (value) => value < 0 ? "negative" : value > 0 ? "positive" : "";
   const curveMargins = { left: 40, right: 10, top: 14, bottom: 12 };
-  const runKey = "cargo-desk-run-v5";
-  const seedsKey = "cargo-desk-seeds-v5";
+  const runKey = "cargo-desk-run-v6";
+  const seedsKey = "cargo-desk-seeds-v6";
+  const previousRunKey = "cargo-desk-run-v5";
+  const previousSeedsKey = "cargo-desk-seeds-v5";
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   // The main site has its own pause control, stored on the root element.
   const still = () => reducedMotion.matches || root.dataset.motion === "paused";
@@ -31,6 +33,13 @@
     barrels: element("order-barrels"),
     storage: element("order-storage"),
     storageCycles: element("order-storage-cycles"),
+  };
+  const deliveryInputs = {
+    enabled: element("delivery-enabled"),
+    cycle: element("delivery-cycle"),
+    barrels: element("delivery-barrels"),
+    route: element("delivery-route"),
+    month: element("delivery-month"),
   };
   // What each part of a day's profit or loss is called on screen.
   const partNames = {
@@ -100,7 +109,9 @@
 
   // The scenario a run is playing, if any, and a replay of the run so far.
   const scenarioOf = (target = run) => scenarios.find(item => item.key === target?.scenario) || null;
-  const play = (decisions, options = {}) => replay(run.seed, decisions, { ...options, scenario: scenarioOf() });
+  const play = (decisions, options = {}) => replay(run.seed, decisions, {
+    ...options, scenario: scenarioOf(), legacyEstimateThrough: run.legacyEstimateThrough ?? 0,
+  });
   const shortDate = dateLabel;
 
   // --- Saved run and the ranked/practice rule ---------------------------------
@@ -111,7 +122,7 @@
 
   function startedSeeds() {
     try {
-      const saved = JSON.parse(localStorage.getItem(seedsKey));
+      const saved = JSON.parse(localStorage.getItem(seedsKey) ?? localStorage.getItem(previousSeedsKey));
       return Array.isArray(saved) ? saved.filter(seed => typeof seed === "string") : [];
     } catch {
       return [];
@@ -134,16 +145,24 @@
 
   function loadRun() {
     try {
-      const saved = JSON.parse(localStorage.getItem(runKey));
+      const current = localStorage.getItem(runKey);
+      const migrated = current === null;
+      const saved = JSON.parse(current ?? localStorage.getItem(previousRunKey));
       if (typeof saved?.id !== "string" || !saved.id || typeof saved.seed !== "string" ||
-          !saved.seed.trim() || saved.seed.length > 64 || !Array.isArray(saved.decisions)) return null;
+          !saved.seed.trim() || saved.seed.length > 64 || !Array.isArray(saved.decisions) ||
+          saved.decisions.length > totalCycles * 2) return null;
       const scenario = typeof saved.scenario === "string" ? scenarios.find(item => item.key === saved.scenario) : null;
       if (saved.scenario && !scenario) return null;
-      const decisions = replay(saved.seed, saved.decisions.slice(0, totalCycles * 2), { withReview: false, scenario }).decisions;
+      const legacyEstimateThrough = !scenario ? 0 : migrated ? saved.decisions.length : saved.legacyEstimateThrough ?? 0;
+      if (!Number.isSafeInteger(legacyEstimateThrough) || legacyEstimateThrough < 0 || legacyEstimateThrough > saved.decisions.length) return null;
+      const decisions = replay(saved.seed, saved.decisions, { withReview: false, scenario, legacyEstimateThrough }).decisions;
+      // Keep the original independently versioned save if a full replay is impossible.
+      if (decisions.length !== saved.decisions.length) return null;
       const completedAt = Number.isSafeInteger(saved.completedAt) && saved.completedAt > 0 ? saved.completedAt : null;
       // A negotiation in progress is kept, so reloading the page cannot undo a refusal.
       const talks = saved.talks?.ticket === decisions.length && validAsks(saved.talks.buy) && validAsks(saved.talks.sell) ? saved.talks : null;
-      return { id: saved.id, seed: saved.seed, scenario: scenario?.key || null, ranked: saved.ranked === true && !scenario, decisions, completedAt, talks };
+      return { id: saved.id, seed: saved.seed, scenario: scenario?.key || null, ranked: !migrated && saved.ranked === true && !scenario,
+        decisions, completedAt, talks, legacyEstimateThrough };
     } catch {
       return null;
     }
@@ -255,17 +274,96 @@
   function readOrder() {
     const afternoon = state.phase === "pm";
     const side = form.elements.side.value || "hold";
-    const asks = haggles[side];
+    const haggleSide = side === "emergency" ? "sell" : side;
+    const asks = haggles[haggleSide];
     const order = {
       side,
       barrels: side === "hold" ? 0 : inputs.barrels.valueAsNumber,
       storage: afternoon ? 0 : inputs.storage.valueAsNumber,
       storageCycles: afternoon ? 0 : inputs.storageCycles.valueAsNumber,
       client: state.round.orderBook.client ? form.elements.client.value : "none",
-      futuresTrades: futuresInputs.map(input => input.value.trim() === "" ? 0 : input.valueAsNumber),
+      futuresTrades: futuresInputs.map(input => !input.validity.badInput && input.value === "" ? 0 : input.valueAsNumber),
     };
-    if (asks?.length) order.haggle = { side, asks: asks.slice() };
+    if (asks?.length) order.haggle = { side: haggleSide, asks: asks.slice() };
+    if (deliveryInputs.enabled.checked && !element("delivery-step").hidden) {
+      order.delivery = {
+        cycle: Number(deliveryInputs.cycle.value),
+        barrels: deliveryInputs.barrels.valueAsNumber,
+        route: deliveryInputs.route.value,
+        month: Number(deliveryInputs.month.value),
+      };
+    }
     return order;
+  }
+
+  function deliveryDay(cycle) {
+    const date = scenarioOf()?.dates[cycle];
+    return "Cycle " + cycle + (date ? " · " + shortDate(date) : "");
+  }
+
+  function renderDeliveryFields() {
+    const options = state.deliveryOptions;
+    const upcoming = options?.cycles.length && options.months.length;
+    element("delivery-step").hidden = !upcoming;
+    deliveryInputs.enabled.checked = false;
+    deliveryInputs.cycle.replaceChildren();
+    deliveryInputs.month.replaceChildren();
+    if (!upcoming) return;
+    for (const { cycle } of options.cycles) {
+      append(deliveryInputs.cycle, "option", deliveryDay(cycle)).value = String(cycle);
+    }
+    for (const { month, name, price } of options.months) {
+      append(deliveryInputs.month, "option", name + " · " + quote(price)).value = String(month);
+    }
+    deliveryInputs.barrels.value = String(Math.min(1000, state.availableBarrels || 1000));
+    deliveryInputs.route.value = "local";
+  }
+
+  function updateDelivery(draft, result) {
+    const options = element("delivery-options");
+    options.hidden = options.disabled = !draft.delivery;
+    if (!draft.delivery) return;
+
+    const { cycle, route, month, barrels } = draft.delivery;
+    const quotes = state.deliveryOptions;
+    const offer = quotes.cycles.find(day => day.cycle === cycle)?.routes[route];
+    const reference = quotes.months.find(quote => quote.month === month);
+    const booked = result.delivery;
+    const available = result.availableBarrels + (booked?.barrels || 0);
+    if (offer) {
+      const maximum = Math.min(offer.max, available);
+      deliveryInputs.barrels.max = String(maximum);
+      set("delivery-available", number(available) + " bbl available on this ticket · " + number(offer.max) + " bbl left on this route for this date");
+    } else {
+      deliveryInputs.barrels.removeAttribute("max");
+      set("delivery-available", "");
+    }
+
+    const fixedPrice = booked?.fixedGross ?? (offer && reference ? reference.price + offer.basis : null);
+    set("delivery-price", fixedPrice === null ? "–" : quote(fixedPrice) + " / bbl");
+    set("delivery-basis", offer && reference ? reference.name + " WTI " + move(offer.basis) + " basis" : "");
+    set("delivery-tariff", !offer ? "–" : !offer.tariff ? "None" : quote(offer.tariff) + " / bbl" +
+      (booked ? " · " + unsignedMoney(booked.tariffCost) + " total" : ""));
+    if (booked) amount("delivery-margin", booked.netVsSpot - result.storageCost);
+    else {
+      set("delivery-margin", "–");
+      element("delivery-margin").classList.remove("positive", "negative");
+    }
+    const after = element("delivery-after");
+    after.hidden = !booked;
+    after.textContent = booked ? "After this ticket, " + number(result.reserved) + " bbl reserved and " + number(result.availableBarrels) + " bbl uncommitted." : "";
+    set("delivery-storage", result.storageThroughCycle ?
+      "This ticket books " + unsignedMoney(result.storageCost) + " of overflow through cycle " + result.storageThroughCycle + "." :
+      result.storageRequired ? "This ticket needs " + number(result.storageRequired) + " bbl of overflow." : "No additional overflow booked on this ticket.");
+
+    const issue = element("delivery-error");
+    issue.textContent = result.errors.delivery || "";
+    issue.hidden = !result.errors.delivery;
+    if (!Number.isSafeInteger(barrels) || barrels < 1 || (offer && barrels > Math.min(offer.max, available))) {
+      deliveryInputs.barrels.setAttribute("aria-invalid", "true");
+    } else {
+      deliveryInputs.barrels.removeAttribute("aria-invalid");
+    }
   }
 
   // The talk with the counterparty on a local route: who they are, what has been said, what you can say next.
@@ -293,7 +391,9 @@
       }
     }
     if (talk.status === "deal") append(log, "li", "Agreed at " + quote(talk.price) + ", " + cents(talk.improve) + " better than their opening price.", "is-deal");
-    if (talk.status === "walked") append(log, "li", "No local " + (selling ? "sale" : "purchase") + " this session.", "is-walked");
+    if (talk.status === "walked") append(log, "li", selling && state.round.orderBook.emergency ?
+      "The local bid is gone. An emergency sale can clear the storage shortfall." :
+      "No local " + (selling ? "sale" : "purchase") + " this session.", "is-walked");
     log.hidden = !log.children.length;
 
     const open = talk.status === "open" || talk.status === "counter";
@@ -313,10 +413,15 @@
   }
 
   function updateTicket() {
+    element("hedge-status").hidden = true;
     const draft = readOrder();
     const book = state.round.orderBook;
     const result = preview(state, draft);
+    updateDelivery(draft, result);
     const route = book[draft.side];
+    const emergency = element("emergency-choice");
+    emergency.hidden = !book.emergency || negotiate(state, "sell", haggles.sell).status !== "walked";
+    emergency.querySelector("input").disabled = emergency.hidden;
     const agreed = result.haggle?.status === "deal" && result.haggle.side === draft.side;
     const price = result.price ?? route?.price;
 
@@ -330,7 +435,8 @@
     set("order-quote", draft.side === "hold" ? "Keep the crude you have. Choose a route to trade." :
       !result.physicalLimit ? "This route is closed for the session." :
       draft.side === "buy" ? quote(price) + (agreed ? " agreed" : " ask") + " · up to " + number(route.max) + " bbl" :
-      draft.side === "sell" ? quote(price) + (agreed ? " agreed" : " bid") + " · up to " + number(route.max) + " bbl" :
+      draft.side === "sell" ? quote(price) + (agreed ? " agreed" : " bid") + " · up to " + number(result.physicalLimit) + " bbl" :
+      draft.side === "emergency" ? quote(price) + " emergency bid · up to " + number(result.physicalLimit) + " bbl" :
       quote(route.price) + " less " + quote(route.tariff) + " tariff is " + quote(route.price - route.tariff) + " net · up to " + number(route.max) + " bbl");
     renderHaggle(draft.side);
 
@@ -372,20 +478,27 @@
     const scenario = element("order-scenario");
     scenario.replaceChildren();
     if (watch) {
-      set("scenario-label", "On watch");
+      set("scenario-label", "Event impact");
       append(scenario, "span", "If it happens ");
       append(scenario, "b", roughly(result.ifHit), tone(Math.round(result.ifHit / 1000)));
       append(scenario, "span", " · if not ");
       append(scenario, "b", roughly(result.ifMiss), tone(Math.round(result.ifMiss / 1000)));
     } else {
       set("scenario-label", "If prices move");
-      if (!result.perDollar && !result.perSpotDime) append(scenario, "span", "No price exposure");
+      if (!result.perDollar && !result.perSpotDime && !result.futuresGross) append(scenario, "span", "No price exposure");
       else {
         append(scenario, "b", money(result.perDollar), tone(result.perDollar));
         append(scenario, "span", " per $1 up in every price · ");
         append(scenario, "b", money(result.perSpotDime), tone(result.perSpotDime));
         append(scenario, "span", " per 10¢ up in spot alone");
       }
+    }
+
+    if (result.futuresGross) {
+      const sensitivity = result.futuresPositions
+        .map((lots, slot) => lots ? state.months[slot] + " " + money(lots * lot * 10) : null)
+        .filter(Boolean);
+      append(scenario, "span", " · Per 10¢ rise in one WTI month: " + sensitivity.join(", "));
     }
 
     const changed = result.barrels !== state.barrels || result.occupancy !== state.occupancy || result.clientInTank !== state.clientInTank;
@@ -402,7 +515,7 @@
     ].filter(Boolean).join(" · ") || "Nothing to pay this afternoon");
     if (cash !== -result.tankLease) element("order-fees").append(" · net " + money(cash));
 
-    const issue = ["side", "barrels", "haggle", "client", "storage", "storageCycles", "futuresTrades", "exposure", "expiry"]
+    const issue = ["side", "barrels", "haggle", "client", "delivery", "storage", "storageCycles", "futuresTrades", "exposure", "expiry"]
       .map(key => result.errors[key]).find(Boolean);
     const message = element("order-error");
     message.textContent = issue || "";
@@ -482,6 +595,7 @@
       set("client-redirect-detail", "Pay " + unsignedMoney(client.redirect.fee) + ". The space stays free.");
     }
     element("storage-step").hidden = afternoon;
+    renderDeliveryFields();
     let step = 1;
     for (const marker of form.querySelectorAll(".cd-step:not([hidden]) > legend > .cd-step__n")) marker.textContent = String(step++).padStart(2, "0");
 
@@ -494,12 +608,17 @@
     inputs.storageCycles.value = "1";
     futuresInputs.forEach((input, slot) => {
       input.value = "0";
+      const estimated = slot === 3 && state.market.estimated;
+      input.disabled = Boolean(estimated);
+      input.parentElement.querySelectorAll("button").forEach(button => { button.disabled = Boolean(estimated); });
       set("futures-name-" + slot, state.months[slot]);
-      set("futures-mark-" + slot, quote(prices[slot + 1]));
+      set("futures-mark-" + slot, quote(prices[slot + 1]) + (estimated ? " est." : ""));
       set("futures-open-" + slot, positionText(state.futuresPositions[slot]));
       input.setAttribute("aria-label", state.months[slot] + " order in lots. Negative sells.");
     });
     set("hedge-flat", state.expiryToday ? "Roll and hedge" : "Hedge to flat");
+    set("quote-status", state.market.estimated ? state.months[3] + " WTI is estimated. Orders open at its next settlement." : "");
+    element("quote-status").hidden = !state.market.estimated;
     const expiry = element("expiry-note");
     const daysLeft = state.expiryCycle ? state.expiryCycle - (state.stage + 1) : -1;
     expiry.hidden = !(state.months[0] === state.allMonths[0] && daysLeft >= 0 && daysLeft <= 1);
@@ -608,7 +727,7 @@
       }
       append(debrief, "p", "What happened next", "label cd-debrief__head");
       append(debrief, "p", history.aftermath, "cd-versus");
-      append(debrief, "p", "Prices are the U.S. Energy Information Administration’s daily settlements. Bids, clients and storage rates were the game’s own.", "cd-debrief__meta");
+      append(debrief, "p", "Trading marks use the U.S. Energy Information Administration’s daily prices. Bids, clients and storage rates are simulated.", "cd-debrief__meta");
     }
 
     const actions = append(debrief, "div", undefined, "cd-debrief__actions");
@@ -621,6 +740,46 @@
   }
 
   // --- Ledger ------------------------------------------------------------------
+
+  function renderDeliveryCalendar() {
+    const active = state.deliveryContracts || [];
+    const delivered = state.deliveryHistory || [];
+    const current = state.round ? state.stage + 1 : null;
+    set("delivery-position", current ? number(state.reserved || 0) + " bbl reserved · " + number(state.availableBarrels ?? state.barrels) + " bbl free to sell" :
+      delivered.length ? "All forward deliveries settled." : "No forward deliveries were booked.");
+
+    const days = element("delivery-days");
+    days.replaceChildren();
+    for (let cycle = 1; cycle <= totalCycles; cycle++) {
+      const toDeliver = active.some(contract => contract.cycle === cycle);
+      const settled = delivered.some(contract => contract.cycle === cycle);
+      const label = deliveryDay(cycle) + (toDeliver ? ", scheduled delivery" : settled ? ", delivered" : "");
+      const cell = append(days, "li", undefined, "cd-delivery-day");
+      cell.title = label;
+      if (cycle === current) cell.setAttribute("aria-current", "step");
+      cell.classList.toggle("is-booked", toDeliver);
+      cell.classList.toggle("is-delivered", settled);
+      append(cell, "span", String(cycle)).setAttribute("aria-hidden", "true");
+      append(cell, "span", label, "visually-hidden");
+    }
+
+    const list = element("delivery-list");
+    list.replaceChildren();
+    list.hidden = !active.length;
+    const history = element("delivery-history");
+    const historyList = element("delivery-history-list");
+    history.hidden = !delivered.length;
+    if (history.hidden) history.open = false;
+    historyList.replaceChildren();
+    set("delivery-history-count", "Completed deliveries (" + delivered.length + ")");
+    const contractLine = (parent, { cycle, barrels, route, monthName, fixedGross, tariff }) => {
+      const row = append(parent, "li");
+      append(row, "b", deliveryDay(cycle) + " · " + number(barrels) + " bbl · " + (route === "gulf" ? "Gulf" : "Local"));
+      append(row, "small", quote(fixedGross - tariff) + " net/bbl · " + monthName + " WTI");
+    };
+    [...active].sort((first, second) => first.cycle - second.cycle).forEach(contract => contractLine(list, contract));
+    [...delivered].reverse().forEach(contract => contractLine(historyList, contract));
+  }
 
   function renderLedger() {
     const settled = !state.round;
@@ -706,7 +865,10 @@
       button.type = "button";
       button.dataset.quote = index;
       button.setAttribute("aria-pressed", "false");
-      if (index && state.round) button.setAttribute("aria-label", label + " WTI at " + quote(prices[index]) + ". Enter an order.");
+      if (index && state.round) {
+        button.setAttribute("aria-label", label + " WTI at " + quote(prices[index]) +
+          (index === 4 && state.market.estimated ? ". Estimated, view only." : ". Enter an order."));
+      }
       append(button, "span", label, "label");
       append(button, "strong", quote(prices[index]));
       const change = previous ? prices[index] - previous[index] : 0;
@@ -813,6 +975,7 @@
     quoteIndex = -1;
     renderHead();
     renderTerminal();
+    renderDeliveryCalendar();
     renderTicket();
     renderLedger();
     renderQuotes();
@@ -918,14 +1081,15 @@
   // On expiry day it also closes the expiring month and puts the hedge in the next one.
   element("hedge-flat").addEventListener("click", () => {
     if (fields.disabled || !state.round) return;
-    const slot = state.expiryToday ? 1 : 0;
-    if (state.expiryToday) futuresInputs[0].value = String(-state.futuresPositions[0]);
-    const draft = readOrder();
-    const barrels = preview(state, draft).barrels;
-    const others = state.futuresPositions.reduce((total, held, month) =>
-      total + held + (month !== slot && Number.isSafeInteger(draft.futuresTrades[month]) ? draft.futuresTrades[month] : 0), 0);
-    futuresInputs[slot].value = String(-Math.round(barrels / lot + others));
-    updateTicket();
+    const result = hedgeOrder(state, readOrder());
+    if (result.trades) {
+      result.trades.forEach((trade, slot) => { futuresInputs[slot].value = String(trade); });
+      updateTicket();
+    }
+    const status = element("hedge-status");
+    status.textContent = result.message || (result.limited ?
+      "The gross limit leaves the book " + exposureText(result.netLots).toLowerCase() + "." : "");
+    status.hidden = !status.textContent;
   });
 
   form.addEventListener("submit", async event => {
@@ -989,7 +1153,7 @@
       button.setAttribute("aria-pressed", String(Number(button.dataset.quote) === quoteIndex));
     }
     drawCurve();
-    if (next > 0 && quoteIndex === next && state.round && !fields.disabled) {
+    if (next > 0 && quoteIndex === next && state.round && !fields.disabled && !futuresInputs[next - 1].disabled) {
       futuresInputs[next - 1].focus();
       futuresInputs[next - 1].select();
     }

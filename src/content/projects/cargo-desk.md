@@ -2,7 +2,8 @@
 title: Cargo Desk
 summary: >-
   A browser game about running a physical crude oil book at Cushing. Ten trading days with one
-  tank, a hedged cargo, clients who want storage and a desk limit, played on simulated prices.
+  tank, a hedged cargo, clients who want storage and a delivery calendar. Play generated markets
+  or replay four historical episodes.
 homeSummary: >-
   A browser game about running a physical crude oil book at Cushing: one tank, a hedged cargo,
   clients who want storage and a desk limit.
@@ -25,9 +26,10 @@ facts:
 You start with 6,000 barrels of crude in a 10,000-barrel tank at Cushing, hedged with six short WTI futures. Each cycle is one trading day. You fill in a morning ticket, commit it and watch the session trade. If news lands at midday you get a shorter afternoon ticket before the market moves overnight.
 
 - **Physical trades.** One order per ticket: buy, sell locally or, when a pipeline slot opens, ship to the Gulf Coast. Local bids and offers move around spot with events at the terminal, such as a refinery short of prompt crude or an outbound line down for maintenance.
-- **Negotiation.** A local price is an opening price. You can ask the counterparty for more. They may agree, come back once with a counter, or walk away and close the route for the session.
+- **Forward delivery.** On a morning ticket, book a local sale or Gulf delivery for a later cycle. Your chosen WTI quote and the route basis fix the price. The calendar reserves the barrels and storage through delivery, and shows the route tariff and the margin against current spot after costs. Futures still trade on the ticket for the remaining open exposure.
+- **Negotiation.** A local price is an opening price. You can ask the counterparty for more. They may agree, come back once with a counter, or walk away and close the route for the session. An emergency bid can clear an existing overflow shortfall after a local buyer walks.
 - **Storage.** The tank costs a fixed lease whether it is full or empty. Clients pay per barrel to use it. Anything that does not fit, yours or theirs, needs overflow space booked off-site.
-- **Hedging and the roll.** Four futures months trade on the ticket. Crude owned plus futures must stay within two lots of flat. The front month expires at the close of the fifth day, so the hedge has to be rolled into the next month.
+- **Hedging and the roll.** Four futures months trade on the ticket. Crude owned plus futures must stay within two lots of flat. In generated markets the first month expires at the close of the fifth day. The historical scenarios use their own expiry dates. The hedge shortcut adjusts within the gross and net limits.
 - **The curve.** When futures sit above spot, hedged crude in the tank gains as the gap closes, so storing pays. When they sit below spot, the same position loses.
 - **Events and the stocks report.** Some days an event is on watch for the coming night, with its odds and roughly what it would do to futures and to spot, and midday news can move those odds. The weekly stocks report lands at midday on both Wednesdays.
 - **Shocks.** About one day in ten the market is hit by something nobody saw coming and prices move by several dollars. A shock that moves every price does nothing to a hedged book. One that moves spot hardest hits anyone holding crude.
@@ -40,9 +42,9 @@ After each ticket the desk explains the profit or loss: trade prices against spo
 
 ## Historical scenarios
 
-From New run you can also play four real episodes on real prices: the two weeks in April 2020 when WTI settled below zero, the March 2020 price war, the weeks after Russia invaded Ukraine in 2022, and the attack on Abqaiq in September 2019. Each is ten real trading days. Every morning you get a briefing on what was known at the time, and every evening the day's actual settlement.
+From New run you can also play four real episodes on real prices: the two weeks in April 2020 when WTI settled below zero, the March 2020 price war, the weeks after Russia invaded Ukraine in 2022, and the attack on Abqaiq in September 2019. Each is ten real trading days. Every morning you get a briefing on what was known at the time, and the day's closing marks after you commit.
 
-The prices are the U.S. Energy Information Administration's daily series for the Cushing WTI spot price and the first four NYMEX futures contracts. The bids and offers around spot, the clients, the storage rates and the counterparties are still the game's own, tuned to suit each period. Scenarios are practice runs: the outcome is a matter of record, so they are not ranked.
+Trading marks use the U.S. Energy Information Administration’s daily Cushing spot and NYMEX WTI futures series. Where a settlement is unavailable, the displayed estimate is view-only. The bids and offers around spot, the clients, the storage rates and the counterparties are still the game's own, tuned to suit each period. Scenarios are practice runs: the outcome is a matter of record, so they are not ranked.
 
 ## Ranked and practice runs
 
@@ -50,7 +52,7 @@ A market is generated from a seed, and its prices are the same every time that s
 
 ## Limits of the model
 
-Outside the historical scenarios, all prices, bids and events are simulated. The price moves, event odds, shock sizes, storage rates and client fees are set for a short game and are not calibrated to market data. In a scenario the daily settlement prices are real, but the path a price takes within a day on the animated tape is drawn for effect. Futures have no margin, the expiring month settles in cash at spot and not by delivery, and the terminal is a single tank. The counterparties are invented. It is a game about the trade-offs of a physical book and not a forecast or a trading tool.
+Outside the historical scenarios, all prices, bids and events are simulated. The price moves, event odds, shock sizes, storage rates and client fees are set for a short game and are not calibrated to market data. In a scenario the daily trading marks follow recorded prices. The tape animates between those closes for effect. Futures have no margin, the expiring month settles in cash at spot in generated markets and at the recorded expiry settlement in historical markets, and the terminal is a single tank. The counterparties are invented. It is a game about the trade-offs of a physical book and not a forecast or a trading tool.
 
 ## How it was built
 

@@ -1,6 +1,11 @@
 (function () {
-  const storagePrefix = "cargo-desk-score-v5:";
-  const archivePrefix = "cargo-desk-campaign-v2:score:";
+  const storagePrefix = "cargo-desk-score-v6:";
+  const archiveRules = new Map([
+    ["cargo-desk-score-v5:", "Rules version 5"],
+    ["cargo-desk-score-v4:", "Rules version 4"],
+    ["cargo-desk-score-v3:", "Rules version 3"],
+    ["cargo-desk-campaign-v2:score:", "Rules version 2"],
+  ]);
   const limit = 20;
   const date = new Intl.DateTimeFormat("en-US", { dateStyle: "medium" });
   const wholeDollars = new Intl.NumberFormat("en-US", {
@@ -51,6 +56,12 @@
     return formatter.format(Math.abs(cents) / 100);
   }
 
+  function scorePrefix(key) {
+    if (typeof key !== "string") return null;
+    if (key.startsWith(storagePrefix)) return storagePrefix;
+    return Array.from(archiveRules.keys()).find(prefix => key.startsWith(prefix)) ?? null;
+  }
+
   function create({ container, onReplay, storage } = {}) {
     const doc = container.ownerDocument;
     const view = doc.defaultView;
@@ -58,21 +69,27 @@
       try { storage = view?.localStorage; } catch { storage = null; }
     }
     let canPersist = !!storage;
-    let lastRead = { ranked: [], archived: [] };
+    let lastRead = { ranked: [], archived: new Map() };
     const unsaved = new Map();
 
     function readSaved() {
       if (!storage) return lastRead;
       try {
-        const scores = { ranked: [], archived: [] };
+        const scores = { ranked: [], archived: new Map() };
         for (let index = 0; index < storage.length; index++) {
           const key = storage.key(index);
-          const prefix = key?.startsWith(storagePrefix) ? storagePrefix : key?.startsWith(archivePrefix) ? archivePrefix : null;
+          const prefix = scorePrefix(key);
           if (!prefix) continue;
           let saved;
           try { saved = JSON.parse(storage.getItem(key)); } catch { continue; }
           const score = cleanRecord(saved);
-          if (score && key === prefix + score.id) scores[prefix === storagePrefix ? "ranked" : "archived"].push(score);
+          if (!score || key !== prefix + score.id) continue;
+          if (prefix === storagePrefix) {
+            scores.ranked.push(score);
+          } else {
+            if (!scores.archived.has(prefix)) scores.archived.set(prefix, []);
+            scores.archived.get(prefix).push(score);
+          }
         }
         lastRead = scores;
       } catch {
@@ -96,9 +113,9 @@
       return node;
     }
 
-    function scoreTable(scores, archived) {
+    function scoreTable(scores, rules) {
       const table = element("table", undefined, "cd-table");
-      table.append(element("caption", archived ? "Earlier runs, by final P&L" : "Best ranked runs, by final P&L", "visually-hidden"));
+      table.append(element("caption", rules ? rules + " scores, by final P&L" : "Best ranked runs, by final P&L", "visually-hidden"));
       const headings = element("tr");
       for (const label of ["Rank", "Run", "Final P&L"]) {
         const header = element("th", label);
@@ -109,7 +126,7 @@
         }
         headings.append(header);
       }
-      if (!archived) {
+      if (!rules) {
         const practice = element("th");
         practice.scope = "col";
         practice.append(element("span", "Practise", "visually-hidden"));
@@ -134,7 +151,7 @@
         const amount = element("td", (score.net < 0 ? "−" : score.net > 0 ? "+" : "") + dollars(score.net),
           score.net < 0 ? "negative" : score.net > 0 ? "positive" : "");
         row.append(rank, run, amount);
-        if (!archived) {
+        if (!rules) {
           const replayCell = element("td");
           const replay = element("button", "Practise", "cd-mini");
           replay.type = "button";
@@ -156,7 +173,7 @@
       let focusAfterRender = null;
       const content = [];
       if (scores.length > 0) {
-        const table = scoreTable(scores, false);
+        const table = scoreTable(scores);
         if (focused?.dataset?.run && container.contains(focused)) {
           focusAfterRender = Array.from(table.querySelectorAll("button[data-run]"))
             .find((button) => button.dataset.run === focused.dataset.run);
@@ -167,12 +184,17 @@
       }
       content.push(element("p", canPersist ? "Your best 20 ranked runs are kept in this browser. Practising on a seed does not change them." :
         "Browser storage is unavailable. Scores are kept while this page stays open.", "cd-board-note"));
-      if (archived.length > 0) {
+      if (archived.size > 0) {
+        const archivedCount = Array.from(archived.values()).reduce((count, group) => count + group.length, 0);
         const disclosure = element("details", undefined, "cd-details cd-board-archive");
-        const summary = element("summary", "Earlier leaderboard scores (" + archived.length + ")");
+        const summary = element("summary", "Earlier leaderboard scores (" + archivedCount + ")");
         disclosure.open = previousArchive?.open ?? (scores.length === 0);
-        disclosure.append(summary, element("p", "These runs were scored under the previous rules.", "cd-board-note"),
-          scoreTable(archived.slice().sort(compareScores), true));
+        disclosure.append(summary, element("p", "Each group uses the scoring and game rules from its own version.", "cd-board-note"));
+        for (const [prefix, rules] of archiveRules) {
+          const group = archived.get(prefix);
+          if (!group) continue;
+          disclosure.append(element("h3", rules, "label cd-board-note"), scoreTable(group.slice().sort(compareScores), rules));
+        }
         if (focused === previousArchive?.firstElementChild) focusAfterRender = summary;
         content.push(disclosure);
       }
@@ -213,7 +235,7 @@
     }
 
     view?.addEventListener("storage", (event) => {
-      if (event.key === null || event.key?.startsWith(storagePrefix) || event.key?.startsWith(archivePrefix)) render();
+      if (event.key === null || scorePrefix(event.key)) render();
     });
     render();
     return { render, record };

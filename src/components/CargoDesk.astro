@@ -1,6 +1,6 @@
 ---
 // Cargo Desk: a ten-cycle crude oil trading game, played in the page.
-// The markup here matches the game's own index.html, and the four scripts in
+// The markup here matches the game's own index.html, and the browser scripts in
 // public/cargo-desk/ are plain browser scripts that find it by id. They run in
 // order: rules, historical scenarios, leaderboard, the tape, then the screen code.
 // The game is styled entirely with the site's tokens, so it follows the theme.
@@ -90,6 +90,19 @@ import '../styles/cargo-desk.css';
       </div>
     </section>
 
+    <section class="cd-card cd-delivery-calendar" aria-labelledby="delivery-title">
+      <div class="cd-card__head">
+        <h2 class="label label--marked" id="delivery-title">Delivery calendar</h2>
+      </div>
+      <p class="cd-delivery-position" id="delivery-position">No forward deliveries booked.</p>
+      <ol class="cd-delivery-days" id="delivery-days" role="list" aria-label="Delivery cycles"></ol>
+      <ul class="cd-delivery-list" id="delivery-list" role="list" aria-label="Booked deliveries" hidden></ul>
+      <details class="cd-details" id="delivery-history" hidden>
+        <summary id="delivery-history-count">Completed deliveries</summary>
+        <ul class="cd-delivery-list" id="delivery-history-list" role="list"></ul>
+      </details>
+    </section>
+
     <section class="cd-card cd-ticket" id="ticket" aria-labelledby="decision-title">
       <div class="cd-card__head">
         <h2 class="label label--marked" id="decision-label">Order ticket</h2>
@@ -155,6 +168,7 @@ import '../styles/cargo-desk.css';
               <label class="cd-choice"><input type="radio" name="side" value="buy"><span><b>Buy</b></span></label>
               <label class="cd-choice"><input type="radio" name="side" value="sell"><span><b>Sell locally</b></span></label>
               <label class="cd-choice"><input type="radio" name="side" value="ship"><span><b>Ship to Gulf</b></span></label>
+              <label class="cd-choice cd-choice--emergency" id="emergency-choice" hidden><input type="radio" name="side" value="emergency" disabled><span><b>Emergency sale</b></span></label>
             </div>
             <div class="cd-row">
               <label class="cd-input" for="order-barrels">
@@ -180,6 +194,33 @@ import '../styles/cargo-desk.css';
             </div>
           </fieldset>
 
+          <fieldset class="cd-step" id="delivery-step" hidden>
+            <legend><span class="cd-step__n numeric" aria-hidden="true" data-step-number></span>Forward delivery</legend>
+            <label class="cd-delivery-toggle"><input type="checkbox" id="delivery-enabled" aria-controls="delivery-options"> <span>Book a delivery for a later cycle</span></label>
+            <fieldset class="cd-delivery-fields" id="delivery-options" disabled hidden>
+              <legend class="visually-hidden">Forward delivery details</legend>
+              <div class="cd-delivery-grid">
+                <label class="cd-input" for="delivery-cycle"><span class="label">Deliver on</span><select id="delivery-cycle"></select></label>
+                <label class="cd-input" for="delivery-barrels">
+                  <span class="label">Volume</span>
+                  <span class="cd-input__box"><input id="delivery-barrels" type="number" inputmode="numeric" min="1" step="1" aria-describedby="delivery-available delivery-error"><span aria-hidden="true">bbl</span></span>
+                </label>
+                <label class="cd-input" for="delivery-route"><span class="label">Route</span><select id="delivery-route"><option value="local">Sell locally</option><option value="gulf">Ship to Gulf</option></select></label>
+                <label class="cd-input" for="delivery-month"><span class="label">WTI price reference</span><select id="delivery-month"></select></label>
+              </div>
+              <p class="cd-hint" id="delivery-available"></p>
+              <dl class="cd-delivery-quote">
+                <div><dt class="label">Fixed price</dt><dd><span id="delivery-price">–</span><small id="delivery-basis"></small></dd></div>
+                <div><dt class="label">Delivery tariff</dt><dd id="delivery-tariff">–</dd></div>
+                <div><dt class="label">Margin vs. spot after costs</dt><dd id="delivery-margin">–</dd></div>
+              </dl>
+              <p class="cd-hint" id="delivery-after" hidden></p>
+              <p class="cd-hint" id="delivery-storage"></p>
+              <p class="cd-hint">Booked barrels stay in storage until delivery. Hedge the remaining uncommitted crude.</p>
+              <p class="cd-notice" id="delivery-error" hidden></p>
+            </fieldset>
+          </fieldset>
+
           <fieldset class="cd-step" id="storage-step">
             <legend><span class="cd-step__n numeric" aria-hidden="true" data-step-number>03</span>Overflow storage</legend>
             <div class="cd-row cd-row--two">
@@ -203,6 +244,8 @@ import '../styles/cargo-desk.css';
               <tbody id="futures-rows"></tbody>
             </table>
             <p class="cd-hint" id="hedge-hint"></p>
+            <p class="cd-notice" id="hedge-status" role="status" hidden></p>
+            <p class="cd-notice" id="quote-status" hidden></p>
             <p class="cd-notice" id="expiry-note" hidden></p>
             <p class="cd-hint cd-hedge-status" id="hedge-shortcut-status" role="status" hidden></p>
           </fieldset>
@@ -277,22 +320,23 @@ import '../styles/cargo-desk.css';
   <form method="dialog"><button class="cd-dialog__close" aria-label="Close">×</button></form>
   <p class="label label--marked">How to play</p>
   <h2 id="help-title">Run the book for ten cycles</h2>
-  <p>Each cycle is one trading day. Fill in the morning ticket and commit, then watch the day trade. If news lands at midday you get a shorter afternoon ticket before the market moves overnight. After cycle ten everything still open is closed and the result is final.</p>
+  <p>Each cycle is one trading day. Fill in the morning ticket and commit, then watch the day trade. In a generated market, midday news can give you a shorter afternoon ticket before the market moves overnight. After cycle ten, the desk closes any open positions and reports the final result.</p>
   <dl class="cd-help">
-    <div><dt>What you start with</dt><dd>6,000 barrels of crude in Tank A, bought at $72.20, and a hedge of six Dec futures sold at $73.60. One lot is 1,000 barrels.</dd></div>
+    <div><dt>What you start with</dt><dd>6,000 barrels of crude in Tank A and six short lots in the front futures month. Generated runs start at $72.20 per barrel with Dec sold at $73.60. Historical runs open at the prior close’s spot and front-month prices. One lot is 1,000 barrels.</dd></div>
     <div><dt>The tank</dt><dd>Tank A holds 10,000 barrels and costs a fixed lease every cycle, full or empty. Clients pay you per barrel to store their crude in it. Anything that does not fit, yours or theirs, needs overflow space booked off-site.</dd></div>
-    <div><dt>Physical trades</dt><dd>One physical order per ticket: buy, sell locally or, when a pipeline slot is open, ship to the Gulf Coast. Bids and offers move around spot with events at the terminal. Selling into a bid above spot and buying an offer below it is where the physical book earns its money.</dd></div>
+    <div><dt>Physical trades</dt><dd>Each ticket can buy crude, sell locally or ship to the Gulf Coast when a pipeline slot is open. If the local buyer walks away and available overflow falls short of existing storage needs, an emergency sale can free the minimum space needed at a worse price.</dd></div>
+    <div><dt>Forward delivery</dt><dd>On a morning ticket, commit owned crude to a later cycle at a fixed price based on the WTI month you choose and the route's basis. The WTI reference locks the physical sale price today. Reserved barrels count toward storage until delivery, and your futures hedge covers the uncommitted crude. The delivery calendar shows when cargo is due.</dd></div>
     <div><dt>Negotiating</dt><dd>A local price is an opening price. You can ask the counterparty for more. If they refuse they come back once with a counter, which you can take, or you can ask one last time. A second refusal and they walk, and that route is closed for the session. How they sound is a guide to how far they will move.</dd></div>
     <div><dt>The afternoon</dt><dd>On days with midday news you get a second, shorter ticket: local trades in half the size at ten cents worse, and futures. Clients and overflow are morning business only.</dd></div>
-    <div><dt>Contango and backwardation</dt><dd>When futures sit above spot (contango), hedged crude in the tank gains as the gap closes, so storing pays. When futures sit below spot (backwardation), the same position loses, so sell.</dd></div>
+    <div><dt>Contango and backwardation</dt><dd>Contango means futures are above spot. Backwardation means they are below spot. A hedged storage trade can gain as contango narrows. Compare the potential gain with tank rent, overflow costs and your exit bid.</dd></div>
     <div><dt>On watch</dt><dd>Some days an event is on watch for the coming night, with its odds and roughly what it would do to futures and to spot. The odds are honest, but the size of the reaction is not exact, and fresh news at midday can move the odds. The ticket shows what your book would make or lose each way before you commit.</dd></div>
     <div><dt>The stocks report</dt><dd>The weekly stocks report comes out at midday on both Wednesdays. It is close to a coin flip, it moves spot more than futures, and you get the afternoon to react to it.</dd></div>
-    <div><dt>Expiry and the roll</dt><dd>Dec futures stop trading at the close of cycle 5 and anything left in them is settled at spot. To stay hedged you must roll: buy back Dec and sell Jan. On that day the hedge button does both.</dd></div>
+    <div><dt>Expiry and the roll</dt><dd>The ticket flags the expiring front month. Open contracts settle at spot in generated markets and at the recorded final settlement in historical scenarios. Roll and hedge closes the expiring position and adjusts the next listed month within the desk limits.</dd></div>
     <div><dt>Shocks</dt><dd>About one day in ten the market is hit by something nobody saw coming, and prices move by several dollars. A shock that moves every price does nothing to a hedged book. One that moves spot hardest hits anyone holding crude, hedged or not.</dd></div>
-    <div><dt>Historical scenarios</dt><dd>From New run you can play four real episodes on real daily prices from the U.S. Energy Information Administration. Each ticket trades at the previous day’s closing prices, with a briefing on what was known at that close and nothing later. Then you see what the day brought. There are no afternoons, odds or shocks, because the history is fixed. Bids, clients and storage rates are still the game’s own.</dd></div>
-    <div><dt>Reading the result</dt><dd>After each ticket the desk explains the profit or loss: trade prices against spot, the whole curve moving on your net position, spot moving against futures, calendar spreads, client income and costs. The debrief adds them up, grades the return against the risk taken, and compares you with simply holding the hedged cargo.</dd></div>
-    <div><dt>The desk limit</dt><dd>Crude owned plus futures must stay within two lots of flat, long or short. A crude sale may require buying back futures on the same ticket. Hedge to flat adjusts the December order as far as the desk limits allow and leaves the other months alone. To trade a calendar spread, buy one month and sell another.</dd></div>
-    <div><dt>Ranked and practice runs</dt><dd>The first play of a fresh random market is ranked on the leaderboard. Typing a seed, or replaying one you have already seen, is a practice run. The prices repeat, so it would not be a fair score.</dd></div>
+    <div><dt>Historical scenarios</dt><dd>Play four episodes using daily spot and futures prices from the U.S. Energy Information Administration. Each day trades against the prior close and starts with a briefing on what was known then. The path is fixed, with one ticket per day. Estimated futures prices are display-only. Terminal bids, clients and storage rates are simulated.</dd></div>
+    <div><dt>Reading the result</dt><dd>After each ticket the desk separates the result into trading, price, basis, calendar spreads, client income and costs. The debrief compares your result with holding the hedged cargo. Generated runs also receive a grade based on the return and drawdown.</dd></div>
+    <div><dt>The desk limits</dt><dd>Open crude exposure and futures must stay within two net lots of flat. The futures book can hold twenty gross lots. Hedge to flat adjusts the front-month order as far as those limits allow and leaves the other months alone. To trade a calendar spread, buy one month and sell another.</dd></div>
+    <div><dt>Ranked and practice runs</dt><dd>The first play of a newly generated market is ranked. Typed seeds, replays and historical scenarios are practice runs. The leaderboard groups earlier scores by the rules they used.</dd></div>
   </dl>
   <form method="dialog"><button class="btn">Back to the desk</button></form>
 </dialog>
@@ -305,7 +349,7 @@ import '../styles/cargo-desk.css';
   <button class="btn cd-dialog__wide" id="random-run" type="button">New ranked market</button>
   <div class="cd-scenarios">
     <p class="label">Or play a historical scenario</p>
-    <p class="cd-scenarios__note">Ten real trading days on real prices. Practice runs, not ranked.</p>
+    <p class="cd-scenarios__note">Ten historical trading days. Each is a practice run.</p>
     <ul id="scenario-list"></ul>
   </div>
   <form id="seed-form" class="cd-seed" novalidate>
@@ -325,8 +369,8 @@ import '../styles/cargo-desk.css';
   <div id="leaderboard-content"></div>
 </dialog>
 
-<script is:inline src="/cargo-desk/engine.js" defer></script>
-<script is:inline src="/cargo-desk/scenarios.js" defer></script>
-<script is:inline src="/cargo-desk/leaderboard.js" defer></script>
-<script is:inline src="/cargo-desk/motion.js" defer></script>
-<script is:inline src="/cargo-desk/app.js" defer></script>
+<script is:inline src="/cargo-desk/engine.js?v=6" defer></script>
+<script is:inline src="/cargo-desk/scenarios.js?v=6" defer></script>
+<script is:inline src="/cargo-desk/leaderboard.js?v=6" defer></script>
+<script is:inline src="/cargo-desk/motion.js?v=6" defer></script>
+<script is:inline src="/cargo-desk/app.js?v=6" defer></script>
