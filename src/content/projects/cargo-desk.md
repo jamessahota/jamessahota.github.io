@@ -5,8 +5,8 @@ summary: >-
   tank, a hedged cargo, clients who want storage and a delivery calendar. Play generated markets
   or replay seven historical episodes.
 homeSummary: >-
-  A browser game about running a physical crude oil book at Cushing: one tank, a hedged cargo,
-  clients who want storage and a desk limit.
+  Run a hedged crude book at Cushing. Manage tank space, trade WTI futures and book deliveries
+  across seven historical scenarios using EIA prices.
 kind: Trading game
 start: 2026-11
 end: 2026-11

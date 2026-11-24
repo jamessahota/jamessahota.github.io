@@ -15,6 +15,7 @@ import {
   getPublicProjects,
   getPublicResearch,
   hasDetailPage,
+  projectPath,
 } from '../lib/content';
 import { formatPeriod } from '../lib/dates';
 
@@ -133,10 +134,17 @@ const jsonLd = {
           <ButtonLink href="/projects/" label="All projects" variant="secondary" icon="arrow-right" />
         </div>
         <ProjectPreview entry={project} />
+        {cargoDeskProject && (
+          <ProjectPreview entry={cargoDeskProject} id="cargo-desk">
+            <div slot="actions" class="cargo-home-actions">
+              <ButtonLink href={`${projectPath(cargoDeskProject)}#cargo-desk`} label="Play Cargo Desk" icon="arrow-right" />
+              <ButtonLink href="/research/harvey-hedged-oil-cargo/" label="Read the Harvey case study" variant="secondary" />
+            </div>
+          </ProjectPreview>
+        )}
         {investmentProject?.data.investmentCase && (
           <ProjectPreview entry={investmentProject} id="investment-proposal" />
         )}
-        {cargoDeskProject && <ProjectPreview entry={cargoDeskProject} />}
       </section>
     )
   }
@@ -350,6 +358,19 @@ const jsonLd = {
   .home-experience { position:relative; overflow:hidden; padding:clamp(1.5rem,5vw,4.5rem); background:radial-gradient(ellipse at 100% 100%,#3c251d,transparent 70%),#111719; }
   .roles__index { font-family:var(--display); font-size:3rem; color:#ff6a33; line-height:1; }
   .projects-section { scroll-margin-top:calc(var(--header-height) + var(--space-5)); }
+
+  .cargo-home-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  @media (max-width: 35rem) {
+    .cargo-home-actions {
+      display: grid;
+      align-self: stretch;
+    }
+  }
   .home-about { display:grid; align-items:center; gap:clamp(2rem,5vw,5rem); }
   .home-about .closing__text { max-width:42rem; font-size:clamp(1.6rem,2.8vw,2.8rem); line-height:1.2; }
   @media(min-width:56rem) { .home-about { grid-template-columns:repeat(2,minmax(0,1fr)); } }

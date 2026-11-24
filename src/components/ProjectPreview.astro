@@ -27,7 +27,9 @@ const title = investment ? data.title.split(':')[0] : data.title;
     </Heading>
     {investment && <p class="project-preview__context">Prepared for {investment.preparedFor}</p>}
     <p class="project-preview__summary">{data.homeSummary ?? data.summary}</p>
-    <ButtonLink href={projectPath(entry)} label={investment ? 'Explore the proposal' : data.game ? 'Play the game' : 'Explore the project'} icon="arrow-right" />
+    <slot name="actions">
+      <ButtonLink href={projectPath(entry)} label={investment ? 'Explore the proposal' : data.game ? 'Play the game' : 'Explore the project'} icon="arrow-right" />
+    </slot>
   </div>
   <div class="project-preview__system">
     {investment ? (
