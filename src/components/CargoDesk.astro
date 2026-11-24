@@ -508,7 +508,7 @@ import '../styles/cargo-desk.css';
     <div><dt>Shocks</dt><dd>About one day in ten the market is hit by something nobody saw coming, and prices move by several dollars. A shock that moves every price does nothing to a hedged book. One that moves spot hardest hits anyone holding crude, hedged or not.</dd></div>
     <div><dt>Historical scenarios</dt><dd>Play seven episodes using daily spot and futures prices from the U.S. Energy Information Administration. Each day trades against the prior close and starts with a briefing on what was known then. The path is fixed, with one ticket per day. Estimated futures prices are display-only. Terminal bids, clients and storage rates are simulated.</dd></div>
     <div><dt>Reading the result</dt><dd>After each ticket the desk separates the result into trading, price, basis, calendar spreads, client income and costs. The debrief compares your result with holding the hedged cargo. Generated runs also receive a grade based on the return and drawdown.</dd></div>
-    <div><dt>The desk limits</dt><dd>Ranked runs allow up to eight net lots long or short across uncommitted crude and futures. Weekly challenges use the ranked limit in effect when the week opens. Practice runs, including historical scenarios, have no net position limit. All runs can hold up to twenty gross futures lots across all months. Hedge to flat adjusts the front-month order within the limits for the run. To trade a calendar spread, buy one month and sell another.</dd></div>
+    <div><dt>The desk limits</dt><dd>Ranked runs allow up to eight net lots long or short across uncommitted crude and futures. Weekly challenges use the ranked limit in effect when the week opens. Practice runs, including historical scenarios, have no net position limit. All runs can hold up to twenty gross futures lots across all months. When a draft crude trade exceeds the net limit, Stay within limit can draft just enough futures to bring it within the cap. You can edit the orders before committing. Hedge to flat adjusts the front-month order within the limits for the run. To trade a calendar spread, buy one month and sell another.</dd></div>
     <div><dt>Ranked and practice runs</dt><dd>The first play of a newly generated market is ranked. Typed seeds, replays and historical scenarios are practice runs. The leaderboard groups earlier scores by the rules they used.</dd></div>
     <div><dt>Weekly challenge</dt><dd>Play the same ten-cycle market as everyone else. The week resets Monday at 00:00 UTC. After settlement, choose a username to share your final P&amp;L and drawdown. Higher P&amp;L ranks first, with lower drawdown breaking ties.</dd></div>
   </dl>
@@ -561,4 +561,5 @@ import '../styles/cargo-desk.css';
 <script is:inline src="/cargo-desk/tutorial.js?v=3" defer></script>
 <script is:inline src="/cargo-desk/weekly.js?v=2" defer></script>
 <script is:inline src="/cargo-desk/share.js?v=2" defer></script>
-<script is:inline src="/cargo-desk/app.js?v=13" defer></script>
+<script is:inline src="/cargo-desk/order-limit.js?v=1" defer></script>
+<script is:inline src="/cargo-desk/app.js?v=14" defer></script>

@@ -1,8 +1,10 @@
 (function () {
   "use strict";
 
+  const game = window.CargoDesk;
   const { replay, preview, hedgeOrder, negotiate, dateLabel, totalCycles, capacity, lot, maxFuturesLots,
-    netLimitLots: legacyNetLimitLots, rankedNetLimitLots } = window.CargoDesk;
+    netLimitLots: legacyNetLimitLots, rankedNetLimitLots } = game;
+  const { fitPhysicalOrder } = window.CargoOrderLimit;
   // Historical scenarios: real prices in place of the generated market.
   const scenarios = window.CargoScenarios || [];
   const { transition, reveal, shouldShowTape, moveTank } = window.CargoMotion;
@@ -58,6 +60,7 @@
   let campaignRun;
   let weeklyRun;
   let state;
+  let impactLimitOrder = null;
   // What the player has said so far to each counterparty on this ticket.
   let haggles = { buy: [], sell: [] };
   // Whether the player has opened the folded parts of the ticket.
@@ -534,7 +537,9 @@
       number(booked) + " bbl for " + unsignedMoney(result.storageCost) + " · " + draft.storageCycles + (draft.storageCycles === 1 ? " cycle" : " cycles") :
       result.activeStorage ? number(result.activeStorage) + " bbl already booked" : "No new booking");
 
-    const adjustment = draft.futuresTrades.every(Number.isSafeInteger) ? hedgeOrder(state, draft) : null;
+    impactLimitOrder = fitPhysicalOrder(game, state, draft, result);
+    const adjustment = impactLimitOrder ??
+      (draft.futuresTrades.every(Number.isSafeInteger) ? hedgeOrder(state, draft) : null);
     const changes = [];
     adjustment?.trades?.forEach((trade, slot) => {
       const delta = trade - draft.futuresTrades[slot];
@@ -545,14 +550,17 @@
     const hedge = element("impact-hedge");
     hedge.textContent = exposureText(result.netLots);
     if (changes.length) {
-      hedge.textContent += " · " + changes.join(" and ") +
-        (adjustment.netLots === 0 ? " to go flat" : " for " + exposureText(adjustment.netLots).toLowerCase());
+      const afterExpiry = impactLimitOrder?.netLotsAfterExpiry;
+      const target = afterExpiry ?? adjustment.netLots;
+      const outcome = impactLimitOrder ? " for " + exposureText(target).toLowerCase() + (afterExpiry === null ? "" : " after expiry") :
+        target === 0 ? " to go flat" : " for " + exposureText(target).toLowerCase();
+      hedge.textContent += " · " + changes.join(" and ") + outcome;
     }
-    hedge.classList.toggle("negative", !!(result.errors.exposure || result.errors.expiry));
+    hedge.classList.toggle("negative", !!(result.errors.exposure || result.errors.expiry || impactLimitOrder));
     const button = element("impact-adjust-hedge");
     button.hidden = !changes.length;
     button.disabled = fields.disabled;
-    button.textContent = state.expiryToday ? "Roll hedge" : "Adjust hedge";
+    button.textContent = impactLimitOrder ? "Stay within limit" : state.expiryToday ? "Roll hedge" : "Adjust hedge";
   }
 
   function updateTicket() {
@@ -1462,15 +1470,17 @@
   element("haggle-send").addEventListener("click", () => say(Number(element("haggle-range").value)));
   element("haggle-take").addEventListener("click", () => say("take"));
 
+  function draftFutures(trades) {
+    trades.forEach((trade, slot) => { futuresInputs[slot].value = String(trade); });
+    updateTicket();
+  }
+
   // Sets the hedge so that crude plus futures is as close to flat as whole lots allow.
   // On expiry day it also closes the expiring month and puts the hedge in the next one.
   function applyHedge() {
     if (fields.disabled || !state.round) return;
     const result = hedgeOrder(state, readOrder());
-    if (result.trades) {
-      result.trades.forEach((trade, slot) => { futuresInputs[slot].value = String(trade); });
-      updateTicket();
-    }
+    if (result.trades) draftFutures(result.trades);
     const status = element("hedge-status");
     status.textContent = result.message || (result.limited ?
       "The gross limit leaves the book " + exposureText(result.netLots).toLowerCase() + "." : "");
@@ -1478,7 +1488,9 @@
   }
   element("hedge-flat").addEventListener("click", applyHedge);
   element("impact-adjust-hedge").addEventListener("click", () => {
-    applyHedge();
+    if (fields.disabled || !state.round) return;
+    if (impactLimitOrder) draftFutures(impactLimitOrder.trades);
+    else applyHedge();
     element("impact-hedge").focus({ preventScroll: true });
   });
 
