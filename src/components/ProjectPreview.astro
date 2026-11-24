@@ -1,5 +1,6 @@
 ---
 import ButtonLink from './ButtonLink.astro';
+import CargoDeskPreview from './CargoDeskPreview.astro';
 import InvestmentBridge from './InvestmentBridge.astro';
 import ProjectFlow from './ProjectFlow.astro';
 import { projectPath, type Project } from '../lib/content';
@@ -20,20 +21,20 @@ const title = investment ? data.title.split(':')[0] : data.title;
 
 <article id={id} class:list={['project-preview', { 'project-preview--investment': Boolean(investment) }]} aria-labelledby={headingId}>
   <div class="project-preview__text" data-reveal>
-    <p class="label label--accent">{investment ? `Investment proposal · ${formatPeriod(data.start, data.end)}` : 'Research system'}</p>
+    <p class="label label--accent">{investment ? `Investment proposal · ${formatPeriod(data.start, data.end)}` : data.game ? `${data.kind} · ${formatPeriod(data.start, data.end)}` : 'Research system'}</p>
     <Heading class="project-preview__title" id={headingId}>
       <span style={`view-transition-name: project-title-${entry.id.replace(/[^a-zA-Z0-9_-]/g, '-')}`}>{title}</span>
     </Heading>
     {investment && <p class="project-preview__context">Prepared for {investment.preparedFor}</p>}
     <p class="project-preview__summary">{data.homeSummary ?? data.summary}</p>
-    <ButtonLink href={projectPath(entry)} label={investment ? 'Explore the proposal' : 'Explore the project'} icon="arrow-right" />
+    <ButtonLink href={projectPath(entry)} label={investment ? 'Explore the proposal' : data.game ? 'Play the game' : 'Explore the project'} icon="arrow-right" />
   </div>
   <div class="project-preview__system">
     {investment ? (
       <InvestmentBridge items={investment.ebitdaBridge} compact />
     ) : (
       <>
-        <ProjectFlow compact />
+        {data.game ? <CargoDeskPreview /> : <ProjectFlow compact />}
         {data.facts && (
           <div class="project-preview__facts" data-reveal="2">
             <dl>

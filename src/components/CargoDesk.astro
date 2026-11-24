@@ -1,0 +1,272 @@
+---
+// Cargo Desk: a ten-cycle crude oil trading game, played in the page.
+// The markup here matches the game's own index.html, and the four scripts in
+// public/cargo-desk/ are plain browser scripts that find it by id. They run in
+// order: rules, leaderboard, the commit slip, then the screen code.
+// The game is styled entirely with the site's tokens, so it follows the theme.
+import '../styles/cargo-desk.css';
+---
+
+<section class="cargo-desk" id="cargo-desk" aria-label="Cargo Desk, a crude oil trading game">
+  <noscript><p class="cd-noscript">The game runs in your browser and needs JavaScript switched on.</p></noscript>
+  <div class="cd-bar">
+    <div class="cd-run">
+      <span class="label label--ink numeric" id="campaign-progress">Cycle 1 of 10</span>
+      <ol class="cd-timeline" id="timeline" aria-label="Campaign progress"></ol>
+      <span class="cd-badge" id="run-kind">Ranked run</span>
+      <span class="label numeric cd-run__seed" id="seed-value"></span>
+    </div>
+    <div class="cd-bar__actions">
+      <button class="cd-mini" id="help-button" type="button">How to play</button>
+      <button class="cd-mini" id="leaderboard-button" type="button">Leaderboard</button>
+      <button class="cd-mini cd-mini--solid" id="restart-button" type="button">New run</button>
+    </div>
+  </div>
+
+  <dl class="cells cd-numbers" aria-label="Current book">
+    <div class="cell">
+      <dt class="label" id="net-label">Marked P&amp;L</dt>
+      <dd class="cd-number numeric" id="net-value">$0</dd>
+      <dd class="cd-number__note" id="net-detail">Crude + futures + logistics</dd>
+    </div>
+    <div class="cell">
+      <dt class="label">Crude owned</dt>
+      <dd class="cd-number numeric" id="crude-value">0</dd>
+      <dd class="cd-number__note" id="crude-detail"></dd>
+    </div>
+    <div class="cell">
+      <dt class="label">Net position</dt>
+      <dd class="cd-number numeric" id="exposure-value">0</dd>
+      <dd class="cd-number__note" id="exposure-detail"></dd>
+    </div>
+    <div class="cell">
+      <dt class="label">Tank A</dt>
+      <dd class="cd-number numeric" id="tank-value">0%</dd>
+      <dd class="cd-number__note" id="tank-detail"></dd>
+    </div>
+  </dl>
+
+  <div class="cd-workspace">
+    <section class="cd-terminal" aria-labelledby="terminal-title">
+      <div class="cd-card__head">
+        <h2 class="label label--marked" id="terminal-title">Terminal</h2>
+        <p class="label numeric" id="location-clock"></p>
+      </div>
+      <div class="cd-flow">
+        <div class="cd-node cd-node--in">
+          <p class="label">Client inbound</p>
+          <p class="cd-node__value numeric" id="inbound-value">None due</p>
+          <p class="cd-node__note" id="inbound-note"></p>
+        </div>
+        <div class="cd-pipe" id="pipe-in" aria-hidden="true"></div>
+        <div class="cd-tank-wrap">
+          <div class="cd-tank" id="tank" role="img" aria-label="Tank A">
+            <i class="cd-tank__tick" style="bottom:25%"></i><i class="cd-tank__tick" style="bottom:50%"></i><i class="cd-tank__tick" style="bottom:75%"></i>
+            <div class="cd-tank__fill cd-tank__fill--owned" id="tank-owned"></div>
+            <div class="cd-tank__fill cd-tank__fill--client" id="tank-client"></div>
+            <span class="cd-tank__name label">Tank A</span>
+            <span class="cd-tank__pct numeric" id="tank-pct">0%</span>
+          </div>
+          <dl class="cd-key">
+            <div><dt><i class="cd-swatch cd-swatch--owned" aria-hidden="true"></i>Your crude</dt><dd class="numeric" id="key-owned">0</dd></div>
+            <div><dt><i class="cd-swatch cd-swatch--client" aria-hidden="true"></i>Client crude</dt><dd class="numeric" id="key-client">0</dd></div>
+            <div><dt><i class="cd-swatch cd-swatch--free" aria-hidden="true"></i>Free space</dt><dd class="numeric" id="key-free">0</dd></div>
+          </dl>
+        </div>
+        <div class="cd-pipe" id="pipe-out" aria-hidden="true"></div>
+        <div class="cd-node cd-node--out">
+          <p class="label">Outbound</p>
+          <p class="cd-node__value numeric" id="outbound-value"></p>
+          <p class="cd-node__note" id="outbound-note"></p>
+        </div>
+      </div>
+      <div class="cd-overflow">
+        <p class="label">Overflow, off-site</p>
+        <div class="cd-overflow__bar" aria-hidden="true"><i id="overflow-fill"></i></div>
+        <p class="cd-overflow__text" id="overflow-text"></p>
+      </div>
+    </section>
+
+    <section class="cd-card cd-ticket" id="ticket" aria-labelledby="decision-title">
+      <div class="cd-card__head">
+        <h2 class="label label--marked" id="decision-label">Order ticket</h2>
+        <p class="label numeric" id="phase">Cycle 1</p>
+      </div>
+
+      <div class="cd-last" id="cycle-note" aria-live="polite" hidden>
+        <p class="label" id="cycle-headline"></p>
+        <p class="cd-last__line"><span id="cycle-outcome"></span><strong class="numeric" id="cycle-delta"></strong></p>
+      </div>
+
+      <div class="cd-brief">
+        <p class="label label--accent" id="decision-desk"></p>
+        <h3 id="decision-title" tabindex="-1"></h3>
+        <p id="decision-brief"></p>
+        <p class="cd-brief__market" id="market-note" hidden></p>
+      </div>
+
+      <form id="decision-form" novalidate>
+        <dl class="cells cd-quotes" aria-label="Quotes in dollars per barrel">
+          <div class="cell"><dt class="label">Local bid</dt><dd class="numeric" id="ticket-bid">–</dd></div>
+          <div class="cell"><dt class="label">Local ask</dt><dd class="numeric" id="ticket-ask">–</dd></div>
+          <div class="cell"><dt class="label">Spot</dt><dd class="numeric" id="ticket-spot">–</dd></div>
+          <div class="cell"><dt class="label">Dec futures</dt><dd class="numeric" id="ticket-front">–</dd></div>
+        </dl>
+
+        <fieldset id="order-ticket" class="cd-fields">
+          <legend class="visually-hidden">Orders for this cycle</legend>
+
+          <fieldset class="cd-step" id="client-step" hidden>
+            <legend><span class="cd-step__n numeric" aria-hidden="true">01</span>Client delivery <span class="cd-step__aside numeric" id="client-volume"></span></legend>
+            <div class="cd-choices cd-choices--stack" id="client-choices">
+              <label class="cd-choice"><input type="radio" name="client" value="accept"><span><b>Accept</b><small id="client-accept-detail"></small></span></label>
+              <label class="cd-choice"><input type="radio" name="client" value="defer"><span><b>Reschedule</b><small id="client-defer-detail"></small></span></label>
+              <label class="cd-choice"><input type="radio" name="client" value="redirect"><span><b>Turn away</b><small id="client-redirect-detail"></small></span></label>
+            </div>
+          </fieldset>
+
+          <fieldset class="cd-step">
+            <legend><span class="cd-step__n numeric" aria-hidden="true" data-step-number>02</span>Physical crude</legend>
+            <div class="cd-choices" id="side-choices">
+              <label class="cd-choice"><input type="radio" name="side" value="hold" checked><span><b>Hold</b></span></label>
+              <label class="cd-choice"><input type="radio" name="side" value="buy"><span><b>Buy</b></span></label>
+              <label class="cd-choice"><input type="radio" name="side" value="sell"><span><b>Sell locally</b></span></label>
+              <label class="cd-choice"><input type="radio" name="side" value="ship"><span><b>Ship to Gulf</b></span></label>
+            </div>
+            <div class="cd-row">
+              <label class="cd-input" for="order-barrels">
+                <span class="label">Volume</span>
+                <span class="cd-input__box"><input id="order-barrels" name="barrels" type="number" inputmode="numeric" min="0" step="1" value="0" aria-describedby="order-quote"><span aria-hidden="true">bbl</span></span>
+              </label>
+              <button class="cd-mini" id="barrels-max" type="button">Max</button>
+            </div>
+            <p class="cd-hint" id="order-quote"></p>
+          </fieldset>
+
+          <fieldset class="cd-step">
+            <legend><span class="cd-step__n numeric" aria-hidden="true" data-step-number>03</span>Overflow storage</legend>
+            <div class="cd-row cd-row--two">
+              <label class="cd-input" for="order-storage">
+                <span class="label">Book</span>
+                <span class="cd-input__box"><input id="order-storage" name="storage" type="number" inputmode="numeric" min="0" step="1" value="0" aria-describedby="storage-quote"><span aria-hidden="true">bbl</span></span>
+              </label>
+              <label class="cd-input" for="order-storage-cycles">
+                <span class="label">For</span>
+                <span class="cd-input__box"><input id="order-storage-cycles" name="storageCycles" type="number" inputmode="numeric" min="1" step="1" value="1" aria-describedby="storage-quote"><span aria-hidden="true">cycles</span></span>
+              </label>
+            </div>
+            <p class="cd-hint" id="storage-quote"></p>
+          </fieldset>
+
+          <fieldset class="cd-step">
+            <legend><span class="cd-step__n numeric" aria-hidden="true" data-step-number>04</span>WTI futures <button class="cd-mini cd-step__action" id="hedge-flat" type="button">Hedge to flat</button></legend>
+            <table class="cd-futures">
+              <caption class="visually-hidden">Futures orders by delivery month. A negative number sells.</caption>
+              <thead><tr><th scope="col">Month</th><th scope="col">Open</th><th scope="col">Order, lots</th><th scope="col">After</th></tr></thead>
+              <tbody id="futures-rows"></tbody>
+            </table>
+            <p class="cd-hint" id="hedge-hint"></p>
+          </fieldset>
+        </fieldset>
+
+        <div class="cd-review" id="order-review">
+          <dl aria-live="polite" aria-atomic="true">
+            <div><dt class="label">Crude after</dt><dd id="order-position">–</dd></div>
+            <div><dt class="label">Net position</dt><dd id="order-exposure">–</dd></div>
+            <div><dt class="label">Logistics</dt><dd id="order-fees">–</dd></div>
+          </dl>
+          <p class="cd-message" id="order-error" role="status" hidden></p>
+          <button class="btn cd-commit" id="confirm-button" type="submit" disabled>Commit orders</button>
+        </div>
+      </form>
+
+      <div class="cd-debrief" id="debrief" hidden></div>
+    </section>
+
+    <section class="cd-card cd-curve" aria-labelledby="curve-title">
+      <div class="cd-card__head">
+        <h2 class="label label--marked" id="curve-title">WTI forward curve</h2>
+        <p class="label" id="curve-shape"></p>
+      </div>
+      <div class="cd-chart" id="chart-wrap">
+        <canvas id="price-chart" role="img" aria-label="WTI forward curve"></canvas>
+      </div>
+      <div class="cells cd-quotes cd-quotes--curve" role="group" aria-label="Forward prices" id="quotes"></div>
+      <p class="cd-hint" id="curve-hint">Solid line: this cycle. Dashed line: the previous cycle. Select a month to enter a futures order.</p>
+    </section>
+
+    <section class="cd-card cd-ledger" aria-labelledby="ledger-title">
+      <div class="cd-card__head">
+        <h2 class="label label--marked" id="ledger-title">Trade ledger</h2>
+        <p class="label" id="ledger-status">Open book</p>
+      </div>
+      <table class="cd-table">
+        <caption class="visually-hidden">Profit and loss by component</caption>
+        <thead><tr><th scope="col">Component</th><th scope="col">Position</th><th scope="col" class="num">P&amp;L</th></tr></thead>
+        <tbody id="ledger-rows"></tbody>
+      </table>
+      <details class="cd-details" id="futures-ledger">
+        <summary>Futures by month</summary>
+        <table class="cd-table">
+          <caption class="visually-hidden">Position and profit and loss by delivery month</caption>
+          <thead><tr><th scope="col">Month</th><th scope="col">Position</th><th scope="col" class="num">P&amp;L</th></tr></thead>
+          <tbody id="futures-ledger-rows"></tbody>
+        </table>
+      </details>
+      <details class="cd-details" id="storage-ledger">
+        <summary>Storage and clients</summary>
+        <ul class="cd-list" id="storage-list"></ul>
+      </details>
+      <details class="cd-details" id="activity" hidden>
+        <summary>Every entry</summary>
+        <ol class="cd-list cd-list--entries" id="activity-list"></ol>
+      </details>
+    </section>
+  </div>
+
+  <p class="cd-foot label">Simulated terminal and prices · All times Central · 1 lot = 1,000 bbl</p>
+</section>
+
+<dialog id="help-dialog" class="cd-dialog" aria-labelledby="help-title">
+  <form method="dialog"><button class="cd-dialog__close" aria-label="Close">×</button></form>
+  <p class="label label--marked">How to play</p>
+  <h2 id="help-title">Run the book for ten cycles</h2>
+  <p>Each cycle is one trading day. Fill in the order ticket and commit. The market then moves and the next day opens. After cycle ten everything still open is closed and the result is final.</p>
+  <dl class="cd-help">
+    <div><dt>What you start with</dt><dd>6,000 barrels of crude in Tank A, bought at $72.20, and a hedge of six Dec futures sold at $73.60. One lot is 1,000 barrels.</dd></div>
+    <div><dt>The tank</dt><dd>Tank A holds 10,000 barrels and costs a fixed lease every cycle, full or empty. Clients pay you per barrel to store their crude in it. Anything that does not fit, yours or theirs, needs overflow space booked off-site.</dd></div>
+    <div><dt>Physical trades</dt><dd>One physical order per cycle: buy, sell locally or, when a pipeline slot is open, ship to the Gulf Coast. Bids and offers move around spot with events at the terminal. Selling into a bid above spot and buying an offer below it is where the physical book earns its money.</dd></div>
+    <div><dt>Contango and backwardation</dt><dd>When futures sit above spot (contango), hedged crude in the tank gains as the gap closes, so storing pays. When futures sit below spot (backwardation), the same position loses, so sell.</dd></div>
+    <div><dt>The desk limit</dt><dd>Crude owned plus futures must stay within two lots of flat, long or short. Sell crude and you must buy back futures on the same ticket. The Hedge to flat button sets the Dec order for you. Calendar spreads are free to trade: buy one month and sell another.</dd></div>
+    <div><dt>Ranked and practice runs</dt><dd>The first play of a fresh random market is ranked on the leaderboard. Typing a seed, or replaying one you have already seen, is a practice run. The prices repeat, so it would not be a fair score.</dd></div>
+  </dl>
+  <form method="dialog"><button class="btn">Back to the desk</button></form>
+</dialog>
+
+<dialog id="restart-dialog" class="cd-dialog cd-dialog--narrow" aria-labelledby="restart-title">
+  <form method="dialog"><button class="cd-dialog__close" aria-label="Close">×</button></form>
+  <p class="label label--marked">New run</p>
+  <h2 id="restart-title">Start a new run</h2>
+  <p id="restart-message"></p>
+  <button class="btn cd-dialog__wide" id="random-run" type="button">New ranked market</button>
+  <form id="seed-form" class="cd-seed" novalidate>
+    <label class="label" for="seed-input">Or practise on a seed</label>
+    <div class="cd-seed__row">
+      <input id="seed-input" name="seed" maxlength="64" placeholder="Enter a seed" autocomplete="off" spellcheck="false">
+      <button class="btn btn--secondary" type="submit">Practise</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="leaderboard-dialog" class="cd-dialog" aria-labelledby="leaderboard-title">
+  <form method="dialog"><button class="cd-dialog__close" aria-label="Close">×</button></form>
+  <p class="label label--marked">Leaderboard</p>
+  <h2 id="leaderboard-title">Best ranked runs</h2>
+  <p>Ranked runs you have finished in this browser, by final P&amp;L.</p>
+  <div id="leaderboard-content"></div>
+</dialog>
+
+<script is:inline src="/cargo-desk/engine.js" defer></script>
+<script is:inline src="/cargo-desk/leaderboard.js" defer></script>
+<script is:inline src="/cargo-desk/motion.js" defer></script>
+<script is:inline src="/cargo-desk/app.js" defer></script>

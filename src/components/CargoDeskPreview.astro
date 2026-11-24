@@ -1,0 +1,150 @@
+---
+// A still drawing of the game's opening position, for its card on the Projects page:
+// Tank A 60% full of your own crude, with a client's delivery that does not fit.
+const rows = [
+  { label: 'Your crude', value: '6,000 bbl', swatch: 'owned' },
+  { label: 'Client inbound', value: '6,000 bbl', swatch: 'client' },
+  { label: 'Free space', value: '4,000 bbl', swatch: 'free' },
+];
+---
+
+<figure class="desk-preview" aria-label="The game’s opening position: Tank A is 60% full and a client delivery does not fit">
+  <div class="desk-preview__head" aria-hidden="true">
+    <span class="label label--marked">Terminal</span>
+    <span class="label numeric">Cycle 1 of 10</span>
+  </div>
+  <div class="desk-preview__body" aria-hidden="true">
+    <div class="desk-preview__tank">
+      <i style="bottom:25%"></i><i style="bottom:50%"></i><i style="bottom:75%"></i>
+      <span class="desk-preview__name label">Tank A</span>
+      <span class="desk-preview__pct numeric">60%</span>
+      <div class="desk-preview__fill"></div>
+    </div>
+    <dl>
+      {
+        rows.map((row) => (
+          <div>
+            <dt><span class={`desk-preview__swatch desk-preview__swatch--${row.swatch}`} />{row.label}</dt>
+            <dd class="numeric">{row.value}</dd>
+          </div>
+        ))
+      }
+    </dl>
+  </div>
+  <p class="desk-preview__note" aria-hidden="true">The delivery is 2,000 bbl more than the tank can take</p>
+</figure>
+
+<style>
+  .desk-preview {
+    background: var(--panel);
+    color: var(--panel-ink);
+    border: 1px solid var(--panel-line);
+    border-radius: var(--radius);
+  }
+
+  .desk-preview .label { color: var(--panel-muted); }
+  .desk-preview .label--marked { color: var(--panel-ink); }
+
+  .desk-preview__head {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: 0.85rem 1.1rem;
+    border-bottom: 1px solid var(--panel-line);
+  }
+
+  .desk-preview__body {
+    display: flex;
+    align-items: stretch;
+    gap: clamp(1rem, 3vw, 2rem);
+    padding: clamp(1.1rem, 0.8rem + 1.4vw, 1.75rem);
+  }
+
+  .desk-preview__tank {
+    position: relative;
+    display: flex;
+    flex-direction: column-reverse;
+    flex: none;
+    width: clamp(6.5rem, 22vw, 9rem);
+    height: clamp(8rem, 26vw, 10.5rem);
+    border: 1.5px solid var(--panel-ink);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .desk-preview__fill { height: 60%; background: var(--accent); }
+
+  .desk-preview__tank i {
+    position: absolute;
+    left: 0;
+    width: 0.5rem;
+    height: 1px;
+    background: var(--panel-ink);
+    opacity: 0.55;
+  }
+
+  .desk-preview__name,
+  .desk-preview__pct {
+    position: absolute;
+    top: 0.45rem;
+    padding: 0.1rem 0.3rem;
+    background: var(--panel);
+    font-family: var(--mono);
+    line-height: 1.2;
+  }
+
+  .desk-preview__name { left: 0.45rem; font-size: 0.625rem; }
+  .desk-preview__pct { right: 0.45rem; font-size: 0.75rem; font-weight: 600; }
+
+  .desk-preview dl {
+    display: grid;
+    align-content: center;
+    gap: 0.55rem;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .desk-preview dl div {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--panel-line);
+  }
+
+  .desk-preview dt {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    font-size: var(--text-sm);
+    color: var(--panel-muted);
+  }
+
+  .desk-preview dd {
+    font-family: var(--mono);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .desk-preview__swatch {
+    flex: none;
+    width: 0.6rem;
+    height: 0.6rem;
+    border: 1px solid var(--panel-muted);
+  }
+
+  .desk-preview__swatch--owned { background: var(--accent); border-color: var(--accent); }
+  .desk-preview__swatch--client { background: repeating-linear-gradient(-45deg, var(--panel-muted) 0 1.5px, transparent 1.5px 4px); }
+
+  .desk-preview__note {
+    padding: 0.8rem 1.1rem;
+    border-top: 1px solid var(--panel-line);
+    font-family: var(--mono);
+    font-size: var(--text-xs);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--accent-on-panel);
+  }
+</style>

@@ -348,6 +348,8 @@ const projects = defineCollection({
     }).optional(),
     // Screenshots or sample outputs, shown above the case study text.
     figures: z.array(figure).min(1).optional(),
+    // A game played on the project's own page. The value names its component.
+    game: z.enum(['cargo-desk']).optional(),
   }),
 });
 

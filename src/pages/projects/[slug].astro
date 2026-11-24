@@ -1,6 +1,7 @@
 ---
 import { render } from 'astro:content';
 import ButtonLink from '../../components/ButtonLink.astro';
+import CargoDesk from '../../components/CargoDesk.astro';
 import Figure from '../../components/Figure.astro';
 import Icon from '../../components/Icon.astro';
 import InvestmentBridge from '../../components/InvestmentBridge.astro';
@@ -59,8 +60,10 @@ const sections = headings.filter((heading) => heading.depth === 2);
     <div class="container">
       {data.development ? (
         <div class="project-scene"><ProjectDevelopment stages={data.development} /></div>
+      ) : data.game === 'cargo-desk' ? (
+        <div class="project-scene"><CargoDesk /></div>
       ) : !data.investmentCase && <div class="project-scene" data-reveal><ProjectFlow /></div>}
-      {data.facts && <KeyNumbers items={data.facts} note={data.factsNote} heading={data.investmentCase ? 'Proposed investment and modelled returns' : 'Project scope'} />}
+      {data.facts && !data.game && <KeyNumbers items={data.facts} note={data.factsNote} heading={data.investmentCase ? 'Proposed investment and modelled returns' : 'Project scope'} />}
       {data.investmentCase && <div class="investment-scene"><InvestmentBridge items={data.investmentCase.ebitdaBridge} /></div>}
       {data.figures?.map((figure) => <Figure {...figure} />)}
 

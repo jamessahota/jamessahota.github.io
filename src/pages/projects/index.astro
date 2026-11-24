@@ -4,14 +4,14 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getPublicProjects } from '../../lib/content';
 
 const projects = (await getPublicProjects()).sort((a, b) => Number(b.data.featured) - Number(a.data.featured));
-const description = 'Independent projects by James Sahota in AI-assisted commodities research and European infrastructure investment.';
+const description = 'Independent projects by James Sahota in AI-assisted commodities research, European infrastructure investment and a crude oil trading game.';
 ---
 
 <BaseLayout title="Projects" description={description}>
   <header class="page-header container">
     <p class="label"><span class="label--accent">{String(projects.length).padStart(2, '0')}</span> / Independent projects</p>
     <h1 class="display">Projects</h1>
-    <p class="lede">Independent work in commodities research and infrastructure investment.</p>
+    <p class="lede">Independent work in commodities research and infrastructure investment, and a crude oil trading game.</p>
   </header>
 
   <section class="container projects-list" aria-label="Independent projects">
