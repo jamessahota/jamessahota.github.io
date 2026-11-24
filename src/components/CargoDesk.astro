@@ -67,11 +67,14 @@ import '../styles/cargo-desk.css';
             <span class="cd-tank__name label">Tank A</span>
             <span class="cd-tank__pct numeric" id="tank-pct">0%</span>
           </div>
+          <div class="cd-key-wrap">
           <dl class="cd-key">
             <div><dt><i class="cd-swatch cd-swatch--owned" aria-hidden="true"></i>Your crude</dt><dd class="numeric" id="key-owned">0</dd></div>
             <div><dt><i class="cd-swatch cd-swatch--client" aria-hidden="true"></i>Client crude</dt><dd class="numeric" id="key-client">0</dd></div>
             <div><dt><i class="cd-swatch cd-swatch--free" aria-hidden="true"></i>Free space</dt><dd class="numeric" id="key-free">0</dd></div>
           </dl>
+          <p class="cd-key__tag label" id="tank-tag">Now</p>
+          </div>
         </div>
         <div class="cd-pipe" id="pipe-out" aria-hidden="true"></div>
         <div class="cd-node cd-node--out">
@@ -103,6 +106,17 @@ import '../styles/cargo-desk.css';
         <h3 id="decision-title" tabindex="-1"></h3>
         <p id="decision-brief"></p>
         <p class="cd-brief__market" id="market-note" hidden></p>
+      </div>
+
+      <div class="cd-watch" id="watch" hidden>
+        <p class="cd-watch__head"><span class="label label--accent">On watch for tomorrow</span><span class="label label--ink numeric" id="watch-odds"></span></p>
+        <div class="cd-watch__meter" aria-hidden="true"><i id="watch-meter"></i></div>
+        <p class="cd-watch__title" id="watch-title"></p>
+        <p class="cd-watch__detail" id="watch-detail"></p>
+        <dl class="cd-watch__cases">
+          <div><dt class="label">If it happens</dt><dd class="numeric" id="watch-hit"></dd></div>
+          <div><dt class="label">If it does not</dt><dd class="numeric" id="watch-miss"></dd></div>
+        </dl>
       </div>
 
       <form id="decision-form" novalidate>
@@ -140,6 +154,7 @@ import '../styles/cargo-desk.css';
               </label>
               <button class="cd-mini" id="barrels-max" type="button">Max</button>
             </div>
+            <input class="cd-range" id="order-barrels-range" type="range" min="0" max="0" step="100" value="0" aria-label="Crude volume, by slider">
             <p class="cd-hint" id="order-quote"></p>
           </fieldset>
 
@@ -173,7 +188,8 @@ import '../styles/cargo-desk.css';
         <div class="cd-review" id="order-review">
           <dl aria-live="polite" aria-atomic="true">
             <div><dt class="label">Crude after</dt><dd id="order-position">–</dd></div>
-            <div><dt class="label">Net position</dt><dd id="order-exposure">–</dd></div>
+            <div><dt class="label">Net position</dt><dd><span id="order-exposure">–</span><span class="cd-gauge" aria-hidden="true"><i></i><b id="gauge-marker"></b></span></dd></div>
+            <div><dt class="label" id="scenario-label">If prices move</dt><dd id="order-scenario">–</dd></div>
             <div><dt class="label">Logistics</dt><dd id="order-fees">–</dd></div>
           </dl>
           <p class="cd-message" id="order-error" role="status" hidden></p>
@@ -194,6 +210,10 @@ import '../styles/cargo-desk.css';
       </div>
       <div class="cells cd-quotes cd-quotes--curve" role="group" aria-label="Forward prices" id="quotes"></div>
       <p class="cd-hint" id="curve-hint">Solid line: this cycle. Dashed line: the previous cycle. Select a month to enter a futures order.</p>
+      <details class="cd-details" id="wire" hidden>
+        <summary>Market wire</summary>
+        <ol class="cd-list" id="wire-list"></ol>
+      </details>
     </section>
 
     <section class="cd-card cd-ledger" aria-labelledby="ledger-title">
@@ -238,6 +258,8 @@ import '../styles/cargo-desk.css';
     <div><dt>The tank</dt><dd>Tank A holds 10,000 barrels and costs a fixed lease every cycle, full or empty. Clients pay you per barrel to store their crude in it. Anything that does not fit, yours or theirs, needs overflow space booked off-site.</dd></div>
     <div><dt>Physical trades</dt><dd>One physical order per cycle: buy, sell locally or, when a pipeline slot is open, ship to the Gulf Coast. Bids and offers move around spot with events at the terminal. Selling into a bid above spot and buying an offer below it is where the physical book earns its money.</dd></div>
     <div><dt>Contango and backwardation</dt><dd>When futures sit above spot (contango), hedged crude in the tank gains as the gap closes, so storing pays. When futures sit below spot (backwardation), the same position loses, so sell.</dd></div>
+    <div><dt>On watch</dt><dd>Some days an event is on watch for tomorrow, with its odds and roughly what it would do to futures and to spot. The odds are honest, but the size of the reaction is not exact. The ticket shows what your book would make or lose each way before you commit.</dd></div>
+    <div><dt>Shocks</dt><dd>About one day in ten the market is hit by something nobody saw coming, and prices move by several dollars. A shock that moves every price does nothing to a hedged book. One that moves spot hardest hits anyone holding crude, hedged or not.</dd></div>
     <div><dt>The desk limit</dt><dd>Crude owned plus futures must stay within two lots of flat, long or short. A crude sale may require buying back futures on the same ticket. Hedge to flat adjusts the December order as far as the desk limits allow and leaves the other months alone. To trade a calendar spread, buy one month and sell another.</dd></div>
     <div><dt>Ranked and practice runs</dt><dd>The first play of a fresh random market is ranked on the leaderboard. Typing a seed, or replaying one you have already seen, is a practice run. The prices repeat, so it would not be a fair score.</dd></div>
   </dl>

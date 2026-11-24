@@ -110,3 +110,32 @@ test('a seed has the same prices whatever the player does', () => {
   assert.equal(quiet.length, game.totalCycles);
   assert.deepEqual(busy, quiet);
 });
+
+test('events on watch happen as often as their stated odds, and shocks about one day in ten', () => {
+  let moves = 0;
+  let shocks = 0;
+  let watched = 0;
+  let hits = 0;
+  let stated = 0;
+  for (let run = 0; run < 300; run++) {
+    let state = game.replay(`odds-${run}`, []);
+    while (state.round) {
+      const order = candidates(state, () => 0).slice(1).map((draft) => complete(state, draft)).find(Boolean);
+      const watch = state.market.watch;
+      state = game.replay(state.seed, [...state.decisions, order]);
+      moves++;
+      if (state.market.shock) shocks++;
+      assert.equal(Boolean(state.market.resolved), Boolean(watch), 'an event on watch must be settled by the next move');
+      if (watch) {
+        watched++;
+        stated += watch.odds;
+        if (state.market.resolved.hit) hits++;
+      }
+    }
+  }
+  const shockRate = (100 * shocks) / moves;
+  assert.ok(Math.abs(shockRate - game.shockChance) < 3, `shocks hit ${shockRate.toFixed(1)}% of days, not about ${game.shockChance}%`);
+  assert.ok(watched > 1000, 'too few events were put on watch to check their odds');
+  const gap = (100 * hits) / watched - stated / watched;
+  assert.ok(Math.abs(gap) < 4, `events happened ${gap.toFixed(1)} points away from their stated odds`);
+});

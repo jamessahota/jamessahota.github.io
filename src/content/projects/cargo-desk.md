@@ -28,6 +28,10 @@ You start with 6,000 barrels of crude in a 10,000-barrel tank at Cushing, hedged
 - **Storage.** The tank costs a fixed lease whether it is full or empty. Clients pay per barrel to use it. Anything that does not fit, yours or theirs, needs overflow space booked off-site.
 - **Hedging.** Four futures months trade on the ticket. Crude owned plus futures must stay within two lots of flat, so selling barrels means buying back futures on the same ticket.
 - **The curve.** When futures sit above spot, hedged crude in the tank gains as the gap closes, so storing pays. When they sit below spot, the same position loses.
+- **Events on watch.** Some days an event is flagged for tomorrow, such as a pipeline repair or a producers' meeting, with its odds and roughly what it would do to futures and to spot. The ticket shows what your book would make or lose each way before you commit.
+- **Shocks.** About one day in ten the market is hit by something nobody saw coming and prices move by several dollars. A shock that moves every price does nothing to a hedged book. One that moves spot hardest hits anyone holding crude.
+
+The order ticket is live. The tank drawing, the position gauge and the profit-and-loss estimate all update as you change an order, so you can see what a ticket does before it is sent.
 
 ## Ranked and practice runs
 
@@ -35,7 +39,7 @@ A market is generated from a seed, and its prices are the same every time that s
 
 ## Limits of the model
 
-All prices, bids and events are simulated. The price moves, storage rates and client fees are set for a short game and are not calibrated to market data. Futures have no margin, expiry or roll, and the terminal is a single tank. It is a game about the trade-offs of a physical book and not a forecast or a trading tool.
+All prices, bids and events are simulated. The price moves, event odds, shock sizes, storage rates and client fees are set for a short game and are not calibrated to market data. Futures have no margin, expiry or roll, and the terminal is a single tank. It is a game about the trade-offs of a physical book and not a forecast or a trading tool.
 
 ## How it was built
 

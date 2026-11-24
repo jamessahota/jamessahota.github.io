@@ -15,13 +15,14 @@
   const tone = (cents) => cents < 0 ? "negative" : cents > 0 ? "positive" : "";
   const curveLabels = ["Spot", ...futuresMonths];
   const curveMargins = { left: 40, right: 10, top: 14, bottom: 12 };
-  const runKey = "cargo-desk-run-v3";
-  const seedsKey = "cargo-desk-seeds-v3";
+  const runKey = "cargo-desk-run-v4";
+  const seedsKey = "cargo-desk-seeds-v4";
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   // The main site has its own pause control, stored on the root element.
   const still = () => reducedMotion.matches || root.dataset.motion === "paused";
   const form = element("decision-form");
   const fields = element("order-ticket");
+  const slider = element("order-barrels-range");
   const inputs = {
     barrels: element("order-barrels"),
     storage: element("order-storage"),
@@ -55,6 +56,12 @@
     const short = positions.reduce((total, lots) => total + Math.max(0, -lots), 0);
     return [long ? number(long) + " long" : "", short ? number(short) + " short" : ""].filter(Boolean).join(", ") || "No futures";
   }
+
+  // A price change in dollars with its sign, for example +$1.20.
+  const move = (cents) => (cents < 0 ? "−" : "+") + "$" + (Math.abs(cents) / 100).toFixed(2);
+  // Estimates are shown to the nearest ten dollars, so they do not read as exact.
+  const roughly = (cents) => money(Math.round(cents / 1000) * 1000);
+  const effectText = (effect) => "Futures about " + move(effect.flat) + ", spot about " + move(effect.flat + effect.premium);
 
   function amount(id, cents) {
     const node = element(id);
@@ -158,7 +165,6 @@
     const closed = state.stage === totalCycles;
     const book = state.round?.orderBook;
     const ownedInTank = state.barrels - state.ownedOverflow;
-    const percent = Math.round(state.occupancy / capacity * 100);
     set("location-clock", state.market.time + " CT");
 
     set("inbound-value", closed ? "Run closed" : state.incoming ? number(state.incoming) + " bbl" : "None due");
@@ -166,14 +172,7 @@
       state.scheduled ? number(state.scheduled.barrels) + " bbl booked in for cycle " + state.scheduled.cycle : "No client arrival this cycle");
     element("pipe-in").classList.toggle("is-live", !closed && !!state.incoming);
 
-    element("tank-owned").style.height = ownedInTank / capacity * 100 + "%";
-    element("tank-client").style.height = state.clientInTank / capacity * 100 + "%";
-    set("tank-pct", percent + "%");
-    element("tank").setAttribute("aria-label", "Tank A is " + percent + "% full: " + number(ownedInTank) +
-      " barrels of your crude and " + number(state.clientInTank) + " barrels of client crude.");
-    set("key-owned", number(ownedInTank) + " bbl");
-    set("key-client", number(state.clientInTank) + " bbl");
-    set("key-free", number(capacity - state.occupancy) + " bbl");
+    renderLevels(ownedInTank, state.clientInTank, false);
 
     if (closed) {
       set("outbound-value", "Book settled");
@@ -187,17 +186,39 @@
     }
     element("pipe-out").classList.toggle("is-live", !closed && !!book.sell.max);
 
-    const offSite = [
-      state.ownedOverflow ? number(state.ownedOverflow) + " bbl of yours" : "",
-      state.clientOverflow ? number(state.clientOverflow) + " bbl of clients’" : "",
-    ].filter(Boolean).join(" and ");
-    element("overflow-fill").style.width = state.storageBooked ? Math.min(100, state.storageUsed / state.storageBooked * 100) + "%" : "0%";
+    renderOverflow(state.ownedOverflow, state.clientOverflow, state.storageBooked, false);
+  }
+
+  // The off-site strip, for the book as it stands or as the ticket would leave it.
+  function renderOverflow(owned, clients, booked, preview) {
+    const used = owned + clients;
+    const short = Math.max(0, used - booked);
+    const whose = [owned ? number(owned) + " bbl of yours" : "", clients ? number(clients) + " bbl of clients’" : ""].filter(Boolean).join(" and ");
+    element("overflow-fill").style.width = booked ? Math.min(100, used / booked * 100) + "%" : "0%";
     const text = element("overflow-text");
-    text.textContent = state.storageShortfall ?
-      number(state.storageShortfall) + " bbl off-site has no booking this cycle (" + offSite + "). Book space or sell crude." :
-      state.storageBooked ? number(state.storageUsed) + " of " + number(state.storageBooked) + " bbl of booked space in use" + (offSite ? " (" + offSite + ")" : "") :
+    text.textContent = short ?
+      number(short) + " bbl off-site has no booking " + (preview ? "on this ticket" : "this cycle") + " (" + whose + "). Book space or sell crude." :
+      booked ? number(used) + " of " + number(booked) + " bbl of booked space in use" + (preview ? " after this ticket" : "") + (whose ? " (" + whose + ")" : "") :
       "No space booked";
-    text.classList.toggle("is-short", !!state.storageShortfall);
+    text.classList.toggle("is-short", short > 0);
+  }
+
+  // The tank drawing. While a ticket is being filled in, it shows the tank as that
+  // ticket would leave it, so every change on the ticket is seen at once.
+  function renderLevels(ownedInTank, clientInTank, preview) {
+    const used = ownedInTank + clientInTank;
+    const percent = Math.round(used / capacity * 100);
+    element("tank-owned").style.height = ownedInTank / capacity * 100 + "%";
+    element("tank-client").style.height = clientInTank / capacity * 100 + "%";
+    set("tank-pct", percent + "%");
+    element("tank").setAttribute("aria-label", "Tank A " + (preview ? "after this ticket" : "now") + ": " + percent + "% full, with " +
+      number(ownedInTank) + " barrels of your crude and " + number(clientInTank) + " barrels of client crude.");
+    set("key-owned", number(ownedInTank) + " bbl");
+    set("key-client", number(clientInTank) + " bbl");
+    set("key-free", number(capacity - used) + " bbl");
+    const tag = element("tank-tag");
+    tag.textContent = preview ? "After this ticket" : "Now";
+    tag.classList.toggle("is-preview", preview);
   }
 
   // --- Order ticket ------------------------------------------------------------
@@ -229,6 +250,10 @@
 
     inputs.barrels.disabled = draft.side === "hold";
     inputs.barrels.max = String(result.physicalLimit);
+    slider.disabled = draft.side === "hold";
+    slider.max = String(result.physicalLimit);
+    slider.value = String(Number.isFinite(draft.barrels) ? draft.barrels : 0);
+    slider.style.setProperty("--fill", (result.physicalLimit ? Math.min(100, (Number(slider.value) / result.physicalLimit) * 100) : 0) + "%");
     element("barrels-max").disabled = draft.side === "hold";
     set("order-quote", draft.side === "hold" ? "Keep the crude you have. Choose a route to trade." :
       draft.side === "buy" ? quote(route.price) + " ask · up to " + number(route.max) + " bbl" :
@@ -264,6 +289,35 @@
     const exposure = element("order-exposure");
     exposure.textContent = exposureText(result.netLots) + " · limit ±" + netLimitLots + " lots";
     exposure.classList.toggle("negative", !!result.errors.exposure);
+    const marker = element("gauge-marker");
+    marker.style.left = Math.max(0, Math.min(100, 50 + result.netLots / (netLimitLots * 2) * 50)) + "%";
+    marker.classList.toggle("is-over", !!result.errors.exposure);
+
+    // What the book left by this ticket would make or lose.
+    const watch = state.market.watch;
+    const scenario = element("order-scenario");
+    scenario.replaceChildren();
+    if (watch) {
+      set("scenario-label", "On watch");
+      append(scenario, "span", "If it happens ");
+      append(scenario, "b", roughly(result.ifHit), tone(Math.round(result.ifHit / 1000)));
+      append(scenario, "span", " · if not ");
+      append(scenario, "b", roughly(result.ifMiss), tone(Math.round(result.ifMiss / 1000)));
+    } else {
+      set("scenario-label", "If prices move");
+      if (!result.perDollar && !result.perSpotDime) append(scenario, "span", "No price exposure");
+      else {
+        append(scenario, "b", money(result.perDollar), tone(result.perDollar));
+        append(scenario, "span", " per $1 up in every price · ");
+        append(scenario, "b", money(result.perSpotDime), tone(result.perSpotDime));
+        append(scenario, "span", " per 10¢ up in spot alone");
+      }
+    }
+
+    const changed = result.barrels !== state.barrels || result.occupancy !== state.occupancy || result.clientInTank !== state.clientInTank;
+    renderLevels(result.barrels - result.ownedOverflow, result.clientInTank, changed);
+    const newBooking = result.storageThroughCycle ? draft.storage : 0;
+    renderOverflow(result.ownedOverflow, result.clientOverflow, result.activeStorage + newBooking, changed || newBooking > 0);
     const cash = result.clientCashflow - result.storageCost - result.transportCost - result.tankLease;
     set("order-fees", [
       "Tank lease " + money(-result.tankLease),
@@ -301,6 +355,17 @@
     const note = element("market-note");
     note.hidden = !round.marketNote;
     note.textContent = round.marketNote ? "Also in the market: " + round.marketNote.replace(/\.$/, "") + ". Check the bid and ask against spot." : "";
+
+    const watch = state.market.watch;
+    element("watch").hidden = !watch;
+    if (watch) {
+      set("watch-odds", watch.odds + "% likely");
+      element("watch-meter").style.width = watch.odds + "%";
+      set("watch-title", watch.title + ".");
+      set("watch-detail", watch.detail + " " + watch.lean);
+      set("watch-hit", effectText(watch.hit));
+      set("watch-miss", effectText(watch.miss));
+    }
 
     set("ticket-bid", quote(book.sell.price));
     set("ticket-ask", quote(book.buy.price));
@@ -356,6 +421,7 @@
     set("decision-title", "Book closed.");
     set("decision-brief", "All crude is sold and every futures position is closed. The result includes the tank lease, storage, tariffs and client income.");
     element("market-note").hidden = true;
+    element("watch").hidden = true;
 
     append(debrief, "p", money(state.net), "cd-score numeric " + tone(state.net));
     append(debrief, "p", "Largest fall from a peak: " + unsignedMoney(state.maxDrawdown), "cd-debrief__meta");
@@ -459,6 +525,18 @@
       append(button, "small", previous ? (change > 0 ? "+" : change < 0 ? "−" : "") + (Math.abs(change) / 100).toFixed(2) : "Opening", tone(change));
     });
     element("curve-hint").hidden = !state.round;
+
+    // The wire: every day's news so far, newest first.
+    element("wire").hidden = state.history.length === 0;
+    const wire = element("wire-list");
+    wire.replaceChildren();
+    state.history.slice().reverse().forEach(step => {
+      const change = step.market.prices[0] - step.marketBefore.prices[0];
+      const row = append(wire, "li");
+      const text = append(row, "span", step.market.shock ? step.market.shock.headline : step.market.headline);
+      append(text, "small", "After cycle " + step.cycle + (step.market.shock && step.market.resolved ? " · also: " + step.market.headline : ""));
+      append(row, "strong", "Spot " + move(change), tone(change));
+    });
     drawCurve();
   }
 
@@ -562,7 +640,7 @@
     const last = state.history.at(-1);
     element("cycle-note").hidden = !last;
     if (last) {
-      set("cycle-headline", "Cycle " + last.cycle + " · " + state.market.headline);
+      set("cycle-headline", "Cycle " + last.cycle + " · " + (state.market.shock ? state.market.shock.headline : state.market.headline));
       set("cycle-outcome", last.outcome);
       amount("cycle-delta", last.delta);
     }
@@ -605,6 +683,14 @@
       const route = state.round.orderBook[event.target.value];
       inputs.barrels.value = route ? String(route.max) : "0";
     }
+    updateTicket();
+  });
+
+  // The slider and the number box are two handles on the same volume.
+  slider.addEventListener("input", event => {
+    event.stopPropagation();
+    if (busy || !state.round) return;
+    inputs.barrels.value = slider.value;
     updateTicket();
   });
 
@@ -682,6 +768,10 @@
         label: next.history.at(-1).label,
         delta: next.net - previous.net,
         time: next.market.time + " CT",
+        news: [
+          next.market.resolved ? { text: next.market.headline + "." } : null,
+          next.market.shock ? { text: next.market.shock.headline + ".", shock: true } : null,
+        ].filter(Boolean),
       });
     } finally {
       busy = false;

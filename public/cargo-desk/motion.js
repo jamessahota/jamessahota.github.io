@@ -13,7 +13,7 @@
   let ticket;
   let arrivalTimer;
 
-  async function transition({ from, to, label, delta, time }) {
+  async function transition({ from, to, label, delta, time, news = [] }) {
     if (reducedMotion.matches || root.dataset.motion === "paused" || ticket) return;
 
     window.clearTimeout(arrivalTimer);
@@ -27,6 +27,7 @@
         '<div class="cycle-ticket-header"><span>Orders committed</span><span class="cycle-ticket-time"></span></div>' +
         '<div class="cycle-ticket-route"><span class="cycle-ticket-from"></span>' +
           '<span class="cycle-ticket-track"></span><strong class="cycle-ticket-to"></strong></div>' +
+        '<ul class="cycle-ticket-news"></ul>' +
         '<div class="cycle-ticket-result"><span class="cycle-ticket-label"></span>' +
           '<div class="cycle-ticket-amount"><span>P&amp;L change</span><strong></strong></div></div>' +
       '</div>';
@@ -46,8 +47,19 @@
       amount.parentElement.hidden = true;
     }
 
+    const list = ticket.querySelector(".cycle-ticket-news");
+    list.hidden = news.length === 0;
+    news.forEach((item, index) => {
+      const line = document.createElement("li");
+      line.textContent = item.text;
+      if (item.shock) line.className = "is-shock";
+      line.style.animationDelay = 320 + index * 380 + "ms";
+      list.append(line);
+    });
+
     document.body.append(ticket);
-    await new Promise((resolve) => window.setTimeout(resolve, 560));
+    // Long enough to read the news, when there is any.
+    await new Promise((resolve) => window.setTimeout(resolve, 560 + news.length * 900));
   }
 
   function reveal() {

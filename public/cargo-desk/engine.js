@@ -52,12 +52,95 @@
     {
       key: "stocks",
       desk: "Risk desk",
-      title: "The next stocks release is in play.",
-      brief: "Physical bids are firm while the market waits for the next inventory number. Prices will move before your next decision.",
+      title: "Local buyers are bidding firmly.",
+      brief: "Several buyers want prompt barrels today, so the local bid sits close to spot or above it. Weigh it against what the curve pays you to keep storing.",
       bidPremium: [-10, 58],
       offerPremium: [5, 48],
     },
   ];
+
+  // Risk events. One may go "on watch" at the start of a cycle with its odds and
+  // its effect stated, and it is settled by the market move that ends the cycle.
+  // flat: the move in every price. premium: the extra move in spot alone, which is
+  // what a hedged physical book is exposed to. All ranges are in cents per barrel.
+  const watchEvents = [
+    {
+      key: "outage",
+      title: "A pipeline feeding Cushing may shut for repairs",
+      detail: "Less crude would reach the hub, so prompt barrels would be scarce and spot would jump against futures.",
+      lean: "Good for a book that holds crude.",
+      hitHeadline: "The pipeline shut and prompt crude at Cushing ran short",
+      missHeadline: "The pipeline stayed open",
+      odds: [25, 45],
+      hit: { flat: [60, 140], premium: [70, 120] },
+      miss: { flat: [-25, -10], premium: [-20, -8] },
+    },
+    {
+      key: "refinery",
+      title: "A refinery that runs Cushing crude may go down",
+      detail: "Its barrels would back up at the hub, so spot would fall against futures.",
+      lean: "Bad for a book that holds crude.",
+      hitHeadline: "The refinery went down and unsold crude backed up at Cushing",
+      missHeadline: "The refinery kept running",
+      odds: [25, 45],
+      hit: { flat: [-140, -60], premium: [-120, -70] },
+      miss: { flat: [10, 25], premium: [8, 20] },
+    },
+    {
+      key: "cut",
+      title: "Producers meet tomorrow and may cut output",
+      detail: "A cut would lift every price on the curve. Part of it is already priced in, so no cut means a small fall.",
+      lean: "Good for a net long position.",
+      hitHeadline: "Producers agreed an output cut",
+      missHeadline: "Producers left output unchanged",
+      odds: [30, 50],
+      hit: { flat: [250, 420], premium: [10, 40] },
+      miss: { flat: [-80, -40], premium: [0, 0] },
+    },
+    {
+      key: "demand",
+      title: "Economic data due tomorrow may point to weaker demand",
+      detail: "A bad number would knock every price on the curve. A good one brings a small relief rally.",
+      lean: "Good for a net short position.",
+      hitHeadline: "Weak economic data hit the demand outlook",
+      missHeadline: "The economic data came in firm",
+      odds: [30, 50],
+      hit: { flat: [-420, -250], premium: [-40, -10] },
+      miss: { flat: [40, 80], premium: [0, 0] },
+    },
+    {
+      key: "draw",
+      title: "The weekly stocks report may show a large draw",
+      detail: "A big fall in inventories would lift prices, spot most of all. A build would do the opposite.",
+      lean: "Good for a book that is long and holds crude.",
+      hitHeadline: "Stocks fell by more than expected",
+      missHeadline: "Stocks rose instead of falling",
+      odds: [40, 60],
+      hit: { flat: [150, 250], premium: [25, 60] },
+      miss: { flat: [-250, -150], premium: [-60, -25] },
+    },
+  ];
+
+  // Shocks. Nothing warns of these. Each cycle has a one in ten chance of one.
+  // Some move every price and some move spot hardest, so a hedge covers the
+  // first kind and nothing fully covers the second.
+  const shockChance = 10;
+  const shocks = [
+    { headline: "Shock: an attack on a producing region cut supply", flat: 1, premium: 1 },
+    { headline: "Shock: a surprise release from strategic reserves hit the market", flat: -1, premium: -1 },
+    { headline: "Shock: an explosion took a large refinery offline", flat: -1, premium: -1 },
+    { headline: "Shock: an export surge drained barrels from the hub", flat: 1, premium: 1 },
+    { headline: "Shock: a large fund was forced to sell its futures", flat: -1, premium: 0 },
+    { headline: "Shock: a squeeze on short sellers sent futures up", flat: 1, premium: 0 },
+  ];
+
+  function drawWatch(draw) {
+    const event = watchEvents[draw(0, watchEvents.length - 1)];
+    const effect = (range) => ({ flat: draw(...range.flat), premium: draw(...range.premium) });
+    const { key, title, detail, lean, hitHeadline, missHeadline } = event;
+    // Odds are quoted to the nearest 5% and are the true chance.
+    return { key, title, detail, lean, hitHeadline, missHeadline, odds: draw(event.odds[0] / 5, event.odds[1] / 5) * 5, hit: effect(event.hit), miss: effect(event.miss) };
+  }
 
   const formatVolume = (barrels) => barrels.toLocaleString("en-US") + " bbl";
   const priceLabel = (cents) => "$" + (cents / 100).toFixed(2);
@@ -95,27 +178,68 @@
   function moveMarket(seed, stage, previous) {
     const day = Math.min(stage, totalCycles - 1);
     const time = "W" + (Math.floor(day / 5) + 1) + " " + weekdays[day % 5] + (stage === totalCycles ? " · 16:00" : " · 08:30");
-    if (!previous) return { time, prices: openingPrices.slice(), headline: "Opening marks" };
+    if (!previous) return { time, prices: openingPrices.slice(), headline: "Opening marks", watch: null, resolved: null, shock: null };
 
     const draw = randomStream(seed, stage, "market");
-    const event = draw(0, 99);
-    const change = draw(-95, 95);
+    const roll = draw(1, 100);
+    const drift = draw(-70, 70);
     const convergence = draw(-22, 22);
-    const news = event < 15 ? { move: draw(95, 210), headline: "A stock draw lifted the front of the curve" } :
-      event < 30 ? { move: -draw(95, 210), headline: "An inventory build weighed on prompt crude" } :
-      event < 41 ? { move: draw(-68, -28), headline: "Refiners pulled back on buying" } :
-      event < 52 ? { move: draw(28, 68), headline: "Stronger refinery runs supported crude" } :
-      { move: 0, headline: "WTI repriced in ordinary trading" };
-    const spot = Math.max(4600, Math.min(10500, previous.prices[0] + change + news.move));
+    const mood = draw(0, 99);
+    const moodSize = draw(28, 68);
+    const shockRoll = draw(0, 99);
+    const shockKind = shocks[draw(0, shocks.length - 1)];
+    const shockFlat = draw(300, 650);
+    const shockPremium = draw(40, 110);
+    // The market never reacts by exactly the expected amount.
+    const reaction = draw(60, 140);
+
+    // An ordinary day moves prices by well under a dollar. Large moves come from the
+    // event that was on watch, whose odds and rough size the player was shown, and
+    // from shocks, which nobody is shown.
+    let flat = drift;
+    let premium = 0;
+    let headline = "WTI repriced in ordinary trading";
+    let resolved = null;
+    const watch = previous.watch;
+    if (watch) {
+      const hit = roll <= watch.odds;
+      const expected = hit ? watch.hit : watch.miss;
+      const effect = { flat: Math.round(expected.flat * reaction / 100), premium: Math.round(expected.premium * reaction / 100) };
+      flat += effect.flat;
+      premium = effect.premium;
+      headline = hit ? watch.hitHeadline : watch.missHeadline;
+      resolved = { title: watch.title, hit, flat: effect.flat, premium: effect.premium };
+    } else if (mood < 15) {
+      flat += moodSize;
+      headline = "Stronger refinery runs supported crude";
+    } else if (mood < 30) {
+      flat -= moodSize;
+      headline = "Refiners pulled back on buying";
+    }
+
+    let shock = null;
+    if (shockRoll < shockChance) {
+      shock = { headline: shockKind.headline, flat: shockKind.flat * shockFlat, premium: shockKind.premium * shockPremium };
+      flat += shock.flat;
+      premium += shock.premium;
+    }
+
+    const spot = Math.max(4600, Math.min(10500, previous.prices[0] + flat + premium));
     // The gap between spot and the front month decays by about a third each
-    // cycle, so a contango pays the holder of hedged crude and a backwardation costs them.
-    const slope = Math.max(-115, Math.min(128, Math.round((previous.prices[1] - previous.prices[0]) * .67 - news.move * .21 + convergence)));
-    const tailSlope = Math.max(-52, Math.min(58, Math.round(slope * .32) + draw(-16, 16)));
+    // cycle, so a contango pays the holder of hedged crude and a backwardation
+    // costs them. A premium shock moves spot against futures, then fades the same way.
+    const slope = Math.max(-260, Math.min(260, Math.round((previous.prices[1] - previous.prices[0]) * .67) + convergence - premium));
+    const tailSlope = Math.max(-90, Math.min(90, Math.round(slope * .32) + draw(-16, 16)));
     const front = spot + slope;
+    // Nothing is put on watch for the opening cycle, which has its own problem, or after the close.
+    const next = stage < totalCycles && draw(0, 99) < 55 ? drawWatch(draw) : null;
     return {
       time,
       prices: [spot, front, front + tailSlope, front + tailSlope + Math.round(tailSlope * .7), front + tailSlope + Math.round(tailSlope * 1.2)],
-      headline: news.headline,
+      headline,
+      watch: next,
+      resolved,
+      shock,
     };
   }
 
@@ -376,6 +500,12 @@
           "Buy back " + over + " futures " + (over === 1 ? "lot" : "lots") + " or keep more crude.");
     }
 
+    // How the book left by this ticket responds to the market: to a move in every
+    // price, to a move in spot alone, and to the event on watch if there is one.
+    const futuresNet = futuresPositions.reduce((total, contracts) => total + contracts, 0);
+    const outcome = (effect) => barrels * (effect.flat + effect.premium) + futuresNet * lot * effect.flat;
+    const watch = state.market?.watch || null;
+
     const fee = draft.client === "redirect" ? client?.redirect.fee || 0 : draft.client === "defer" ? client?.defer?.fee || 0 : 0;
     const keys = Object.keys(errors);
     return {
@@ -394,6 +524,11 @@
       futuresPositions,
       futuresGross: grossLots(futuresPositions),
       netLots: exposure,
+      clientInTank: layout.occupancy - (barrels - layout.ownedOverflow),
+      perDollar: outcome({ flat: 100, premium: 0 }),
+      perSpotDime: outcome({ flat: 0, premium: 10 }),
+      ifHit: watch ? outcome(watch.hit) : null,
+      ifMiss: watch ? outcome(watch.miss) : null,
       transportCost: draft.side === "ship" ? ordered * (terms.ship?.tariff || 0) : 0,
       clientCashflow: accepted * (client?.rate || 0) - fee,
       tankLease: terms.tankLease,
@@ -575,7 +710,7 @@
     };
   }
 
-  const game = { replay, preview, totalCycles, capacity, lot, futuresMonths, maxFuturesLots, netLimitLots, tankLease };
+  const game = { replay, preview, totalCycles, capacity, lot, futuresMonths, maxFuturesLots, netLimitLots, tankLease, shockChance };
   if (typeof module !== "undefined" && module.exports) module.exports = game;
   else window.CargoDesk = game;
 })();

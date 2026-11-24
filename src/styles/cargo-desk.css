@@ -350,12 +350,23 @@
 .cd-tank__name { left: 0.45rem; font-size: 0.625rem; }
 .cd-tank__pct { right: 0.45rem; font-size: 0.75rem; font-weight: 600; color: var(--panel-ink); }
 
-.cd-key {
+.cd-key-wrap {
   display: grid;
   align-content: center;
-  gap: 0.55rem;
+  gap: 0.6rem;
   min-width: 0;
   flex: 1;
+}
+
+.cd-key {
+  display: grid;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+/* Says whether the drawing shows the tank as it is or as the ticket would leave it. */
+.cd-key__tag.is-preview {
+  color: var(--accent-on-panel);
 }
 
 .cd-key div {
@@ -442,7 +453,7 @@
   .cd-tank-wrap { grid-column: 3; }
   .cd-node--out { grid-column: 5; grid-row: 1; }
 
-  .cd-key {
+  .cd-key-wrap {
     flex: none;
     width: 11.5rem;
   }
@@ -534,6 +545,78 @@
   border-left: 2px solid var(--accent);
   font-size: var(--text-sm);
   color: var(--ink);
+}
+
+/* The event on watch: its odds as a bar, and what it would do each way. */
+.cd-watch {
+  margin: 0 1.1rem 1.1rem;
+  padding: 0.85rem 0.9rem 0.9rem;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+}
+
+.cd-watch__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.cd-watch__meter {
+  height: 0.35rem;
+  margin-top: 0.5rem;
+  background: var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.cd-watch__meter i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.6s var(--ease-out);
+}
+
+.cd-watch__title {
+  margin-top: 0.65rem;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+
+.cd-watch__detail {
+  margin-top: 0.35rem;
+  font-size: var(--text-sm);
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+
+.cd-watch__cases {
+  display: grid;
+  gap: 0.3rem;
+  margin-top: 0.65rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--line);
+}
+
+.cd-watch__cases div {
+  display: grid;
+  grid-template-columns: 6.75rem minmax(0, 1fr);
+  gap: 0.6rem;
+  align-items: baseline;
+}
+
+.cd-watch__cases dt {
+  font-size: 0.625rem;
+}
+
+.cd-watch__cases dd {
+  font-family: var(--mono);
+  font-size: var(--text-xs);
+  line-height: 1.45;
 }
 
 .cd-quotes {
@@ -721,6 +804,67 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   margin-top: 0;
+}
+
+/* Volume slider: the same number as the box above it. */
+.cd-range {
+  display: block;
+  width: 100%;
+  height: 1.75rem;
+  margin: 0.45rem 0 0;
+  background: none;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.cd-range:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.cd-range::-webkit-slider-runnable-track {
+  height: 4px;
+  background: linear-gradient(90deg, var(--accent) var(--fill, 0%), var(--line) var(--fill, 0%));
+  border-radius: var(--radius);
+}
+
+.cd-range::-moz-range-track {
+  height: 4px;
+  background: var(--line);
+  border-radius: var(--radius);
+}
+
+.cd-range::-moz-range-progress {
+  height: 4px;
+  background: var(--accent);
+}
+
+.cd-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 1.1rem;
+  height: 1.1rem;
+  margin-top: calc(2px - 0.55rem);
+  background: var(--ink);
+  border: 0;
+  border-radius: var(--radius);
+}
+
+.cd-range::-moz-range-thumb {
+  width: 1.1rem;
+  height: 1.1rem;
+  background: var(--ink);
+  border: 0;
+  border-radius: var(--radius);
+}
+
+.cd-range:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+}
+
+.cd-range + .cd-hint {
+  margin-top: 0.25rem;
 }
 
 .cd-row + .cd-hint,
@@ -960,6 +1104,45 @@
   font-size: var(--text-xs);
   line-height: 1.45;
   color: var(--ink-2);
+}
+
+.cd-review dd b {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.cd-review dd b.positive { color: var(--cd-up); }
+.cd-review dd b.negative { color: var(--cd-down); }
+
+/* Net position gauge: the shaded band is the desk limit, the marker is this ticket. */
+.cd-gauge {
+  position: relative;
+  display: block;
+  height: 0.55rem;
+  margin-top: 0.3rem;
+  background: var(--line);
+  border-radius: var(--radius);
+}
+
+.cd-gauge i {
+  position: absolute;
+  inset: 0 25%;
+  background: color-mix(in srgb, var(--cd-up) 35%, var(--surface));
+}
+
+.cd-gauge b {
+  position: absolute;
+  top: -0.2rem;
+  bottom: -0.2rem;
+  left: 50%;
+  width: 3px;
+  margin-left: -1.5px;
+  background: var(--ink);
+  transition: left 0.35s var(--ease-out);
+}
+
+.cd-gauge b.is-over {
+  background: var(--cd-down);
 }
 
 .cd-message {
@@ -1463,6 +1646,30 @@
   font-weight: 400;
   line-height: 1;
   text-transform: uppercase;
+}
+
+.cycle-ticket-news {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0.9rem 0 0;
+  padding: 0.8rem 0 0;
+  border-top: 1px solid #383e44;
+  list-style: none;
+}
+
+.cycle-ticket-news li {
+  padding-left: 0.7rem;
+  border-left: 2px solid #a2a9b0;
+  font-size: 0.9375rem;
+  font-weight: 560;
+  line-height: 1.3;
+  letter-spacing: -0.015em;
+  animation: cd-slip-in 0.4s var(--ease-out) both;
+}
+
+.cycle-ticket-news li.is-shock {
+  border-color: #ff6a33;
+  color: #ff6a33;
 }
 
 .cycle-ticket-result {
