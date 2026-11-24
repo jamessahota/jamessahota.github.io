@@ -147,4 +147,22 @@ const rows = [
     text-transform: uppercase;
     color: var(--accent-on-panel);
   }
+  @media (max-width: 24rem) {
+    .desk-preview__head, .desk-preview__note { padding-inline: 0.75rem; }
+
+    .desk-preview__body {
+      gap: 0.75rem;
+      padding: 0.75rem;
+    }
+
+    .desk-preview__tank { width: clamp(5.5rem, 25vw, 6.5rem); }
+    .desk-preview__name { left: 0.3rem; padding-inline: 0.2rem; }
+    .desk-preview__pct { right: 0.3rem; padding-inline: 0.2rem; }
+
+    .desk-preview dl div {
+      display: grid;
+      justify-content: stretch;
+      gap: 0.2rem;
+    }
+  }
 </style>

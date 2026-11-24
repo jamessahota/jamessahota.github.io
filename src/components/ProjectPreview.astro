@@ -19,7 +19,7 @@ const headingId = `${entry.id}-preview-heading`;
 const title = investment ? data.title.split(':')[0] : data.title;
 ---
 
-<article id={id} class:list={['project-preview', { 'project-preview--investment': Boolean(investment) }]} aria-labelledby={headingId}>
+<article id={id} class:list={['project-preview', { 'project-preview--investment': Boolean(investment), 'project-preview--game': Boolean(data.game) }]} aria-labelledby={headingId}>
   <div class="project-preview__text" data-reveal>
     <p class="label label--accent">{investment ? `Investment proposal · ${formatPeriod(data.start, data.end)}` : data.game ? `${data.kind} · ${formatPeriod(data.start, data.end)}` : 'Research system'}</p>
     <Heading class="project-preview__title" id={headingId}>
@@ -94,6 +94,16 @@ const title = investment ? data.title.split(':')[0] : data.title;
 
   @media (min-width: 62rem) {
     .project-preview { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); align-items: center; }
+  }
+
+  @media (max-width: 24rem) {
+    .project-preview--game .project-preview__system { grid-template-columns: minmax(0, 1fr); }
+    .project-preview--game .project-preview__facts dl { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+
+  @media (max-width: 22rem) {
+    .project-preview--game .project-preview__facts dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .project-preview--game .project-preview__facts dl > :last-child:nth-child(odd) { grid-column: 1 / -1; }
   }
 
   @media print {
