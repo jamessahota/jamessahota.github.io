@@ -6,6 +6,10 @@
   const nameInput = el("name");
   const consent = el("consent");
   const receiptKey = "cargo-desk-weekly-receipt-v1";
+  const weeklyLimits = new Map([
+    ["weekly-v1", window.CargoDesk.netLimitLots],
+    ["weekly-v2", window.CargoDesk.rankedNetLimitLots],
+  ]);
   let receipt = readReceipt();
   const day = 24 * 60 * 60 * 1000;
   const dates = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
@@ -55,15 +59,18 @@
   function readReceipt() {
     try {
       const saved = JSON.parse(localStorage.getItem(receiptKey));
+      // Earlier receipts omit the rules because they were all issued under weekly-v1.
+      const rules = saved?.rules ?? "weekly-v1";
       if (typeof saved?.week === "string" && /^\d{4}-\d{2}-\d{2}$/.test(saved.week) &&
+          weeklyLimits.has(rules) &&
           typeof saved.token === "string" && /^[0-9a-f]{64}$/.test(saved.token) &&
-          typeof saved.name === "string" && cleanUsername(saved.name) === saved.name) return saved;
+          typeof saved.name === "string" && cleanUsername(saved.name) === saved.name) return { ...saved, rules };
     } catch {}
     return null;
   }
 
-  function rememberReceipt(week, token, name) {
-    receipt = { week, token, name };
+  function rememberReceipt({ week, rules, token }, name) {
+    receipt = { week, rules, token, name };
     try { localStorage.setItem(receiptKey, JSON.stringify(receipt)); } catch {}
   }
 
@@ -101,7 +108,8 @@
     el("retry").disabled = !!operation;
     nameInput.disabled = consent.disabled = el("publish").disabled = !!operation;
 
-    const shared = finished && receipt?.week === finished.weekly.week && receipt.token === finished.weekly.token;
+    const shared = finished && receipt?.week === finished.weekly.week &&
+      receipt.rules === finished.weekly.rules && receipt.token === finished.weekly.token;
     const sharing = available && !!finished && !shared;
     el("share").hidden = !sharing;
     el("published").hidden = !available || !shared;
@@ -115,9 +123,9 @@
   }
 
   function validateChallenge(data, needsToken = false) {
-    if (typeof data?.week !== "string" || !data.week || typeof data.seed !== "string" || !data.seed ||
-        (typeof data.rules !== "number" && typeof data.rules !== "string") || !Number.isFinite(time(data.endsAt)) ||
-        (needsToken && (typeof data.token !== "string" || !data.token))) {
+    if (typeof data?.week !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(data.week) || !weeklyLimits.has(data.rules) ||
+        data.seed !== data.rules + ":" + data.week || !Number.isFinite(time(data.endsAt)) ||
+        (needsToken && (typeof data.token !== "string" || !/^[0-9a-f]{64}$/.test(data.token)))) {
       throw new Error("invalid_weekly_response");
     }
     const { week, seed, endsAt, rules, token } = data;
@@ -127,7 +135,7 @@
   function paintChallenge(scores) {
     const end = time(current.endsAt);
     el("dates").textContent = dates.formatRange(new Date(end - 7 * day), new Date(end - 1));
-    el("reset").textContent = "Resets " + reset.format(end) + " UTC";
+    el("reset").textContent = "±" + weeklyLimits.get(current.rules) + " net lots · Resets " + reset.format(end) + " UTC";
     const list = el("scores");
     list.replaceChildren();
     for (const score of scores) {
@@ -258,7 +266,7 @@
       if (data?.week !== week || typeof data.score?.name !== "string" || cleanUsername(data.score.name) !== data.score.name) {
         throw new Error("invalid_weekly_response");
       }
-      rememberReceipt(week, token, data.score.name);
+      rememberReceipt(run.weekly, data.score.name);
       refreshScores = true;
       status(data.duplicate ? "This entry already has a published score." : "Your score is published.");
     } catch (error) {

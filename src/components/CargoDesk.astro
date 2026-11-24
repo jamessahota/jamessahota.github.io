@@ -473,7 +473,7 @@ import '../styles/cargo-desk.css';
       <summary>What changes in the full game?</summary>
       <dl>
         <div><dt>New tickets</dt><dd>Review prices, tank space, fees and net exposure before committing each morning. Generated markets can open a shorter afternoon ticket after news. Choose New run for a generated market or Historical scenarios to replay a real episode.</dd></div>
-        <div><dt>Futures limits and expiry</dt><dd>The desk allows up to two net lots long or short and twenty total open futures lots. A roll closes an expiring contract and opens a later one to keep the hedge. The order ticket flags expiry and offers Roll and hedge.</dd></div>
+        <div><dt>Futures limits and expiry</dt><dd>This lesson keeps your net position within two lots of flat. The full game shows the limit for each run. A roll closes an expiring contract and opens a later one to keep the hedge. The order ticket flags expiry and offers Roll and hedge.</dd></div>
         <div><dt>Calendar spreads</dt><dd>Buy one futures month and sell another to trade the price difference between them. A later price above a nearer price is contango. The reverse is backwardation.</dd></div>
       </dl>
     </details>
@@ -508,7 +508,7 @@ import '../styles/cargo-desk.css';
     <div><dt>Shocks</dt><dd>About one day in ten the market is hit by something nobody saw coming, and prices move by several dollars. A shock that moves every price does nothing to a hedged book. One that moves spot hardest hits anyone holding crude, hedged or not.</dd></div>
     <div><dt>Historical scenarios</dt><dd>Play seven episodes using daily spot and futures prices from the U.S. Energy Information Administration. Each day trades against the prior close and starts with a briefing on what was known then. The path is fixed, with one ticket per day. Estimated futures prices are display-only. Terminal bids, clients and storage rates are simulated.</dd></div>
     <div><dt>Reading the result</dt><dd>After each ticket the desk separates the result into trading, price, basis, calendar spreads, client income and costs. The debrief compares your result with holding the hedged cargo. Generated runs also receive a grade based on the return and drawdown.</dd></div>
-    <div><dt>The desk limits</dt><dd>Open crude exposure and futures must stay within two net lots of flat. The futures book can hold twenty gross lots. Hedge to flat adjusts the front-month order as far as those limits allow and leaves the other months alone. To trade a calendar spread, buy one month and sell another.</dd></div>
+    <div><dt>The desk limits</dt><dd>Ranked runs allow up to eight net lots long or short across uncommitted crude and futures. Weekly challenges use the ranked limit in effect when the week opens. Practice runs, including historical scenarios, have no net position limit. All runs can hold up to twenty gross futures lots across all months. Hedge to flat adjusts the front-month order within the limits for the run. To trade a calendar spread, buy one month and sell another.</dd></div>
     <div><dt>Ranked and practice runs</dt><dd>The first play of a newly generated market is ranked. Typed seeds, replays and historical scenarios are practice runs. The leaderboard groups earlier scores by the rules they used.</dd></div>
     <div><dt>Weekly challenge</dt><dd>Play the same ten-cycle market as everyone else. The week resets Monday at 00:00 UTC. After settlement, choose a username to share your final P&amp;L and drawdown. Higher P&amp;L ranks first, with lower drawdown breaking ties.</dd></div>
   </dl>
@@ -553,12 +553,12 @@ import '../styles/cargo-desk.css';
   <div id="leaderboard-content"></div>
 </dialog>
 
-<script is:inline src="/cargo-desk/engine.js?v=7" defer></script>
+<script is:inline src="/cargo-desk/engine.js?v=8" defer></script>
 <script is:inline src="/cargo-desk/scenarios.js?v=8" defer></script>
-<script is:inline src="/cargo-desk/leaderboard.js?v=7" defer></script>
+<script is:inline src="/cargo-desk/leaderboard.js?v=8" defer></script>
 <script is:inline src="/cargo-desk/motion.js?v=8" defer></script>
 <script is:inline src="/cargo-desk/tutorial-engine.js?v=2" defer></script>
 <script is:inline src="/cargo-desk/tutorial.js?v=3" defer></script>
-<script is:inline src="/cargo-desk/weekly.js?v=1" defer></script>
+<script is:inline src="/cargo-desk/weekly.js?v=2" defer></script>
 <script is:inline src="/cargo-desk/share.js?v=2" defer></script>
-<script is:inline src="/cargo-desk/app.js?v=12" defer></script>
+<script is:inline src="/cargo-desk/app.js?v=13" defer></script>

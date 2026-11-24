@@ -12,8 +12,9 @@
   const hedgeEntry = 7360;
   const monthNames = ["Dec", "Jan", "Feb", "Mar", "Apr"];
   const maxFuturesLots = 20;
-  // The desk's flat-price limit: owned crude plus futures, in lots, long or short.
+  // Net exposure limits, in lots of unpriced crude plus futures.
   const netLimitLots = 2;
+  const rankedNetLimitLots = 8;
   // Tank A is leased at a fixed rate per day, whether it holds your crude, a client's or nothing.
   const tankLease = 80000;
   // Dec stops trading at the close of day 5. Anything left in it is settled at spot.
@@ -873,11 +874,12 @@
     // Flat-price limit across crude and futures together
     const futuresNet = sum(futuresPositions);
     const exposure = availableBarrels / lot + futuresNet;
-    const overBy = (lots) => Math.ceil(Math.abs(lots) - netLimitLots);
-    if (!errors.futuresTrades && !errors.barrels && Math.abs(exposure) > netLimitLots) {
+    const limit = state.netLimitLots === null ? Infinity : (state.netLimitLots ?? netLimitLots);
+    const overBy = (lots) => Math.ceil(Math.abs(lots) - limit);
+    if (!errors.futuresTrades && !errors.barrels && Math.abs(exposure) > limit) {
       const over = overBy(exposure);
       errors.exposure = "Net position would be " + lotsLabel(Math.abs(exposure)) + (exposure > 0 ? " long" : " short") +
-        ". The desk limit is " + netLimitLots + ". " +
+        ". The desk limit is " + limit + ". " +
         (exposure > 0 ? "Sell " + over + " more futures " + (over === 1 ? "lot" : "lots") + " or hold less crude." :
           "Buy back " + over + " futures " + (over === 1 ? "lot" : "lots") + " or keep more crude.");
     }
@@ -885,7 +887,7 @@
     // On expiry day the book must also be inside the limit without the month that is about to go.
     const expiring = state.expiryToday ? state.months[0] : null;
     const afterExpiry = exposure - futuresPositions[0];
-    if (expiring && !errors.futuresTrades && !errors.barrels && !errors.exposure && Math.abs(afterExpiry) > netLimitLots) {
+    if (expiring && !errors.futuresTrades && !errors.barrels && !errors.exposure && Math.abs(afterExpiry) > limit) {
       const over = overBy(afterExpiry);
       errors.expiry = expiring + " expires at today’s close. Without it your net position would be " + lotsLabel(Math.abs(afterExpiry)) +
         (afterExpiry > 0 ? " long" : " short") + ". Roll the hedge: " + (afterExpiry > 0 ? "sell " : "buy ") + over + " " + state.months[1] +
@@ -956,7 +958,7 @@
   }
 
   function snapshot(book, round, allowClosedGulfBooking) {
-    const { seed, months, expiryDay, scenario } = book.ctx;
+    const { seed, months, expiryDay, scenario, netLimitLots } = book.ctx;
     const barrels = ownedBarrels(book);
     const reserved = deliveryVolume(book.deliveries);
     const availableBarrels = barrels - reserved;
@@ -990,6 +992,7 @@
       futuresPositions,
       futuresGross: grossLots(held),
       netLots: availableBarrels / lot + sum(held),
+      netLimitLots,
       futuresBook: futuresBook(book),
       clientTotal: clients,
       clientInTank: clients - layout.clientOverflow,
@@ -1238,9 +1241,12 @@
 
   // An invalid decision stops the replay at the last valid ticket.
   // Pass a scenario to play real prices instead of a generated market.
-  function replay(seed, decisions = [], { withReview = true, scenario = null, legacyEstimateThrough = 0, legacyDeliveryThrough = 0 } = {}) {
+  // A null net limit leaves the gross futures cap in force without limiting directional exposure.
+  function replay(seed, decisions = [], {
+    withReview = true, scenario = null, netLimitLots: limit = netLimitLots, legacyEstimateThrough = 0, legacyDeliveryThrough = 0,
+  } = {}) {
     const runSeed = typeof seed === "string" && seed.trim() ? seed.trim() : "CUSHING";
-    const ctx = context(runSeed, scenario);
+    const ctx = { ...context(runSeed, scenario), netLimitLots: limit };
     ctx.legacyEstimate = scenario?.expiry < legacyEstimateThrough && !!decisions?.[scenario.expiry]?.futuresTrades?.[3];
     const book = newBook(ctx);
     let round = nextRound(book, runSeed);
@@ -1329,7 +1335,7 @@
   }
 
   const game = {
-    replay, preview, hedgeOrder, negotiate, dateLabel, totalCycles, capacity, lot, monthNames, maxFuturesLots, netLimitLots, tankLease,
+    replay, preview, hedgeOrder, negotiate, dateLabel, totalCycles, capacity, lot, monthNames, maxFuturesLots, netLimitLots, rankedNetLimitLots, tankLease,
     shockChance, expiryCycle: expiryDay + 1, reportCycles: reportDays.map(day => day + 1),
   };
   if (typeof module !== "undefined" && module.exports) module.exports = game;

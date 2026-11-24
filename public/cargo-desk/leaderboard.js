@@ -1,7 +1,8 @@
 (function () {
-  const storagePrefix = "cargo-desk-score-v6:";
+  const storagePrefix = "cargo-desk-score-v7:";
   const usernameKey = "cargo-desk-score-name";
   const archiveRules = new Map([
+    ["cargo-desk-score-v6:", "Rules version 6 · ±2-lot net limit"],
     ["cargo-desk-score-v5:", "Rules version 5"],
     ["cargo-desk-score-v4:", "Rules version 4"],
     ["cargo-desk-score-v3:", "Rules version 3"],

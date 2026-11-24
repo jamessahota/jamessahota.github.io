@@ -17,8 +17,8 @@ facts:
     label: Trading days in a run
   - value: "10,000 bbl"
     label: Tank capacity
-  - value: "±2 lots"
-    label: Desk limit on crude plus futures, where one lot is 1,000 barrels
+  - value: "±8 lots"
+    label: Net position limit in ranked runs
 ---
 
 ## What the game models
@@ -29,7 +29,7 @@ You start with 6,000 barrels of crude in a 10,000-barrel tank at Cushing, hedged
 - **Forward delivery.** On a morning ticket, book a local sale or Gulf delivery for a later cycle. Your chosen WTI quote and the route basis fix the price. The calendar reserves the barrels and storage through delivery, and shows the route tariff and the margin against current spot after costs. Futures still trade on the ticket for the remaining open exposure.
 - **Negotiation.** A local price is an opening price. You can ask the counterparty for more. They may agree, come back once with a counter, or walk away and close the route for the session. An emergency bid can clear an existing overflow shortfall after a local buyer walks.
 - **Storage.** The tank costs a fixed lease whether it is full or empty. Clients pay per barrel to use it. Anything that does not fit, yours or theirs, needs overflow space booked off-site.
-- **Hedging and the roll.** Four futures months trade on the ticket. Crude owned plus futures must stay within two lots of flat. In generated markets the first month expires at the close of the fifth day. The historical scenarios use their own expiry dates. The hedge shortcut adjusts within the gross and net limits.
+- **Hedging and the roll.** Four futures months trade on the ticket, with a 20-lot gross cap across all months. Ranked runs cap the combined exposure from uncommitted crude and futures at eight net lots long or short. Practice runs, including historical scenarios, have no net cap. The first month expires at the close of the fifth day in generated markets. Historical scenarios use their own expiry dates. The hedge shortcut adjusts within the limits for the run.
 - **The curve.** When futures trade above spot (contango), the spread can make it worthwhile to store hedged crude if it covers tank rent, fees and the cost of getting the crude to a buyer.
 - **Events and the stocks report.** Some days an event is on watch for the coming night, with its odds and roughly what it would do to futures and to spot, and midday news can move those odds. The weekly stocks report lands at midday on both Wednesdays.
 - **Shocks.** About one day in ten the market is hit by something nobody saw coming and prices move by several dollars. A shock that moves every price does nothing to a hedged book. One that moves spot hardest hits anyone holding crude.
@@ -52,7 +52,7 @@ A market is generated from a seed, and its prices are the same every time that s
 
 ## Weekly challenge
 
-Everyone plays the same ten-cycle market for the week. After settlement, you can publish your username, final P&L and drawdown. The shared board ranks by P&L and breaks ties by lower drawdown. A new market opens every Monday at 00:00 UTC.
+Everyone plays the same ten-cycle market for the week using the ranked net limit in effect when it opens. After settlement, you can publish your username, final P&L and drawdown. The shared board ranks by P&L and breaks ties by lower drawdown. A new market opens every Monday at 00:00 UTC.
 
 ## Limits of the model
 

@@ -1,7 +1,8 @@
 (function () {
   "use strict";
 
-  const { replay, preview, hedgeOrder, negotiate, dateLabel, totalCycles, capacity, lot, maxFuturesLots, netLimitLots } = window.CargoDesk;
+  const { replay, preview, hedgeOrder, negotiate, dateLabel, totalCycles, capacity, lot, maxFuturesLots,
+    netLimitLots: legacyNetLimitLots, rankedNetLimitLots } = window.CargoDesk;
   // Historical scenarios: real prices in place of the generated market.
   const scenarios = window.CargoScenarios || [];
   const { transition, reveal, shouldShowTape, moveTank } = window.CargoMotion;
@@ -72,6 +73,7 @@
   }
 
   const exposureText = (lots) => lots ? lotsText(lots) + (lots > 0 ? " long" : " short") : "Flat";
+  const limitText = (limit) => limit === null ? "no net limit" : "net limit ±" + limit + " lots";
   const positionText = (lots) => lots ? (lots > 0 ? "Long " : "Short ") + number(Math.abs(lots)) : "Flat";
 
   function futuresSummary(positions) {
@@ -116,8 +118,11 @@
 
   // The scenario a run is playing, if any, and a replay of the run so far.
   const scenarioOf = (target = run) => scenarios.find(item => item.key === target?.scenario) || null;
+  const exposureLimit = (target) => target.weekly ?
+    (target.weekly.rules === "weekly-v2" ? rankedNetLimitLots : legacyNetLimitLots) :
+    target.rankedNetLimit ?? null;
   const play = (decisions, options = {}) => replay(run.seed, decisions, {
-    ...options, scenario: scenarioOf(), legacyEstimateThrough: run.legacyEstimateThrough ?? 0,
+    ...options, scenario: scenarioOf(), netLimitLots: exposureLimit(run), legacyEstimateThrough: run.legacyEstimateThrough ?? 0,
     legacyDeliveryThrough: run.legacyDeliveryThrough ?? 0,
   });
   const shortDate = dateLabel;
@@ -153,7 +158,7 @@
 
   function weeklySession(value) {
     if (!value || typeof value.week !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value.week) ||
-        value.rules !== "weekly-v1" || value.seed !== value.rules + ":" + value.week ||
+        !["weekly-v1", "weekly-v2"].includes(value.rules) || value.seed !== value.rules + ":" + value.week ||
         typeof value.token !== "string" || !/^[0-9a-f]{64}$/.test(value.token)) return null;
     const start = new Date(value.week + "T00:00:00.000Z");
     if (!Number.isFinite(start.getTime()) || start.getUTCDay() !== 1 ||
@@ -175,9 +180,15 @@
       if (isWeekly && (!weekly || weekly.seed !== saved.seed || saved.scenario)) return null;
       const scenario = typeof saved.scenario === "string" ? scenarios.find(item => item.key === saved.scenario) : null;
       if (saved.scenario && !scenario) return null;
+      const completedAt = Number.isSafeInteger(saved.completedAt) && saved.completedAt > 0 ? saved.completedAt : null;
+      const ranked = !isWeekly && !migrated && saved.ranked === true && !scenario;
+      // Replaying a finished score keeps its original rules. Widening the limit
+      // for an open book keeps every previously committed ticket valid.
+      const rankedNetLimit = !ranked ? null :
+        completedAt && saved.rankedNetLimit !== rankedNetLimitLots ? legacyNetLimitLots : rankedNetLimitLots;
       const legacyEstimateThrough = !scenario ? 0 : migrated ? saved.decisions.length : saved.legacyEstimateThrough ?? 0;
       if (!Number.isSafeInteger(legacyEstimateThrough) || legacyEstimateThrough < 0 || legacyEstimateThrough > saved.decisions.length) return null;
-      const replayOptions = { withReview: false, scenario, legacyEstimateThrough };
+      const replayOptions = { withReview: false, scenario, legacyEstimateThrough, netLimitLots: exposureLimit({ weekly, rankedNetLimit }) };
       const hasGulfClosures = !!scenario?.terminal?.gulfForwardClosed?.length;
       let legacyDeliveryThrough = hasGulfClosures ? saved.legacyDeliveryThrough ?? 0 : 0;
       if (!Number.isSafeInteger(legacyDeliveryThrough) || legacyDeliveryThrough < 0 || legacyDeliveryThrough > saved.decisions.length) return null;
@@ -189,10 +200,9 @@
       }
       // Keep the original independently versioned save if a full replay is impossible.
       if (decisions.length !== saved.decisions.length) return null;
-      const completedAt = Number.isSafeInteger(saved.completedAt) && saved.completedAt > 0 ? saved.completedAt : null;
       // A negotiation in progress is kept, so reloading the page cannot undo a refusal.
       const talks = saved.talks?.ticket === decisions.length && validAsks(saved.talks.buy) && validAsks(saved.talks.sell) ? saved.talks : null;
-      return { id: saved.id, seed: saved.seed, scenario: scenario?.key || null, ranked: !isWeekly && !migrated && saved.ranked === true && !scenario,
+      return { id: saved.id, seed: saved.seed, scenario: scenario?.key || null, ranked, rankedNetLimit,
         decisions, completedAt, talks, legacyEstimateThrough,
         ...(hasGulfClosures ? { legacyDeliveryThrough } : {}), ...(weekly ? { weekly } : {}) };
     } catch {
@@ -239,7 +249,7 @@
     withUnit("crude-value", number(state.barrels), "bbl");
     set("crude-detail", state.barrels ? "Average cost " + quote(state.cargoCost) : "No crude owned");
     set("exposure-value", exposureText(state.netLots));
-    set("exposure-detail", futuresSummary(state.futuresBook.map(month => month.position)) + " · limit ±" + netLimitLots + " lots");
+    set("exposure-detail", futuresSummary(state.futuresBook.map(month => month.position)) + " · " + limitText(state.netLimitLots));
     set("tank-value", Math.round(state.occupancy / capacity * 100) + "%");
     set("tank-detail", number(state.occupancy) + " of " + number(capacity) + " bbl in use");
   }
@@ -605,12 +615,15 @@
       (result.ownedOverflow ? " · " + number(result.ownedOverflow) + " bbl of yours off-site" : "") +
       (result.clientOverflow ? " · " + number(result.clientOverflow) + " client bbl off-site" : ""));
     const exposure = element("order-exposure");
-    exposure.textContent = exposureText(result.netLots) + " · limit ±" + netLimitLots + " lots" +
+    exposure.textContent = exposureText(result.netLots) + " · " + limitText(state.netLimitLots) +
       (result.netLotsAfterExpiry !== null ? " · " + exposureText(result.netLotsAfterExpiry).toLowerCase() + " once " + state.months[0] + " expires" : "");
     exposure.classList.toggle("negative", !!(result.errors.exposure || result.errors.expiry));
     const marker = element("gauge-marker");
-    marker.style.left = Math.max(0, Math.min(100, 50 + result.netLots / (netLimitLots * 2) * 50)) + "%";
-    marker.classList.toggle("is-over", !!result.errors.exposure);
+    marker.parentElement.hidden = state.netLimitLots === null;
+    if (!marker.parentElement.hidden) {
+      marker.style.left = Math.max(0, Math.min(100, 50 + result.netLots / state.netLimitLots * 25)) + "%";
+      marker.classList.toggle("is-over", !!result.errors.exposure);
+    }
 
     // What the book left by this ticket would make or lose.
     const watch = state.market.watch;
@@ -770,12 +783,11 @@
     const daysLeft = state.expiryCycle ? state.expiryCycle - (state.stage + 1) : -1;
     expiry.hidden = !(state.months[0] === state.allMonths[0] && daysLeft >= 0 && daysLeft <= 1);
     if (!expiry.hidden) {
-      const next = state.months[1];
-      expiry.textContent = state.scenario ?
-        state.months[0] + " futures expire at the close on " + shortDate(scenarioOf().dates[state.expiryCycle]) + ", at their real final settlement. " +
-          (daysLeft ? "The hedge will have to move into " + next + " on that day’s ticket." : "Move the hedge into " + next + " on this ticket: Roll and hedge does it in one step.") :
-        state.months[0] + " futures expire at " + (daysLeft ? "tomorrow’s" : "today’s") + " close and settle at spot. " +
-          (daysLeft ? "You will have to move the hedge into " + next + " tomorrow." : "Move the hedge into " + next + " now: Roll and hedge does it in one step.");
+      const timing = state.scenario ?
+        "at the close on " + shortDate(scenarioOf().dates[state.expiryCycle]) + ", at their recorded final settlement" :
+        "at " + (daysLeft ? "tomorrow’s" : "today’s") + " close and settle at spot";
+      expiry.textContent = state.months[0] + " futures expire " + timing + ". " +
+        "Use Roll and hedge " + (daysLeft ? "on expiry day" : "on this ticket") + " to move the hedge into " + state.months[1] + ".";
     }
     set("confirm-button", final && state.market.phase !== "am" ? "Settle the book" : afternoon ? "Commit and close the day" : final ? "Commit final orders" : "Commit orders");
     updateTicket();
@@ -791,13 +803,15 @@
       saveRun();
     }
     const review = state.review;
-    const rank = run.ranked ? board.record({
+    const earlierRanked = run.ranked && state.netLimitLots !== rankedNetLimitLots;
+    const rank = run.ranked && !earlierRanked ? board.record({
       id: run.id, seed: run.seed, net: state.net, drawdown: state.maxDrawdown, completedAt: run.completedAt,
       name: window.CargoLeaderboard.getUsername(),
     }) : null;
     set("decision-label", "Debrief");
     set("phase", "Settled");
-    set("decision-desk", run.weekly ? "Weekly challenge complete" : !run.ranked ? "Practice run · not ranked" : rank === 1 ? "Ranked run · personal best" :
+    set("decision-desk", run.weekly ? "Weekly challenge complete" : !run.ranked ? "Practice run · not ranked" :
+      earlierRanked ? "Ranked run · earlier rules" : rank === 1 ? "Ranked run · personal best" :
       rank ? "Ranked run · number " + rank + " on your leaderboard" : "Ranked run");
     set("decision-title", "Book closed.");
     set("decision-brief", "All crude is sold and every futures position is closed. Here is the result, where it came from and how much risk it took.");
@@ -825,7 +839,8 @@
       append(words, "p", "Risk taken", "label");
       append(words, "p", "Your largest fall from a peak was " + unsignedMoney(state.maxDrawdown) + ".", "cd-grade__text");
     }
-    append(words, "p", "You ran an average net position of " + review.averageExposure.toFixed(1) + " lots against a limit of " + netLimitLots + ".", "cd-grade__text");
+    append(words, "p", "You ran an average absolute net position of " + review.averageExposure.toFixed(1) + " lots." +
+      (state.netLimitLots === null ? "" : " The net limit was ±" + state.netLimitLots + " lots."), "cd-grade__text");
 
     if (review.benchmark !== null) {
       const edge = state.net - review.benchmark;
@@ -1217,7 +1232,8 @@
 
   function begin(seed, generated, show = true, scenario = null) {
     // A scenario is always a practice run: its prices are a matter of record.
-    activateRun({ id: window.CargoLeaderboard.newRunId(), seed, scenario, ranked: scenario ? false : claimSeed(seed, generated),
+    const ranked = !scenario && claimSeed(seed, generated);
+    activateRun({ id: window.CargoLeaderboard.newRunId(), seed, scenario, ranked, rankedNetLimit: ranked ? rankedNetLimitLots : null,
       decisions: [], completedAt: null }, show);
   }
 
