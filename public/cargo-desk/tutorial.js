@@ -1,7 +1,8 @@
 (function () {
   "use strict";
 
-  const { init, buyQuote, buy, forwardQuote, forward, settle, deliveryCycle } = window.CargoTutorial;
+  const { init, buyQuote, buy, forwardQuote, forward, settle, deliveryCycle, purchaseSizes } = window.CargoTutorial;
+  const { lot, netLimitLots } = window.CargoDesk;
   const el = (id) => document.getElementById("tutorial-" + id);
   const put = (id, text) => { el(id).textContent = text; };
   const dialog = el("dialog");
@@ -14,13 +15,18 @@
   const amount = (cents) => (cents < 0 ? "−" : cents > 0 ? "+" : "") +
     (cents % 100 ? decimal : whole).format(Math.abs(cents) / 100);
   const lots = (count) => count + (count === 1 ? " lot" : " lots");
+  const numbered = (min, max) => Array.from({ length: max - min + 1 }, (_, index) => min + index);
+  const sellChoices = numbered(0, purchaseSizes.at(-1) / lot + netLimitLots + 1);
+  const orderChoices = numbered(-2 * netLimitLots - 1, purchaseSizes.at(-1) / lot + 2 * netLimitLots + 1);
   const readBuy = () => ({ barrels: Number(el("volume").value), shortLots: Number(el("short").value) });
-  const readForward = () => ({ route: el("route").value, month: Number(el("month").value), closeLots: Number(el("buyback").value) });
+  const readForward = () => ({ barrels: Number(el("delivery-volume").value), route: el("route").value,
+    month: Number(el("month").value), closeLots: Number(el("buyback").value) });
 
   let lesson;
   let opener;
   let mayOffer = false;
   let seen = false;
+  let suggestedLots;
   try { seen = localStorage.getItem(offerKey) === "yes"; } catch {}
 
   function offer(isNewDesk) {
@@ -40,34 +46,62 @@
     node.textContent = message;
   }
 
-  function exposure(netLots) {
-    if (!Number.isFinite(netLots)) return "";
-    return netLots === 0 ? "After this ticket, net exposure is flat." : "After this ticket, net exposure is " +
-      lots(Math.abs(netLots)) + (netLots > 0 ? " long." : " short.");
+  function choose(id, values, label, initial) {
+    const select = el(id);
+    select.replaceChildren(...values.map(value => {
+      const option = document.createElement("option");
+      option.value = String(value);
+      option.textContent = label(value);
+      return option;
+    }));
+    select.value = String(initial);
   }
 
-  function showQuote() {
+  const volumeLabel = barrels => number(barrels) + " bbl";
+  const position = netLots => netLots === 0 ? "flat" : lots(Math.abs(netLots)) + (netLots > 0 ? " long" : " short");
+  const shift = value => (value < 0 ? "−" : value > 0 ? "+" : "") + lots(Math.abs(value));
+  const orderLabel = value => value === 0 ? "0 lots (hold)" : (value < 0 ? "Sell " : "Buy ") + lots(Math.abs(value));
+
+  function guide(quote, math, submissionIssue) {
+    suggestedLots = quote.suggestedLots;
+    const available = Number.isSafeInteger(suggestedLots);
+    el("guide").hidden = !available;
+    if (available && lesson.step === "buy") {
+      put("suggestion", "Sell " + lots(suggestedLots) + " for a flat book.");
+    } else if (available) {
+      put("suggestion", suggestedLots ? orderLabel(suggestedLots) + " for a flat book." : "Keep futures unchanged for a flat book.");
+    }
+    const issue = submissionIssue || quote.error;
+    const showsLimit = !!issue && issue === quote.estimate?.errors.exposure;
+    const projected = Number.isFinite(quote.netLots) && math ? math + (showsLimit ? "." : " → " + position(quote.netLots) + ".") : "";
+    feedback([projected, issue].filter(Boolean).join(" "), !!issue);
+  }
+
+  function showQuote(submissionIssue) {
     if (lesson.step === "buy") {
       const draft = readBuy();
       const quote = buyQuote(lesson, draft);
       const mark = el("trade-quote");
       mark.hidden = false;
-      mark.textContent = "Local ask " + unitPrice(quote.price) + " per bbl · " +
+      mark.textContent = "Local ask " + unitPrice(quote.price) + " per bbl, up to " + volumeLabel(purchaseSizes.at(-1)) + " · " +
         quote.monthName + " WTI " + unitPrice(quote.hedgePrice) + " per bbl";
-      feedback(exposure(quote.netLots));
+      guide(quote, "Crude " + shift(draft.barrels / lot) + " · " + quote.monthName + " WTI " + shift(-draft.shortLots), submissionIssue);
     } else if (lesson.step === "forward") {
-      const quote = forwardQuote(lesson, readForward());
+      const draft = readForward();
+      const quote = forwardQuote(lesson, draft);
       const contract = quote.contract;
       put("quote", contract ? contract.monthName + " WTI " + unitPrice(contract.futuresPrice) +
         (contract.basis < 0 ? " − " : " + ") + unitPrice(Math.abs(contract.basis)) + " route basis gives " +
         unitPrice(contract.fixedGross) + " fixed per bbl." + (contract.tariff ? " After the " + unitPrice(contract.tariff) +
         " tariff, you receive " + unitPrice(contract.netPrice) + " per bbl." : " The local route has no tariff.") : "");
-      feedback(exposure(quote.netLots));
+      const math = contract ? "Before " + position(lesson.market.netLots) + " · priced delivery " + shift(-draft.barrels / lot) +
+        " · " + lesson.buyQuote.monthName + " WTI " + shift(draft.closeLots) : "";
+      guide(quote, math, submissionIssue);
     }
   }
 
   function recap() {
-    const { breakdown, barrels, contract } = lesson;
+    const { breakdown, market } = lesson;
     const pnl = el("net");
     pnl.textContent = amount(breakdown.total);
     pnl.classList.toggle("positive", breakdown.total > 0);
@@ -91,12 +125,14 @@
       return row;
     }));
     const parcel = breakdown.parcel;
-    put("explanation", "You bought " + number(barrels) + " bbl at " + unitPrice(lesson.buyQuote.price) +
-      " and sold them for " + unitPrice(contract.fixedGross) + " per bbl. Your added cargo contributed " +
-      amount(parcel.netBeforeSharedCosts) + ", including " + amount(parcel.hedgePnl) + " from the futures hedge" +
-      (breakdown.tariffCost ? " and " + amount(-breakdown.tariffCost) + " in pipeline fees" : "") +
-      ". The full desk also carries the starting cargo and paid " + whole.format((breakdown.tankFees + breakdown.clientFees) / 100) +
-      " in tank and client fees.");
+    put("explanation", "You bought " + volumeLabel(lesson.barrels) + " at " + unitPrice(lesson.buyQuote.price) +
+      " per bbl and delivered " + volumeLabel(parcel.barrels) + " at " + unitPrice(parcel.fixedGross) +
+      " per bbl. The fixed sale less your purchase price and route tariff gives " + amount(parcel.marginAfterTariff) +
+      " on the booked volume before futures and shared costs. Across the whole desk, futures P&L changed by " + amount(breakdown.futuresPnl) + ".");
+    put("ending-crude", volumeLabel(breakdown.endingCrudeBarrels));
+    put("ending-futures", breakdown.endingFuturesPositions.flatMap((quantity, index) => quantity ?
+      [market.months[index] + " " + position(quantity)] : []).join(" · ") || "Flat");
+    put("ending-exposure", position(breakdown.endingNetLots));
   }
 
   function render() {
@@ -113,20 +149,25 @@
     const complete = step === "complete";
     el("next").hidden = complete;
     el("complete").hidden = !complete;
+    el("guide").hidden = true;
+    suggestedLots = undefined;
     feedback("");
     if (step === "buy") {
       put("step", "Step 1 of 3");
       put("title", "Buy crude and hedge it");
-      put("instruction", "The desk starts flat with 6,000 barrels and six short WTI lots. Buy more crude at the local ask and sell one extra " +
-        lesson.buyQuote.monthName + " futures lot for each 1,000 barrels you add.");
-      put("next", "Commit purchase and hedge");
+      put("instruction", "Buy crude at the local ask. Selling one " + lesson.buyQuote.monthName +
+        " futures lot per 1,000 barrels keeps the desk flat. Try a different hedge to see how exposure changes.");
+      put("short-label", lesson.buyQuote.monthName + " WTI lots to sell");
+      put("next", "Commit purchase ticket");
       el("progress").value = 1;
     } else if (step === "forward") {
       put("step", "Step 2 of 3");
       put("title", "Book a delivery");
-      put("instruction", "Choose a route and a WTI reference to lock in the sale price for cycle " + deliveryCycle +
-        ". The sale now covers the price of those barrels. Buy back the " + lots(lesson.barrels / 1000) + " of " +
-        lesson.buyQuote.monthName + " WTI you sold in step 1.");
+      put("instruction", "Book some or all of your " + volumeLabel(lesson.barrels) + " for cycle " + deliveryCycle +
+        ". Booking fixes the sale price and removes one lot of exposure per 1,000 barrels. Choose how to adjust your futures.");
+      choose("delivery-volume", purchaseSizes.filter(size => size <= lesson.barrels), volumeLabel, lesson.barrels);
+      choose("buyback", orderChoices, orderLabel, 0);
+      put("buyback-label", lesson.buyQuote.monthName + " futures order");
       const select = el("month");
       select.replaceChildren(...lesson.market.deliveryOptions.months.map(({ month, name, price }) => {
         const option = document.createElement("option");
@@ -135,15 +176,15 @@
         return option;
       }));
       select.selectedIndex = Math.min(1, select.options.length - 1);
-      put("next", "Commit delivery and hedge adjustment");
+      put("next", "Commit delivery ticket");
       el("progress").value = 2;
     } else if (step === "settle") {
       put("step", "Step 3 of 3");
       put("title", "Deliver the barrels");
-      put("instruction", "Advance the cycle to deliver your reserved crude at the agreed price. The rest of the desk stays hedged while the market moves.");
-      put("settlement", "Cycle " + lesson.contract.cycle + " · " + number(lesson.barrels) + " bbl · " +
+      put("instruction", "Advance the cycle to deliver your reserved crude at the agreed price. Uncommitted crude and open futures still move with the market.");
+      put("settlement", "Cycle " + lesson.contract.cycle + " · " + volumeLabel(lesson.contract.barrels) + " · " +
         (lesson.contract.route === "gulf" ? "Gulf delivery" : "Local delivery") + " · " +
-        unitPrice(lesson.contract.fixedGross) + " fixed per bbl. The desk pays its tank lease and turns away any storage clients during the lesson.");
+        unitPrice(lesson.contract.fixedGross) + " fixed per bbl. The desk goes into settlement " + position(lesson.market.netLots) + ".");
       put("next", "Advance and settle delivery");
       el("progress").value = 3;
     } else {
@@ -169,10 +210,9 @@
     opener = trigger;
     if (!lesson || lesson.step === "complete") {
       lesson = init();
-      el("volume").value = "2000";
-      el("short").value = "0";
+      choose("volume", purchaseSizes, volumeLabel, purchaseSizes[1] ?? purchaseSizes[0]);
+      choose("short", sellChoices, lots, 0);
       el("route").value = "local";
-      el("buyback").value = "0";
       render();
     } else {
       showQuote();
@@ -186,15 +226,21 @@
     markSeen();
     el("button").focus();
   });
-  for (const id of ["volume", "short", "route", "month", "buyback"]) {
+  for (const id of ["volume", "short", "delivery-volume", "route", "month", "buyback"]) {
     el(id).addEventListener("change", () => { if (dialog.open && lesson) showQuote(); });
   }
+  el("flat").addEventListener("click", () => {
+    if (!dialog.open || !lesson || !Number.isSafeInteger(suggestedLots)) return;
+    el(lesson.step === "buy" ? "short" : "buyback").value = String(suggestedLots);
+    showQuote();
+  });
   el("next").addEventListener("click", (event) => {
     if (!dialog.open || !lesson || lesson.step === "complete" || event.detail > 1) return;
     const result = lesson.step === "buy" ? buy(lesson, readBuy()) :
       lesson.step === "forward" ? forward(lesson, readForward()) : settle(lesson);
     if (!result.ok) {
-      feedback(result.error, true);
+      if (lesson.step === "settle") feedback(result.error, true);
+      else showQuote(result.error);
       return;
     }
     lesson = result.state;

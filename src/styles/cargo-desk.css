@@ -2284,6 +2284,32 @@
   text-align: right;
 }
 
+.cd-tutorial__positions {
+  margin-top: 0.65rem;
+  padding-inline: 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+
+.cd-tutorial__positions > div:last-child {
+  border-bottom: 0;
+}
+
+.cd-tutorial__guide {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.65rem;
+  margin-top: 0.45rem;
+  color: var(--ink-2);
+  font-size: var(--text-sm);
+}
+
+.cd-tutorial__guide .cd-mini {
+  min-height: 2.75rem;
+}
+
 .cd-tutorial__explanation,
 .cd-tutorial > .cd-tutorial__feedback:not(.label) {
   margin-top: 0.65rem;

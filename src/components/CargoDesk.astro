@@ -380,8 +380,8 @@ import '../styles/cargo-desk.css';
       <legend class="visually-hidden">Crude purchase and futures hedge</legend>
       <p class="cd-tutorial__quote" id="tutorial-trade-quote" hidden></p>
       <div class="cd-tutorial__grid">
-        <label for="tutorial-volume"><span class="label">Crude to buy</span><select id="tutorial-volume"><option value="1000">1,000 bbl</option><option value="2000">2,000 bbl</option></select></label>
-        <label for="tutorial-short"><span class="label">WTI lots to sell</span><select id="tutorial-short"><option value="0">0 lots</option><option value="1">1 lot</option><option value="2">2 lots</option><option value="3">3 lots</option></select></label>
+        <label for="tutorial-volume"><span class="label">Crude to buy</span><select id="tutorial-volume"></select></label>
+        <label for="tutorial-short"><span class="label" id="tutorial-short-label">WTI lots to sell</span><select id="tutorial-short"></select></label>
       </div>
       <details class="cd-tutorial__note">
         <summary>Bid, ask and the hedge</summary>
@@ -395,15 +395,16 @@ import '../styles/cargo-desk.css';
     <fieldset class="cd-tutorial__fields" id="tutorial-booking" hidden>
       <legend class="visually-hidden">Forward sale and futures close</legend>
       <div class="cd-tutorial__grid">
+        <label for="tutorial-delivery-volume"><span class="label">Crude to book</span><select id="tutorial-delivery-volume"></select></label>
         <label for="tutorial-route"><span class="label">Delivery route</span><select id="tutorial-route"><option value="local">Sell locally</option><option value="gulf">Ship to Gulf</option></select></label>
         <label for="tutorial-month"><span class="label">WTI reference</span><select id="tutorial-month"></select></label>
-        <label for="tutorial-buyback"><span class="label">WTI lots to buy back</span><select id="tutorial-buyback"><option value="0">0 lots</option><option value="1">1 lot</option><option value="2">2 lots</option><option value="3">3 lots</option></select></label>
+        <label for="tutorial-buyback"><span class="label" id="tutorial-buyback-label">WTI futures order</span><select id="tutorial-buyback"></select></label>
       </div>
       <p class="cd-tutorial__quote" id="tutorial-quote"></p>
       <details class="cd-tutorial__note">
         <summary>How the delivery price is set</summary>
         <dl>
-          <div><dt>Fixed sale and WTI reference</dt><dd>The delivery takes place in cycle 3. The futures month you select supplies today’s price reference for that sale. Buy back the same futures month you shorted in step 1 to close the hedge on these barrels.</dd></div>
+          <div><dt>Fixed sale and WTI reference</dt><dd>The delivery takes place in cycle 3. The WTI reference sets the sale price today. The futures order adjusts the month you traded in step 1. Buying adds long exposure. Selling adds short exposure.</dd></div>
           <div><dt>Route, basis and tariff</dt><dd>Local delivery sells at Cushing. Gulf delivery uses a pipeline. The route’s basis adds to or subtracts from the WTI reference. A pipeline tariff reduces what you receive per barrel.</dd></div>
         </dl>
       </details>
@@ -421,6 +422,11 @@ import '../styles/cargo-desk.css';
     <div class="cd-tutorial__net"><span class="label">P&amp;L this lesson</span><strong class="numeric" id="tutorial-net"></strong></div>
     <dl class="cd-tutorial__rows" id="tutorial-recap-rows"></dl>
     <p class="cd-tutorial__explanation" id="tutorial-explanation"></p>
+    <dl class="cd-tutorial__rows cd-tutorial__positions" aria-label="Open positions when the lesson ends">
+      <div><dt>Crude still owned</dt><dd id="tutorial-ending-crude"></dd></div>
+      <div><dt>Futures still open</dt><dd id="tutorial-ending-futures"></dd></div>
+      <div><dt>Net exposure</dt><dd id="tutorial-ending-exposure"></dd></div>
+    </dl>
     <details class="cd-tutorial__note">
       <summary>Read P&amp;L and risk</summary>
       <dl>
@@ -438,6 +444,10 @@ import '../styles/cargo-desk.css';
       </dl>
     </details>
   </section>
+  <div class="cd-tutorial__guide" id="tutorial-guide" hidden>
+    <p id="tutorial-suggestion"></p>
+    <button class="cd-mini" id="tutorial-flat" type="button">Use flat hedge</button>
+  </div>
   <p class="cd-tutorial__feedback" id="tutorial-feedback" role="status" aria-live="polite" aria-atomic="true"></p>
   <div class="cd-tutorial__actions">
     <button class="btn" id="tutorial-next" type="button">Buy and hedge</button>
@@ -511,7 +521,7 @@ import '../styles/cargo-desk.css';
 <script is:inline src="/cargo-desk/scenarios.js?v=6" defer></script>
 <script is:inline src="/cargo-desk/leaderboard.js?v=7" defer></script>
 <script is:inline src="/cargo-desk/motion.js?v=7" defer></script>
-<script is:inline src="/cargo-desk/tutorial-engine.js?v=1" defer></script>
-<script is:inline src="/cargo-desk/tutorial.js?v=2" defer></script>
+<script is:inline src="/cargo-desk/tutorial-engine.js?v=2" defer></script>
+<script is:inline src="/cargo-desk/tutorial.js?v=3" defer></script>
 <script is:inline src="/cargo-desk/weekly.js?v=1" defer></script>
 <script is:inline src="/cargo-desk/app.js?v=8" defer></script>

@@ -3,8 +3,10 @@
 
   const seed = "cushing-tutorial-492";
   const deliveryCycle = 3;
-  const purchaseSizes = Object.freeze([game.lot, 2 * game.lot]);
   const replay = (decisions) => game.replay(seed, decisions, { withReview: false });
+  const openingMarket = replay([]);
+  const purchaseLimit = Math.min(4 * game.lot, openingMarket.round.orderBook.buy.max, game.capacity - openingMarket.occupancy);
+  const purchaseSizes = Object.freeze(Array.from({ length: Math.floor(purchaseLimit / game.lot) }, (_, index) => (index + 1) * game.lot));
 
   function baseOrder(market) {
     return {
@@ -33,6 +35,7 @@
       step: "buy",
       market,
       opening: market.net,
+      openingFuturesPnl: market.components.hedge,
       barrels: 0,
       buyQuote: openingQuote(market),
       forwardOptions: [],
@@ -42,22 +45,26 @@
   }
 
   const error = (message) => ({ ok: false, error: message });
-  const lotCount = (value) => Number.isSafeInteger(value) && value >= 0 && value <= game.maxFuturesLots;
+  const validLots = (value) => Number.isSafeInteger(value) && Math.abs(value) <= 2 * game.maxFuturesLots;
   const orderIssue = (estimate) => Object.values(estimate.errors)[0] || "This ticket could not be accepted.";
+  const number = (value) => value.toLocaleString("en-US");
+
+  function neutralTrade(market, order) {
+    const hedge = game.hedgeOrder(market, { ...order, futuresTrades: [0, 0, 0, 0] });
+    return hedge.trades?.[0] ?? null;
+  }
 
   function buyQuote(state, choice) {
     if (state?.step !== "buy") return error("Finish the opening ticket first.");
     const { barrels, shortLots } = choice ?? {};
     const details = state.buyQuote;
-    if (!purchaseSizes.includes(barrels)) return { ...details, ...error("Choose 1,000 or 2,000 barrels.") };
-    const expectedLots = barrels / game.lot;
+    if (!purchaseSizes.includes(barrels)) return { ...details, ...error("Choose a purchase size in " + number(game.lot) + "-barrel increments, up to " + number(purchaseSizes.at(-1)) + " barrels.") };
     const order = { ...baseOrder(state.market), side: "buy", barrels };
-    order.futuresTrades[0] = lotCount(shortLots) ? -shortLots : 0;
+    order.futuresTrades[0] = validLots(shortLots) && shortLots >= 0 ? -shortLots : null;
     const estimate = game.preview(state.market, order);
-    const full = { ...details, barrels, expectedLots, shortLots, order, estimate, netLots: estimate.netLots };
-    if (shortLots !== expectedLots) {
-      return { ...full, ...error("Sell " + expectedLots + " " + details.monthName + " " + (expectedLots === 1 ? "lot" : "lots") + " to hedge the new barrels.") };
-    }
+    const neutral = neutralTrade(state.market, order);
+    const suggestedLots = neutral === null ? null : Math.abs(neutral);
+    const full = { ...details, barrels, suggestedLots, shortLots, order, estimate, netLots: estimate.netLots };
     return { ...full, ...(estimate.ok ? { ok: true } : error(orderIssue(estimate))) };
   }
 
@@ -75,10 +82,9 @@
 
   function forwardOptions(market, barrels) {
     return ["local", "gulf"].flatMap((route) => market.deliveryOptions.months.flatMap((reference) => {
-      const order = deliveryDraft(market, barrels, route, reference.month, barrels / game.lot);
-      const result = game.preview(market, order);
-      const contract = result.delivery;
-      return result.ok ? [{ ...contract, futuresPrice: reference.price, netPrice: contract.fixedGross - contract.tariff }] : [];
+      const order = deliveryDraft(market, barrels, route, reference.month, 0);
+      const { delivery: contract } = game.preview(market, order);
+      return contract ? [{ ...contract, futuresPrice: reference.price, netPrice: contract.fixedGross - contract.tariff }] : [];
     }));
   }
 
@@ -95,18 +101,18 @@
 
   function forwardQuote(state, choice) {
     if (state?.step !== "forward") return error("Buy and hedge the opening parcel before booking delivery.");
-    const { route, month, closeLots } = choice ?? {};
-    const options = state.forwardOptions;
+    const { route, month, barrels = state.barrels, closeLots } = choice ?? {};
+    if (!purchaseSizes.includes(barrels) || barrels > state.barrels) {
+      return { options: state.forwardOptions, ...error("Choose a delivery size in " + number(game.lot) + "-barrel increments, up to the " + number(state.barrels) + " barrels you bought.") };
+    }
+    const options = barrels === state.barrels ? state.forwardOptions : forwardOptions(state.market, barrels);
     const selected = options.find((offer) => offer.route === route && offer.month === month);
     if (!selected) return { options, ...error("Choose a route and an available WTI month.") };
-    const expectedLots = state.barrels / game.lot;
-    const order = deliveryDraft(state.market, state.barrels, route, month, lotCount(closeLots) ? closeLots : 0);
+    const order = deliveryDraft(state.market, barrels, route, month, validLots(closeLots) ? closeLots : null);
     const estimate = game.preview(state.market, order);
     const contract = { ...selected, ...estimate.delivery };
-    const full = { ...contract, contract, options, expectedLots, closeLots, order, estimate, netLots: estimate.netLots };
-    if (closeLots !== expectedLots) {
-      return { ...full, ...error("Buy back the " + expectedLots + " " + state.buyQuote.monthName + " " + (expectedLots === 1 ? "lot" : "lots") + " you added. The fixed sale now sets the parcel’s price.") };
-    }
+    const suggestedLots = neutralTrade(state.market, order);
+    const full = { ...contract, contract, options, suggestedLots, closeLots, order, estimate, netLots: estimate.netLots };
     return { ...full, ...(estimate.ok ? { ok: true } : error(orderIssue(estimate))) };
   }
 
@@ -115,10 +121,7 @@
     if (!offer.ok) return { ...offer, state };
     const market = advance(state.market, offer.order);
     if (market?.stage !== 2 || market.phase !== "am") return { ...error("The tutorial’s delivery-day ticket is unavailable."), state };
-    return { ok: true, state: {
-      ...state, step: "settle", market, contract: offer.contract,
-      hedgeClosePrice: state.market.market.prices[1],
-    } };
+    return { ok: true, state: { ...state, step: "settle", market, contract: offer.contract } };
   }
 
   function explain(state, market) {
@@ -127,9 +130,9 @@
       for (const category of Object.keys(parts)) parts[category] += ticket.parts[category];
     }
     const fees = (label) => -market.entries.filter((entry) => entry.label === label).reduce((total, entry) => total + entry.cents, 0);
-    const { contract, buyQuote } = state;
-    const priceMargin = contract.barrels * (contract.fixedGross - buyQuote.price);
-    const hedgePnl = contract.barrels * (buyQuote.hedgePrice - state.hedgeClosePrice);
+    const { barrels, fixedGross, tariffCost } = state.contract;
+    const buyPrice = state.buyQuote.price;
+    const priceMargin = barrels * (fixedGross - buyPrice);
     return {
       ...parts,
       total: market.net - state.opening,
@@ -137,14 +140,18 @@
       closing: market.net,
       clientFees: fees("Client sent elsewhere"),
       tankFees: fees("Tank A lease"),
-      tariffCost: contract.tariffCost,
-      parcel: { priceMargin, hedgePnl, tariffCost: contract.tariffCost,
-        netBeforeSharedCosts: priceMargin + hedgePnl - contract.tariffCost },
+      tariffCost,
+      futuresPnl: market.components.hedge - state.openingFuturesPnl,
+      endingNetLots: market.netLots,
+      endingCrudeBarrels: market.barrels,
+      endingFuturesPositions: market.futuresPositions.slice(),
+      drawdown: market.maxDrawdown,
+      parcel: { barrels, buyPrice, fixedGross, priceMargin, tariffCost, marginAfterTariff: priceMargin - tariffCost },
     };
   }
 
   function settle(state) {
-    if (state?.step !== "settle") return { ...error("Book a delivery and close its hedge before settling."), state };
+    if (state?.step !== "settle") return { ...error("Commit the delivery ticket before settling."), state };
     let market = state.market;
     while (market.round && market.stage < deliveryCycle) {
       const next = advance(market, baseOrder(market));
