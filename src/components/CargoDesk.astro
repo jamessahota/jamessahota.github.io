@@ -88,6 +88,7 @@ import '../styles/cargo-desk.css';
             <div><dt><i class="cd-swatch cd-swatch--free" aria-hidden="true"></i>Free space</dt><dd class="numeric" id="key-free">0</dd></div>
           </dl>
           <p class="cd-key__tag label" id="tank-tag">Now</p>
+                <p class="cd-key__hint">Drag the level in the tank to buy or sell.</p>
           </div>
         </div>
         <div class="cd-pipe" id="pipe-out" aria-hidden="true"></div>
@@ -236,7 +237,7 @@ import '../styles/cargo-desk.css';
           </fieldset>
 
           <fieldset class="cd-step" id="storage-step">
-            <legend><span class="cd-step__n numeric" aria-hidden="true" data-step-number>03</span>Overflow storage</legend>
+            <legend><span class="cd-step__n numeric" aria-hidden="true" data-step-number>03</span>Overflow storage <button class="cd-mini cd-step__action" id="storage-open" type="button" hidden>Book space</button></legend>
             <div class="cd-row cd-row--two">
               <label class="cd-input" for="order-storage">
                 <span class="label">Book</span>
@@ -257,7 +258,8 @@ import '../styles/cargo-desk.css';
               <thead><tr><th scope="col">Month</th><th scope="col">Open</th><th scope="col">Order, lots</th><th scope="col">After</th></tr></thead>
               <tbody id="futures-rows"></tbody>
             </table>
-            <p class="cd-hint" id="hedge-hint"></p>
+            <button class="cd-mini cd-months" id="months-open" type="button" aria-controls="futures-rows" hidden>All months</button>
+                  <p class="cd-hint" id="hedge-hint"></p>
             <p class="cd-notice" id="hedge-status" role="status" hidden></p>
             <p class="cd-notice" id="quote-status" hidden></p>
             <p class="cd-notice" id="expiry-note" hidden></p>
@@ -472,7 +474,7 @@ import '../styles/cargo-desk.css';
     <div><dt>The stocks report</dt><dd>The weekly stocks report comes out at midday on both Wednesdays. It is close to a coin flip, it moves spot more than futures, and you get the afternoon to react to it.</dd></div>
     <div><dt>Expiry and the roll</dt><dd>The ticket flags the expiring front month. Open contracts settle at spot in generated markets and at the recorded final settlement in historical scenarios. Roll and hedge closes the expiring position and adjusts the next listed month within the desk limits.</dd></div>
     <div><dt>Shocks</dt><dd>About one day in ten the market is hit by something nobody saw coming, and prices move by several dollars. A shock that moves every price does nothing to a hedged book. One that moves spot hardest hits anyone holding crude, hedged or not.</dd></div>
-    <div><dt>Historical scenarios</dt><dd>Play four episodes using daily spot and futures prices from the U.S. Energy Information Administration. Each day trades against the prior close and starts with a briefing on what was known then. The path is fixed, with one ticket per day. Estimated futures prices are display-only. Terminal bids, clients and storage rates are simulated.</dd></div>
+    <div><dt>Historical scenarios</dt><dd>Play seven episodes using daily spot and futures prices from the U.S. Energy Information Administration. Each day trades against the prior close and starts with a briefing on what was known then. The path is fixed, with one ticket per day. Estimated futures prices are display-only. Terminal bids, clients and storage rates are simulated.</dd></div>
     <div><dt>Reading the result</dt><dd>After each ticket the desk separates the result into trading, price, basis, calendar spreads, client income and costs. The debrief compares your result with holding the hedged cargo. Generated runs also receive a grade based on the return and drawdown.</dd></div>
     <div><dt>The desk limits</dt><dd>Open crude exposure and futures must stay within two net lots of flat. The futures book can hold twenty gross lots. Hedge to flat adjusts the front-month order as far as those limits allow and leaves the other months alone. To trade a calendar spread, buy one month and sell another.</dd></div>
     <div><dt>Ranked and practice runs</dt><dd>The first play of a newly generated market is ranked. Typed seeds, replays and historical scenarios are practice runs. The leaderboard groups earlier scores by the rules they used.</dd></div>
@@ -518,10 +520,11 @@ import '../styles/cargo-desk.css';
 </dialog>
 
 <script is:inline src="/cargo-desk/engine.js?v=6" defer></script>
-<script is:inline src="/cargo-desk/scenarios.js?v=6" defer></script>
+<script is:inline src="/cargo-desk/scenarios.js?v=7" defer></script>
 <script is:inline src="/cargo-desk/leaderboard.js?v=7" defer></script>
 <script is:inline src="/cargo-desk/motion.js?v=7" defer></script>
 <script is:inline src="/cargo-desk/tutorial-engine.js?v=2" defer></script>
 <script is:inline src="/cargo-desk/tutorial.js?v=3" defer></script>
 <script is:inline src="/cargo-desk/weekly.js?v=1" defer></script>
-<script is:inline src="/cargo-desk/app.js?v=8" defer></script>
+<script is:inline src="/cargo-desk/share.js?v=1" defer></script>
+<script is:inline src="/cargo-desk/app.js?v=9" defer></script>

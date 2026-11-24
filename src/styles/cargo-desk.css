@@ -2650,3 +2650,76 @@
 @keyframes cd-slip-out {
   to { opacity: 0; transform: translateY(-0.75rem); }
 }
+
+/* --------------------------------------------------------------------------
+   Folded ticket parts, the draggable tank and the share card
+   -------------------------------------------------------------------------- */
+
+.cd-step.is-quiet .cd-row { display: none; }
+.cd-step.is-quiet .cd-hint { margin-top: 0; }
+.cd-futures tr[hidden],
+.cd-delivery-days[hidden] { display: none; }
+
+.cd-months {
+  min-height: 2rem;
+  margin-top: 0.5rem;
+}
+
+.cd-tank {
+  cursor: ns-resize;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.cd-tank.is-dragging .cd-tank__fill { transition: none; }
+
+.cd-key__hint {
+  max-width: 13rem;
+  font-size: var(--text-xs);
+  line-height: 1.4;
+  color: var(--panel-muted);
+}
+
+.cd-share__card {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-top: 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.cd-share__text {
+  margin: 0.8rem 0 0;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.cd-share__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.cd-dialog .cd-share__actions .btn {
+  flex: 1 1 9rem;
+  margin-top: 0;
+}
+
+.cd-share__status {
+  min-height: 1.4em;
+  font-size: var(--text-sm);
+}
+
+.cd-dialog > .cd-share__note {
+  margin-top: 0.2rem;
+  font-size: var(--text-xs);
+  color: var(--muted);
+}

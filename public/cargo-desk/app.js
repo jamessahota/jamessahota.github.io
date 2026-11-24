@@ -59,6 +59,9 @@
   let state;
   // What the player has said so far to each counterparty on this ticket.
   let haggles = { buy: [], sell: [] };
+  // Whether the player has opened the folded parts of the ticket.
+  let storageOpen = false;
+  let monthsOpen = false;
   let quoteIndex = -1;
 
   // --- Formatting ------------------------------------------------------------
@@ -466,6 +469,21 @@
     set("storage-quote", quote(book.storage.price) + " per bbl per cycle, up to " + number(book.storage.max) + " bbl" +
       (result.storageThroughCycle ? ". Runs through cycle " + result.storageThroughCycle + " for " + unsignedMoney(result.storageCost) + "." :
         result.storageRequired ? ". This ticket needs " + number(result.storageRequired) + " bbl." : ". Not needed on this ticket."));
+    // Parts of the ticket that are not in use stay folded away until they are needed or asked for.
+    const storageIdle = !storageOpen && !result.storageRequired && !(inputs.storage.valueAsNumber > 0) && !result.errors.storage && !result.errors.storageCycles;
+    element("storage-step").classList.toggle("is-quiet", storageIdle);
+    element("storage-open").hidden = !storageIdle;
+    const hedgeMonth = state.expiryToday ? 1 : 0;
+    let folded = 0;
+    futuresInputs.forEach((input, slot) => {
+      const idle = !monthsOpen && slot !== hedgeMonth && !state.futuresPositions[slot] && (input.value === "" || input.value === "0");
+      input.closest("tr").hidden = idle;
+      folded += idle;
+    });
+    const monthsButton = element("months-open");
+    monthsButton.hidden = !folded && !monthsOpen;
+    monthsButton.textContent = monthsOpen ? "Fewer months" : "All months";
+    element("delivery-days").hidden = !(state.deliveryContracts || []).length && !(state.deliveryHistory || []).length && !deliveryInputs.enabled.checked;
 
     futuresInputs.forEach((input, slot) => {
       const before = state.futuresPositions[slot];
@@ -616,6 +634,7 @@
       set("client-redirect-detail", "Pay " + unsignedMoney(client.redirect.fee) + ". The space stays free.");
     }
     element("storage-step").hidden = afternoon;
+    storageOpen = false;
     renderDeliveryFields();
     let step = 1;
     for (const marker of form.querySelectorAll(".cd-step:not([hidden]) > legend > .cd-step__n")) marker.textContent = String(step++).padStart(2, "0");
@@ -753,6 +772,25 @@
     }
 
     const actions = append(debrief, "div", undefined, "cd-debrief__actions");
+    if (window.CargoShare) {
+      const share = append(actions, "button", "Share this result", "btn btn--secondary");
+      share.type = "button";
+      share.addEventListener("click", () => {
+        // One figure a day for the squares, and the running total after each ticket for the line.
+        const days = Array.from({ length: totalCycles }, () => 0);
+        const path = [review.opening];
+        for (const step of state.history) {
+          days[step.cycle - 1] += step.delta;
+          path.push(path[path.length - 1] + step.delta);
+        }
+        window.CargoShare.open({
+          kind: run.weekly ? "Weekly challenge · week of " + run.weekly.week :
+            history ? history.title + " · " + history.period : run.ranked ? "Ranked market" : "Practice market",
+          net: state.net, grade: review.grade, drawdown: state.maxDrawdown, benchmark: review.benchmark,
+          seed: run.weekly || history ? "" : run.seed, days, path,
+        });
+      });
+    }
     if (run.weekly) {
       const weeklyBoard = append(actions, "button", "Weekly leaderboard", "btn");
       weeklyBoard.type = "button";
@@ -1112,6 +1150,46 @@
     inputs.barrels.value = slider.value;
     updateTicket();
   });
+
+  element("storage-open").addEventListener("click", () => {
+    storageOpen = true;
+    updateTicket();
+    inputs.storage.focus();
+  });
+  element("months-open").addEventListener("click", () => {
+    monthsOpen = !monthsOpen;
+    updateTicket();
+  });
+
+  // Dragging the level in the tank writes the physical order: up buys, down sells.
+  // It only fills in the ticket, so every limit is still checked there.
+  const tank = element("tank");
+  function dragTank(event) {
+    if (fields.disabled || !state.round) return;
+    const box = tank.getBoundingClientRect();
+    if (!box.height) return;
+    const level = Math.max(0, Math.min(1, 1 - (event.clientY - box.top) / box.height)) * capacity;
+    const clientShown = (parseFloat(element("tank-client").style.height) || 0) / 100 * capacity;
+    const change = Math.round((level - clientShown - Math.min(state.barrels, capacity)) / 500) * 500;
+    const book = state.round.orderBook;
+    const selling = form.elements.side.value === "ship" && book.ship?.max ? "ship" : "sell";
+    const side = change > 0 && book.buy?.max ? "buy" : change < 0 && book[selling]?.max ? selling : "hold";
+    for (const radio of form.elements.side) radio.checked = radio.value === side && !radio.disabled;
+    if (!form.elements.side.value) form.elements.side.value = "hold";
+    inputs.barrels.value = form.elements.side.value === "hold" ? "0" : String(Math.min(Math.abs(change), book[side].max));
+    updateTicket();
+  }
+  tank.addEventListener("pointerdown", event => {
+    if (event.button || fields.disabled || !state.round) return;
+    event.preventDefault();
+    tank.setPointerCapture?.(event.pointerId);
+    tank.classList.add("is-dragging");
+    dragTank(event);
+  });
+  tank.addEventListener("pointermove", event => { if (tank.classList.contains("is-dragging")) dragTank(event); });
+  for (const type of ["pointerup", "pointercancel", "lostpointercapture"]) {
+    tank.addEventListener(type, () => tank.classList.remove("is-dragging"));
+  }
 
   element("barrels-max").addEventListener("click", () => {
     const route = state.round?.orderBook[form.elements.side.value];

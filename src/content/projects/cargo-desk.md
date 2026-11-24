@@ -3,7 +3,7 @@ title: Cargo Desk
 summary: >-
   A browser game about running a physical crude oil book at Cushing. Ten trading days with one
   tank, a hedged cargo, clients who want storage and a delivery calendar. Play generated markets
-  or replay four historical episodes.
+  or replay seven historical episodes.
 homeSummary: >-
   A browser game about running a physical crude oil book at Cushing: one tank, a hedged cargo,
   clients who want storage and a desk limit.
@@ -34,7 +34,7 @@ You start with 6,000 barrels of crude in a 10,000-barrel tank at Cushing, hedged
 - **Events and the stocks report.** Some days an event is on watch for the coming night, with its odds and roughly what it would do to futures and to spot, and midday news can move those odds. The weekly stocks report lands at midday on both Wednesdays.
 - **Shocks.** About one day in ten the market is hit by something nobody saw coming and prices move by several dollars. A shock that moves every price does nothing to a hedged book. One that moves spot hardest hits anyone holding crude.
 
-The ticket is live. The tank drawing, the position gauge and the profit-and-loss estimate update as you change an order, so you can see what a ticket does before it is sent.
+The ticket is live, and parts you are not using stay folded away. Dragging the level in the tank writes the physical order. The tank drawing, the position gauge and the profit-and-loss estimate update as you change an order, so you can see what a ticket does before it is sent.
 
 ## Reading the result
 
@@ -42,13 +42,17 @@ After each ticket the desk explains the profit or loss: trade prices against spo
 
 ## Historical scenarios
 
-From New run you can also play four real episodes on real prices: the two weeks in April 2020 when WTI settled below zero, the March 2020 price war, the weeks after Russia invaded Ukraine in 2022, and the attack on Abqaiq in September 2019. Each is ten real trading days. Every morning you get a briefing on what was known at the time, and the day's closing marks after you commit.
+From New run you can also play seven real episodes on real prices: the two weeks in April 2020 when WTI settled below zero, the March 2020 price war, the weeks after Russia invaded Ukraine in 2022, the attack on Abqaiq in September 2019, the Lehman week of September 2008 with its record squeeze on the expiring contract, OPEC’s decision not to cut output in November 2014, and Hurricane Harvey in 2017. Each is ten real trading days. Every morning you get a briefing on what was known at the time, and the day's closing marks after you commit.
 
 Trading marks use the U.S. Energy Information Administration’s daily Cushing spot and NYMEX WTI futures series. Where a settlement is unavailable, the displayed estimate is view-only. The bids and offers around spot, the clients, the storage rates and the counterparties are still the game's own, tuned to suit each period. Scenarios are practice runs: the outcome is a matter of record, so they are not ranked.
 
 ## Ranked and practice runs
 
 A market is generated from a seed, and its prices are the same every time that seed is played. Only the first play of a fresh random market is ranked on the leaderboard. Typing in a seed, or replaying one already seen, is a practice run. Scores are kept in your own browser and are not shared.
+
+## Sharing a result
+
+The debrief has a share button. It makes a result card as an image and as a few lines of text, with one square for each day. The card is made in your browser and nothing is posted for you.
 
 ## Weekly challenge
 
