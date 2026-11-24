@@ -507,29 +507,48 @@ test("a saved Harvey booking settles under its original rules without opening ne
   assert.equal(settled.deliveryHistory[0].barrels, 2000);
 });
 
-test("the published Harvey case study reconciles both tickets at the August 30 close", () => {
+test("the published Harvey case study reconciles both ten-day replays", () => {
   const scenario = scenarios.find(item => item.key === "harvey2017");
   const options = { ...deliveryReplayOptions, scenario };
   let start = game.replay("scenario-harvey2017", [], options);
-  for (let cycle = 1; cycle <= 3; cycle++) start = entry(start, {}, options);
-  assert.equal(scenario.dates[start.stage + 1], "2017-08-29");
-  assert.equal(start.net, -723900);
-  assert.equal(start.round.orderBook.sell.price, 4598);
-  assert.equal(start.round.orderBook.ship, null);
-  assert.deepEqual(start.market.prices.slice(0, 2), [4640, 4657]);
+  start = entry(start, { client: "accept", storage: 2000, storageCycles: 1 }, options);
+  assert.equal(start.components.physical, -726000);
+  assert.equal(start.components.hedge, 588000);
+  assert.equal(start.history[0].parts.basis, -138000);
+  start = entry(start, { client: "accept", storage: 5000, storageCycles: 1 }, options);
 
-  const sold = entry(entry(start, { side: "sell", barrels: 2000, client: "accept" }, options), {}, options);
-  const stored = entry(entry(start, { client: "accept", storage: 2000, storageCycles: 2 }, options), {}, options);
-  for (const [result, expected] of [[sold, [-84000, 68000, -160000, -557900]], [stored, [0, 102000, -232000, -511900]]]) {
-    const days = result.history.slice(start.stage);
-    const total = (part) => days.reduce((sum, day) => sum + day.parts[part], 0);
+  // Each row is the local sale, overflow volume, and its length in cycles.
+  const finish = (tickets, turnAwayCycle) => tickets.reduce((state, [barrels, storage, storageCycles]) => entry(state, {
+    side: barrels ? "sell" : "hold", barrels, storage, storageCycles,
+    client: !state.incoming ? "none" : state.stage + 1 === turnAwayCycle ? "redirect" : "accept",
+  }, options), start);
+  const held = finish([
+    [0, 3000, 1], [0, 3000, 1], [0, 3000, 1], [0, 5000, 1], [0, 1000, 1],
+    [0, 0, 0], [0, 0, 0], [0, 0, 0],
+  ], 4);
+  const sold = finish([
+    [3000, 0, 0], [2000, 4000, 2], [1000, 0, 0], [0, 0, 0], [0, 0, 0],
+    [0, 0, 0], [0, 0, 0], [0, 0, 0],
+  ]);
+  const outcomes = [
+    { result: held, trading: -108000, basis: -18000, clients: 1182000, overflow: -418000, turnAway: -138200, net: -300200 },
+    { result: sold, trading: -272000, basis: -122000, clients: 1544000, overflow: -241000, turnAway: 0, net: 109000 },
+  ];
+  for (const { result, trading, basis, clients, overflow, turnAway, net } of outcomes) {
+    const total = (part) => result.history.reduce((sum, day) => sum + day.parts[part], 0);
+    const ledger = (label) => result.entries.filter(item => item.label === label).reduce((sum, item) => sum + item.cents, 0);
+    assert.equal(result.history.length, 10);
     assert.equal(result.netLots, 0);
-    assert.deepEqual(result.market.prices.slice(0, 2), [4596, 4596]);
-    assert.equal(total("price"), 0);
-    assert.equal(total("clients"), 342000);
-    assert.deepEqual([total("trading"), total("basis"), total("costs"), result.net], expected);
+    assert.ok(result.history.every(day => day.parts.price === 0));
+    assert.equal(total("trading"), trading);
+    assert.equal(total("basis"), basis);
+    assert.equal(total("clients"), clients);
+    assert.equal(ledger("Tank A lease"), -800000);
+    assert.equal(ledger("Overflow booked"), overflow);
+    assert.equal(ledger("Client sent elsewhere"), turnAway);
+    assert.equal(result.net, net);
   }
-  assert.equal(stored.net - sold.net, 46000);
+  assert.equal(sold.net - held.net, 409200);
 });
 
 test("cycle ten settles the contracted cargo before the auction", () => {
