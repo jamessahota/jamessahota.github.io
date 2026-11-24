@@ -118,6 +118,7 @@
   const scenarioOf = (target = run) => scenarios.find(item => item.key === target?.scenario) || null;
   const play = (decisions, options = {}) => replay(run.seed, decisions, {
     ...options, scenario: scenarioOf(), legacyEstimateThrough: run.legacyEstimateThrough ?? 0,
+    legacyDeliveryThrough: run.legacyDeliveryThrough ?? 0,
   });
   const shortDate = dateLabel;
 
@@ -176,14 +177,24 @@
       if (saved.scenario && !scenario) return null;
       const legacyEstimateThrough = !scenario ? 0 : migrated ? saved.decisions.length : saved.legacyEstimateThrough ?? 0;
       if (!Number.isSafeInteger(legacyEstimateThrough) || legacyEstimateThrough < 0 || legacyEstimateThrough > saved.decisions.length) return null;
-      const decisions = replay(saved.seed, saved.decisions, { withReview: false, scenario, legacyEstimateThrough }).decisions;
+      const replayOptions = { withReview: false, scenario, legacyEstimateThrough };
+      const hasGulfClosures = !!scenario?.terminal?.gulfForwardClosed?.length;
+      let legacyDeliveryThrough = hasGulfClosures ? saved.legacyDeliveryThrough ?? 0 : 0;
+      if (!Number.isSafeInteger(legacyDeliveryThrough) || legacyDeliveryThrough < 0 || legacyDeliveryThrough > saved.decisions.length) return null;
+      let decisions = replay(saved.seed, saved.decisions, { ...replayOptions, legacyDeliveryThrough }).decisions;
+      // The earlier Harvey calendar accepted Gulf deliveries during the closure. Keep committed tickets playable.
+      if (decisions.length < saved.decisions.length && hasGulfClosures && saved.legacyDeliveryThrough === undefined) {
+        legacyDeliveryThrough = saved.decisions.length;
+        decisions = replay(saved.seed, saved.decisions, { ...replayOptions, legacyDeliveryThrough }).decisions;
+      }
       // Keep the original independently versioned save if a full replay is impossible.
       if (decisions.length !== saved.decisions.length) return null;
       const completedAt = Number.isSafeInteger(saved.completedAt) && saved.completedAt > 0 ? saved.completedAt : null;
       // A negotiation in progress is kept, so reloading the page cannot undo a refusal.
       const talks = saved.talks?.ticket === decisions.length && validAsks(saved.talks.buy) && validAsks(saved.talks.sell) ? saved.talks : null;
       return { id: saved.id, seed: saved.seed, scenario: scenario?.key || null, ranked: !isWeekly && !migrated && saved.ranked === true && !scenario,
-        decisions, completedAt, talks, legacyEstimateThrough, ...(weekly ? { weekly } : {}) };
+        decisions, completedAt, talks, legacyEstimateThrough,
+        ...(hasGulfClosures ? { legacyDeliveryThrough } : {}), ...(weekly ? { weekly } : {}) };
     } catch {
       return null;
     }
@@ -237,6 +248,8 @@
   function renderTerminal() {
     const closed = !state.round;
     const book = state.round?.orderBook;
+    element("tank-grip").hidden = closed;
+    element("tank-draft").hidden = closed;
     set("location-clock", state.market.time + (state.scenario ? "" : " CT"));
 
     set("inbound-value", closed ? "Run closed" : state.incoming ? number(state.incoming) + " bbl" : "None due");
@@ -350,7 +363,8 @@
 
     const { cycle, route, month, barrels } = draft.delivery;
     const quotes = state.deliveryOptions;
-    const offer = quotes.cycles.find(day => day.cycle === cycle)?.routes[route];
+    const routeQuote = quotes.cycles.find(day => day.cycle === cycle)?.routes[route];
+    const offer = routeQuote?.unavailable ? null : routeQuote;
     const reference = quotes.months.find(quote => quote.month === month);
     const booked = result.delivery;
     const available = result.availableBarrels + (booked?.barrels || 0);
@@ -360,7 +374,7 @@
       set("delivery-available", number(available) + " bbl available on this ticket · " + number(offer.max) + " bbl left on this route for this date");
     } else {
       deliveryInputs.barrels.removeAttribute("max");
-      set("delivery-available", "");
+      set("delivery-available", routeQuote?.unavailable || "");
     }
 
     const fixedPrice = booked?.fixedGross ?? (offer && reference ? reference.price + offer.basis : null);
@@ -382,7 +396,7 @@
 
     const issue = element("delivery-error");
     issue.textContent = result.errors.delivery || "";
-    issue.hidden = !result.errors.delivery;
+    issue.hidden = !result.errors.delivery || result.errors.delivery === routeQuote?.unavailable;
     if (!Number.isSafeInteger(barrels) || barrels < 1 || (offer && barrels > Math.min(offer.max, available))) {
       deliveryInputs.barrels.setAttribute("aria-invalid", "true");
     } else {
@@ -436,6 +450,21 @@
     if (talk.status === "counter") take.textContent = "Take " + quote(talk.counterPrice);
   }
 
+  function renderFuturesRows() {
+    const hedgeMonth = state.expiryToday ? 1 : 0;
+    let folded = false;
+    futuresInputs.forEach((input, slot) => {
+      const row = input.closest("tr");
+      row.hidden = !monthsOpen && slot !== hedgeMonth && slot !== quoteIndex - 1 &&
+        !state.futuresPositions[slot] && !row.contains(document.activeElement) && !input.validity.badInput && !Number(input.value);
+      folded ||= row.hidden;
+    });
+    const button = element("months-open");
+    button.hidden = !folded && !monthsOpen;
+    button.textContent = monthsOpen ? "Fewer months" : "All months";
+    button.setAttribute("aria-expanded", String(monthsOpen));
+  }
+
   function updateTicket() {
     element("hedge-status").hidden = true;
     const draft = readOrder();
@@ -473,17 +502,8 @@
     const storageIdle = !storageOpen && !result.storageRequired && !(inputs.storage.valueAsNumber > 0) && !result.errors.storage && !result.errors.storageCycles;
     element("storage-step").classList.toggle("is-quiet", storageIdle);
     element("storage-open").hidden = !storageIdle;
-    const hedgeMonth = state.expiryToday ? 1 : 0;
-    let folded = 0;
-    futuresInputs.forEach((input, slot) => {
-      const idle = !monthsOpen && slot !== hedgeMonth && !state.futuresPositions[slot] && (input.value === "" || input.value === "0");
-      input.closest("tr").hidden = idle;
-      folded += idle;
-    });
-    const monthsButton = element("months-open");
-    monthsButton.hidden = !folded && !monthsOpen;
-    monthsButton.textContent = monthsOpen ? "Fewer months" : "All months";
-    element("delivery-days").hidden = !(state.deliveryContracts || []).length && !(state.deliveryHistory || []).length && !deliveryInputs.enabled.checked;
+    renderFuturesRows();
+    renderDeliveryDaysVisibility(!!draft.delivery);
 
     futuresInputs.forEach((input, slot) => {
       const before = state.futuresPositions[slot];
@@ -542,6 +562,11 @@
 
     const changed = result.barrels !== state.barrels || result.occupancy !== state.occupancy || result.clientInTank !== state.clientInTank;
     renderLevels(result.barrels - result.ownedOverflow, result.clientInTank, changed);
+    const tankAction = {
+      buy: ["Buy ", ""], sell: ["Sell ", " locally"], ship: ["Ship ", " to the Gulf"], emergency: ["Sell ", " at the emergency bid"],
+    }[draft.side];
+    set("tank-draft", tankAction && Number.isSafeInteger(draft.barrels) && draft.barrels > 0 ?
+      "Draft · " + tankAction[0] + number(draft.barrels) + " bbl" + tankAction[1] : "Drag the tank handle to buy or sell.");
     const newBooking = result.storageThroughCycle ? draft.storage : 0;
     renderOverflow(result.ownedOverflow, result.clientOverflow, result.activeStorage + newBooking, changed || newBooking > 0);
 
@@ -787,7 +812,7 @@
           kind: run.weekly ? "Weekly challenge · week of " + run.weekly.week :
             history ? history.title + " · " + history.period : run.ranked ? "Ranked market" : "Practice market",
           net: state.net, grade: review.grade, drawdown: state.maxDrawdown, benchmark: review.benchmark,
-          seed: run.weekly || history ? "" : run.seed, days, path,
+          seed: history ? "" : run.seed, scenario: history?.key, days, path,
         });
       });
     }
@@ -807,6 +832,10 @@
 
   // --- Ledger ------------------------------------------------------------------
 
+  function renderDeliveryDaysVisibility(draft = false) {
+    element("delivery-days").hidden = !state.deliveryContracts?.length && !state.deliveryHistory?.length && !draft;
+  }
+
   function renderDeliveryCalendar() {
     const active = state.deliveryContracts || [];
     const delivered = state.deliveryHistory || [];
@@ -815,6 +844,7 @@
       delivered.length ? "All forward deliveries settled." : "No forward deliveries were booked.");
 
     const days = element("delivery-days");
+    renderDeliveryDaysVisibility();
     days.replaceChildren();
     for (let cycle = 1; cycle <= totalCycles; cycle++) {
       const toDeliver = active.some(contract => contract.cycle === cycle);
@@ -1120,6 +1150,41 @@
     element("restart-dialog").showModal();
   }
 
+  function offerSharedMarket(savedCampaign) {
+    const shared = window.CargoShare?.readMarketLink?.(window.location.search);
+    if (!shared) return;
+    const scenario = scenarios.find(item => item.key === shared.scenario);
+    if (shared.scenario && !scenario) return;
+
+    const dialog = append(document.body, "dialog", undefined, "cd-dialog cd-dialog--narrow");
+    dialog.id = "shared-market-dialog";
+    dialog.setAttribute("aria-labelledby", "shared-market-title");
+    append(dialog, "p", "Shared market", "label label--marked");
+    const title = append(dialog, "h2", "Play this market");
+    title.id = "shared-market-title";
+    append(dialog, "p", scenario ? scenario.title + " · " + scenario.period : "Seed " + shared.seed, "cd-shared-market__name");
+    append(dialog, "p", "Play as a practice run." +
+      (savedCampaign ? " Starting this market replaces the saved campaign on this device." : ""));
+    const actions = append(dialog, "form", undefined, "cd-share__actions");
+    actions.method = "dialog";
+    const start = append(actions, "button", "Start practice run", "btn");
+    start.type = "button";
+    const cancel = append(actions, "button", "Back to the desk", "btn btn--secondary");
+    cancel.autofocus = true;
+    dialog.addEventListener("close", () => {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("seed");
+      url.searchParams.delete("scenario");
+      window.history.replaceState(window.history.state, "", url);
+      dialog.remove();
+    }, { once: true });
+    start.addEventListener("click", () => {
+      dialog.close();
+      begin(scenario ? "scenario-" + scenario.key : shared.seed, false, true, scenario?.key || null);
+    });
+    dialog.showModal();
+  }
+
   const board = window.CargoLeaderboard.create({
     container: element("leaderboard-content"),
     onReplay(seed) {
@@ -1164,31 +1229,49 @@
   // Dragging the level in the tank writes the physical order: up buys, down sells.
   // It only fills in the ticket, so every limit is still checked there.
   const tank = element("tank");
+  const tankGrip = element("tank-grip");
+  let tankDrag;
   function dragTank(event) {
-    if (fields.disabled || !state.round) return;
-    const box = tank.getBoundingClientRect();
-    if (!box.height) return;
-    const level = Math.max(0, Math.min(1, 1 - (event.clientY - box.top) / box.height)) * capacity;
-    const clientShown = (parseFloat(element("tank-client").style.height) || 0) / 100 * capacity;
-    const change = Math.round((level - clientShown - Math.min(state.barrels, capacity)) / 500) * 500;
-    const book = state.round.orderBook;
-    const selling = form.elements.side.value === "ship" && book.ship?.max ? "ship" : "sell";
-    const side = change > 0 && book.buy?.max ? "buy" : change < 0 && book[selling]?.max ? selling : "hold";
-    for (const radio of form.elements.side) radio.checked = radio.value === side && !radio.disabled;
-    if (!form.elements.side.value) form.elements.side.value = "hold";
-    inputs.barrels.value = form.elements.side.value === "hold" ? "0" : String(Math.min(Math.abs(change), book[side].max));
+    if (tankDrag?.pointer !== event.pointerId || fields.disabled || tankDrag.round !== state.round) return;
+    const dy = tankDrag.y - event.clientY;
+    if (!tankDrag.active && Math.abs(dy) < 5) return;
+    tankDrag.active = true;
+    tank.classList.add("is-dragging");
+    const steps = Math.round(Math.abs(dy) * capacity / tankDrag.height / 500);
+    const change = tankDrag.draft + Math.sign(dy) * steps * 500;
+    const side = change > 0 ? "buy" : tankDrag.selling;
+    const choice = Array.from(form.elements.side).find(radio => radio.value === side);
+    const limit = choice.disabled ? 0 : state.round.orderBook[side]?.max || 0;
+    const volume = Math.min(Math.abs(change), limit);
+    const nextSide = volume ? side : "hold";
+    if (form.elements.side.value === nextSide && inputs.barrels.valueAsNumber === volume) return;
+    form.elements.side.value = nextSide;
+    inputs.barrels.value = String(volume);
     updateTicket();
   }
   tank.addEventListener("pointerdown", event => {
-    if (event.button || fields.disabled || !state.round) return;
+    if (tankDrag || event.button || event.isPrimary === false || fields.disabled || !state.round ||
+      (event.pointerType === "touch" && !tankGrip.contains(event.target))) return;
+    const { height } = tank.getBoundingClientRect();
+    if (!height) return;
+    const side = form.elements.side.value;
+    const volume = inputs.barrels.valueAsNumber;
+    const hasDraft = side !== "hold" && Number.isSafeInteger(volume) && volume > 0;
+    // Use the starting ticket and pointer position. Preview changes to how clients
+    // share Tank A cannot then affect the volume drafted by the next pointer event.
+    tankDrag = { pointer: event.pointerId, round: state.round, y: event.clientY, height, active: false,
+      draft: hasDraft ? (side === "buy" ? volume : -volume) : 0,
+      selling: side === "ship" || side === "emergency" ? side : "sell" };
     event.preventDefault();
     tank.setPointerCapture?.(event.pointerId);
-    tank.classList.add("is-dragging");
-    dragTank(event);
   });
-  tank.addEventListener("pointermove", event => { if (tank.classList.contains("is-dragging")) dragTank(event); });
+  tank.addEventListener("pointermove", dragTank);
   for (const type of ["pointerup", "pointercancel", "lostpointercapture"]) {
-    tank.addEventListener(type, () => tank.classList.remove("is-dragging"));
+    tank.addEventListener(type, event => {
+      if (tankDrag?.pointer !== event.pointerId) return;
+      tankDrag = null;
+      tank.classList.remove("is-dragging");
+    });
   }
 
   element("barrels-max").addEventListener("click", () => {
@@ -1295,10 +1378,12 @@
       button.setAttribute("aria-pressed", String(Number(button.dataset.quote) === quoteIndex));
     }
     drawCurve();
-    if (next > 0 && quoteIndex === next && state.round && !fields.disabled && !futuresInputs[next - 1].disabled) {
-      futuresInputs[next - 1].focus();
-      futuresInputs[next - 1].select();
-    }
+    if (!state.round || fields.disabled) return;
+    renderFuturesRows();
+    const order = futuresInputs[quoteIndex - 1];
+    if (!order || order.disabled) return;
+    order.focus();
+    order.select();
   }
 
   element("quotes").addEventListener("click", event => {
@@ -1435,8 +1520,10 @@
   let openedWeekly = false;
   try { openedWeekly = sessionStorage.getItem(activeModeKey) === "weekly"; } catch {}
   const savedRun = (openedWeekly && weeklyRun) || campaignRun;
+  const savedCampaign = campaignRun;
   if (savedRun) activateRun(savedRun, false);
   else begin(randomSeed(), true, false);
   new ResizeObserver(drawCurve).observe(element("chart-wrap"));
   document.fonts?.ready.then(drawCurve);
+  offerSharedMarket(savedCampaign);
 })();

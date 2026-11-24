@@ -467,6 +467,46 @@ test("Gulf capacity is reduced by prior bookings and tariffs settle only once", 
   assert.equal(charges[0].cycle, 4);
 });
 
+test("Harvey closes dated Gulf slots while leaving local and reopened slots available", () => {
+  const scenario = scenarios.find(item => item.key === "harvey2017");
+  const options = { ...deliveryReplayOptions, scenario };
+  let state = game.replay("scenario-harvey2017", [], options);
+  for (const { cycle, routes } of state.deliveryOptions.cycles) {
+    assert.equal(routes.local.max, 12000);
+    if (cycle >= 3 && cycle <= 6) {
+      assert.equal(routes.gulf.max, 0);
+      assert.match(routes.gulf.unavailable, /Gulf route is closed/);
+    } else {
+      assert.equal(routes.gulf.max, 4000);
+      assert.equal(routes.gulf.unavailable, undefined);
+    }
+  }
+
+  while (state.stage < 3) state = entry(state, {}, options);
+  const delivery = { cycle: 5, barrels: 2000, route: "gulf", month: 0 };
+  const blocked = order(state, { delivery });
+  assert.match(game.preview(state, blocked).errors.delivery, /closed on Wed 30 Aug 2017/);
+  assert.equal(game.replay(state.seed, [...state.decisions, blocked], options).history.length, 3);
+  assert.ok(game.preview(state, order(state, { delivery: { ...delivery, route: "local" } })).ok);
+  assert.ok(game.preview(state, order(state, { delivery: { ...delivery, cycle: 7 } })).ok);
+});
+
+test("a saved Harvey booking settles under its original rules without opening new closed slots", () => {
+  const scenario = scenarios.find(item => item.key === "harvey2017");
+  const options = { ...deliveryReplayOptions, scenario, legacyDeliveryThrough: 4 };
+  let state = game.replay("scenario-harvey2017", [], options);
+  while (state.stage < 3) state = entry(state, {}, options);
+  const first = order(state, { delivery: { cycle: 5, barrels: 2000, route: "gulf", month: 0 } });
+  const afterBooking = game.replay(state.seed, [...state.decisions, first], options);
+  assert.equal(afterBooking.deliveryContracts[0].barrels, 2000);
+  const second = order(afterBooking, { delivery: { ...first.delivery, cycle: 6 } });
+  assert.match(game.preview(afterBooking, second).errors.delivery, /closed on Thu 31 Aug 2017/);
+  assert.equal(game.replay(state.seed, [...afterBooking.decisions, second], options).history.length, 4);
+  const settled = entry(afterBooking, {}, options);
+  assert.equal(settled.deliveryHistory[0].settledCycle, 5);
+  assert.equal(settled.deliveryHistory[0].barrels, 2000);
+});
+
 test("cycle ten settles the contracted cargo before the auction", () => {
   const start = game.replay("forward-to-close");
   const delivery = { cycle: 10, barrels: 4000, route: "local", month: 0 };

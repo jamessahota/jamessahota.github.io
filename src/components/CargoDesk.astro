@@ -80,6 +80,7 @@ import '../styles/cargo-desk.css';
             <div class="cd-tank__fill cd-tank__fill--client" id="tank-client"></div>
             <span class="cd-tank__name label">Tank A</span>
             <span class="cd-tank__pct numeric" id="tank-pct">0%</span>
+            <span class="cd-tank__grip" id="tank-grip" aria-hidden="true" hidden></span>
           </div>
           <div class="cd-key-wrap">
           <dl class="cd-key">
@@ -88,7 +89,7 @@ import '../styles/cargo-desk.css';
             <div><dt><i class="cd-swatch cd-swatch--free" aria-hidden="true"></i>Free space</dt><dd class="numeric" id="key-free">0</dd></div>
           </dl>
           <p class="cd-key__tag label" id="tank-tag">Now</p>
-                <p class="cd-key__hint">Drag the level in the tank to buy or sell.</p>
+            <p class="cd-key__hint" id="tank-draft">Drag the tank handle to buy or sell.</p>
           </div>
         </div>
         <div class="cd-pipe" id="pipe-out" aria-hidden="true"></div>
@@ -110,7 +111,7 @@ import '../styles/cargo-desk.css';
         <h2 class="label label--marked" id="delivery-title">Delivery calendar</h2>
       </div>
       <p class="cd-delivery-position" id="delivery-position">No forward deliveries booked.</p>
-      <ol class="cd-delivery-days" id="delivery-days" role="list" aria-label="Delivery cycles"></ol>
+      <ol class="cd-delivery-days" id="delivery-days" role="list" aria-label="Delivery cycles" hidden></ol>
       <ul class="cd-delivery-list" id="delivery-list" role="list" aria-label="Booked deliveries" hidden></ul>
       <details class="cd-details" id="delivery-history" hidden>
         <summary id="delivery-history-count">Completed deliveries</summary>
@@ -519,12 +520,12 @@ import '../styles/cargo-desk.css';
   <div id="leaderboard-content"></div>
 </dialog>
 
-<script is:inline src="/cargo-desk/engine.js?v=6" defer></script>
-<script is:inline src="/cargo-desk/scenarios.js?v=7" defer></script>
+<script is:inline src="/cargo-desk/engine.js?v=7" defer></script>
+<script is:inline src="/cargo-desk/scenarios.js?v=8" defer></script>
 <script is:inline src="/cargo-desk/leaderboard.js?v=7" defer></script>
 <script is:inline src="/cargo-desk/motion.js?v=7" defer></script>
 <script is:inline src="/cargo-desk/tutorial-engine.js?v=2" defer></script>
 <script is:inline src="/cargo-desk/tutorial.js?v=3" defer></script>
 <script is:inline src="/cargo-desk/weekly.js?v=1" defer></script>
-<script is:inline src="/cargo-desk/share.js?v=1" defer></script>
-<script is:inline src="/cargo-desk/app.js?v=9" defer></script>
+<script is:inline src="/cargo-desk/share.js?v=2" defer></script>
+<script is:inline src="/cargo-desk/app.js?v=10" defer></script>

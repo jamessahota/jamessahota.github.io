@@ -297,8 +297,13 @@
         [49.13, 49.16, 49.62, 50.00, 50.31],
         [49.10, 49.09, 49.53, 49.91, 50.23],
       ]),
-      // The routes out are shut and refineries are not buying, so crude backs up and storage is wanted.
-      terminal: { clientTight: 60, clientLoose: 45, rateScale: 1.3, storageScale: 1.5, events: ["pipeline", "pipeline", "surplus", "surplus", "maintenance"] },
+      // Refineries are not buying, so crude backs up and storage is wanted. The simulated Gulf
+      // route closes after landfall and accepts forward deliveries again as ports start to reopen.
+      terminal: {
+        clientTight: 60, clientLoose: 45, rateScale: 1.3, storageScale: 1.5,
+        events: ["pipeline", "pipeline", "surplus", "surplus", "maintenance"],
+        gulfForwardClosed: ["2017-08-28", "2017-08-29", "2017-08-30", "2017-08-31"],
+      },
       intro: "WTI settled at $48.41 on Wednesday 23 August after four straight weekly losses. US output is near a two-year high, while OPEC and its partners are cutting 1.8 million barrels a day. A tropical depression named Harvey is strengthening in the Gulf of Mexico, with hurricane watches posted for the Texas coast.",
       note: "Harvey shut refineries, which buy crude, far more than it shut oil fields. That is why crude fell while gasoline rose, and why spot at Cushing fell further than later futures in the first week.",
       days: [

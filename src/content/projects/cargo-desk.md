@@ -34,7 +34,7 @@ You start with 6,000 barrels of crude in a 10,000-barrel tank at Cushing, hedged
 - **Events and the stocks report.** Some days an event is on watch for the coming night, with its odds and roughly what it would do to futures and to spot, and midday news can move those odds. The weekly stocks report lands at midday on both Wednesdays.
 - **Shocks.** About one day in ten the market is hit by something nobody saw coming and prices move by several dollars. A shock that moves every price does nothing to a hedged book. One that moves spot hardest hits anyone holding crude.
 
-The ticket is live, and parts you are not using stay folded away. Dragging the level in the tank writes the physical order. The tank drawing, the position gauge and the profit-and-loss estimate update as you change an order, so you can see what a ticket does before it is sent.
+The ticket is live, and parts you are not using stay folded away. Dragging the tank handle drafts the physical order and shows the volume beside the tank. The tank drawing, the position gauge and the profit-and-loss estimate update as you change an order, so you can see what a ticket does before it is sent.
 
 ## Reading the result
 
@@ -52,7 +52,7 @@ A market is generated from a seed, and its prices are the same every time that s
 
 ## Sharing a result
 
-The debrief has a share button. It makes a result card as an image and as a few lines of text, with one square for each day. The card is made in your browser and nothing is posted for you.
+The debrief has a share button. It makes a result card as an image and as a few lines of text, with one square for each day. The card includes drawdown and a Play this market link. The link opens the same seed or historical scenario as a practice run after you confirm.
 
 ## Weekly challenge
 

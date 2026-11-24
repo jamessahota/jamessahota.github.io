@@ -284,6 +284,11 @@
         if (!terminalEvents.some(item => item.key === key)) fail("names an unknown terminal event, " + key);
       }
     }
+    const closedDates = scenario.terminal?.gulfForwardClosed;
+    if (closedDates !== undefined && (!Array.isArray(closedDates) ||
+        ![...closedDates].every(date => scenario.dates.includes(date, 1)))) {
+      fail("Gulf forward closures must use dates in the trading calendar");
+    }
     return scenario;
   }
 
@@ -469,9 +474,10 @@
 
   const deliveryVolume = (contracts) => contracts.reduce((total, contract) => total + contract.barrels, 0);
 
-  function deliveryCalendar(book, round) {
+  function deliveryCalendar(book, round, allowClosedGulfBooking) {
     if (round?.phase !== "am" || book.day >= totalCycles - 1) return null;
     const market = book.market;
+    const scenario = book.ctx.scenario;
     const months = market.prices.slice(1).flatMap((price, slot) => {
       if (market.estimated && slot === 3) return [];
       const month = market.firstMonth + slot;
@@ -482,10 +488,13 @@
     for (let cycle = book.day + 2; cycle <= totalCycles; cycle++) {
       const due = book.deliveries.filter((contract) => contract.cycle === cycle);
       const localMax = 12000 - deliveryVolume(due.filter((contract) => contract.route === "local"));
-      const gulfMax = 4000 - deliveryVolume(due.filter((contract) => contract.route === "gulf"));
+      const date = scenario?.dates[cycle];
+      const closed = !allowClosedGulfBooking && scenario?.terminal?.gulfForwardClosed?.includes(date);
+      const gulfMax = closed ? 0 : 4000 - deliveryVolume(due.filter((contract) => contract.route === "gulf"));
+      const unavailable = closed ? { unavailable: "The Gulf route is closed on " + dateLabel(date) + ". Choose a local route or another delivery date." } : {};
       cycles.push({ cycle, routes: {
         local: { basis: draw(-105, -48), tariff: 0, max: localMax },
-        gulf: { basis: draw(-27, 32), tariff: draw(55, 105), max: gulfMax },
+        gulf: { basis: draw(-27, 32), tariff: draw(55, 105), max: gulfMax, ...unavailable },
       } });
     }
     return { months, cycles };
@@ -504,6 +513,10 @@
     const reference = calendar.months.find((option) => option.month === month);
     if (!quote || !reference) {
       errors.delivery = "Choose a future delivery cycle, route and available WTI month.";
+      return null;
+    }
+    if (quote.unavailable) {
+      errors.delivery = quote.unavailable;
       return null;
     }
     const max = Math.min(available, quote.max);
@@ -942,7 +955,7 @@
     return { trades, netLots: adjusted.netLots, limited: Math.abs(adjusted.netLots) > 0.5 };
   }
 
-  function snapshot(book, round) {
+  function snapshot(book, round, allowClosedGulfBooking) {
     const { seed, months, expiryDay, scenario } = book.ctx;
     const barrels = ownedBarrels(book);
     const reserved = deliveryVolume(book.deliveries);
@@ -963,7 +976,7 @@
       barrels,
       reserved,
       availableBarrels,
-      deliveryOptions: deliveryCalendar(book, round),
+      deliveryOptions: deliveryCalendar(book, round, allowClosedGulfBooking),
       deliveryContracts: book.deliveries.slice(),
       deliveryHistory: book.delivered.slice(),
       cargoCost: barrels ? Math.round(book.crude.reduce((basis, batch) => basis + batch.barrels * batch.price, 0) / barrels) : null,
@@ -1225,7 +1238,7 @@
 
   // An invalid decision stops the replay at the last valid ticket.
   // Pass a scenario to play real prices instead of a generated market.
-  function replay(seed, decisions = [], { withReview = true, scenario = null, legacyEstimateThrough = 0 } = {}) {
+  function replay(seed, decisions = [], { withReview = true, scenario = null, legacyEstimateThrough = 0, legacyDeliveryThrough = 0 } = {}) {
     const runSeed = typeof seed === "string" && seed.trim() ? seed.trim() : "CUSHING";
     const ctx = context(runSeed, scenario);
     ctx.legacyEstimate = scenario?.expiry < legacyEstimateThrough && !!decisions?.[scenario.expiry]?.futuresTrades?.[3];
@@ -1242,7 +1255,9 @@
       if (haggle && (haggle.side === side || (side === "emergency" && haggle.side === "sell"))) {
         order.haggle = { side: haggle.side, asks: Array.isArray(haggle.asks) ? haggle.asks.slice(0, 2) : [] };
       }
-      const estimate = preview(snapshot(book, round), order, { allowEstimatedTrade: ctx.legacyEstimate && book.decisions.length < legacyEstimateThrough });
+      // Older Harvey saves can honour Gulf deliveries already committed under the previous calendar.
+      const grandfathered = order.delivery?.route === "gulf" && book.decisions.length < legacyDeliveryThrough;
+      const estimate = preview(snapshot(book, round, grandfathered), order, { allowEstimatedTrade: ctx.legacyEstimate && book.decisions.length < legacyEstimateThrough });
       if (!estimate.ok) break;
       order.futuresTrades = futuresTrades.slice();
       execute(book, round, order, estimate);
