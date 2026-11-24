@@ -2,7 +2,7 @@
 // Cargo Desk: a ten-cycle crude oil trading game, played in the page.
 // The markup here matches the game's own index.html, and the browser scripts in
 // public/cargo-desk/ are plain browser scripts that find it by id. They run in
-// order: rules, historical scenarios, leaderboard, the tape, then the screen code.
+// order: rules, historical scenarios, leaderboard, the tape, the tutorial, then the screen code.
 // The game is styled entirely with the site's tokens, so it follows the theme.
 import '../styles/cargo-desk.css';
 ---
@@ -17,11 +17,23 @@ import '../styles/cargo-desk.css';
       <span class="label numeric cd-run__seed" id="seed-value"></span>
     </div>
     <div class="cd-bar__actions">
+      <button class="cd-mini" id="tutorial-button" type="button" aria-haspopup="dialog" aria-controls="tutorial-dialog">Tutorial</button>
       <button class="cd-mini" id="help-button" type="button">How to play</button>
       <button class="cd-mini" id="leaderboard-button" type="button">Leaderboard</button>
       <button class="cd-mini cd-mini--solid" id="restart-button" type="button">New run</button>
     </div>
   </div>
+
+  <aside class="cd-tutorial-prompt" id="tutorial-prompt" aria-labelledby="tutorial-prompt-title" hidden>
+    <div>
+      <p id="tutorial-prompt-title"><strong>First time at the desk?</strong></p>
+      <p>Buy, hedge and deliver oil in three guided steps.</p>
+    </div>
+    <div class="cd-tutorial-prompt__actions">
+      <button class="cd-mini cd-mini--solid" id="tutorial-start" type="button" aria-haspopup="dialog" aria-controls="tutorial-dialog">Start tutorial</button>
+      <button class="cd-mini" id="tutorial-dismiss" type="button">Skip for now</button>
+    </div>
+  </aside>
 
   <dl class="cells cd-numbers" aria-label="Current book">
     <div class="cell">
@@ -316,6 +328,49 @@ import '../styles/cargo-desk.css';
   <p class="cd-foot label" id="foot-note">Simulated terminal and prices · All times Central · 1 lot = 1,000 bbl</p>
 </section>
 
+<dialog id="tutorial-dialog" class="cd-dialog cd-dialog--narrow cd-tutorial" aria-labelledby="tutorial-title" aria-describedby="tutorial-instruction">
+  <form method="dialog"><button class="cd-dialog__close" id="tutorial-close" type="submit" aria-label="Close tutorial">×</button></form>
+  <header class="cd-tutorial__header">
+    <div>
+      <p class="label label--marked">Practice tutorial</p>
+      <p class="cd-badge" id="tutorial-step">Step 1 of 3</p>
+    </div>
+    <progress id="tutorial-progress" aria-label="Tutorial progress" value="1" max="3"></progress>
+  </header>
+  <h2 id="tutorial-title" tabindex="-1">Buy and hedge crude</h2>
+  <p id="tutorial-instruction">Buy crude at the local ask, then sell WTI futures to hedge it. Each futures lot covers 1,000 barrels.</p>
+  <div id="tutorial-ticket">
+    <fieldset class="cd-tutorial__fields" id="tutorial-trade">
+      <legend class="visually-hidden">Crude purchase and futures hedge</legend>
+      <p class="cd-tutorial__quote" id="tutorial-trade-quote" hidden></p>
+      <div class="cd-tutorial__grid">
+        <label for="tutorial-volume"><span class="label">Crude to buy</span><select id="tutorial-volume"><option value="1000">1,000 bbl</option><option value="2000">2,000 bbl</option></select></label>
+        <label for="tutorial-short"><span class="label">WTI lots to sell</span><select id="tutorial-short"><option value="0">0 lots</option><option value="1">1 lot</option><option value="2">2 lots</option><option value="3">3 lots</option></select></label>
+      </div>
+    </fieldset>
+    <fieldset class="cd-tutorial__fields" id="tutorial-booking" hidden>
+      <legend class="visually-hidden">Forward sale and futures close</legend>
+      <div class="cd-tutorial__grid">
+        <label for="tutorial-route"><span class="label">Delivery route</span><select id="tutorial-route"><option value="local">Sell locally</option><option value="gulf">Ship to Gulf</option></select></label>
+        <label for="tutorial-month"><span class="label">WTI reference</span><select id="tutorial-month"></select></label>
+        <label for="tutorial-buyback"><span class="label">WTI lots to buy back</span><select id="tutorial-buyback"><option value="0">0 lots</option><option value="1">1 lot</option><option value="2">2 lots</option><option value="3">3 lots</option></select></label>
+      </div>
+      <p class="cd-tutorial__quote" id="tutorial-quote"></p>
+    </fieldset>
+    <p class="cd-tutorial__quote" id="tutorial-settlement" hidden></p>
+  </div>
+  <section class="cd-tutorial__recap" id="tutorial-recap" aria-label="Profit and loss breakdown" hidden>
+    <div class="cd-tutorial__net"><span class="label">P&amp;L this lesson</span><strong class="numeric" id="tutorial-net"></strong></div>
+    <dl class="cd-tutorial__rows" id="tutorial-recap-rows"></dl>
+    <p class="cd-tutorial__explanation" id="tutorial-explanation"></p>
+  </section>
+  <p class="cd-tutorial__feedback" id="tutorial-feedback" role="status" aria-live="polite" aria-atomic="true"></p>
+  <div class="cd-tutorial__actions">
+    <button class="btn" id="tutorial-next" type="button">Buy and hedge</button>
+    <button class="btn" id="tutorial-complete" type="button" hidden>Back to the desk</button>
+  </div>
+</dialog>
+
 <dialog id="help-dialog" class="cd-dialog" aria-labelledby="help-title">
   <form method="dialog"><button class="cd-dialog__close" aria-label="Close">×</button></form>
   <p class="label label--marked">How to play</p>
@@ -373,4 +428,6 @@ import '../styles/cargo-desk.css';
 <script is:inline src="/cargo-desk/scenarios.js?v=6" defer></script>
 <script is:inline src="/cargo-desk/leaderboard.js?v=6" defer></script>
 <script is:inline src="/cargo-desk/motion.js?v=6" defer></script>
-<script is:inline src="/cargo-desk/app.js?v=6" defer></script>
+<script is:inline src="/cargo-desk/tutorial-engine.js?v=1" defer></script>
+<script is:inline src="/cargo-desk/tutorial.js?v=1" defer></script>
+<script is:inline src="/cargo-desk/app.js?v=7" defer></script>

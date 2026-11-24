@@ -506,3 +506,147 @@ test("saved orders without delivery selections still replay", () => {
   assert.equal(after.availableBarrels, start.barrels);
   assert.deepEqual(game.replay(start.seed, [{ ...orders[0], delivery: null }]), after);
 });
+
+new Function('window', readFileSync(new URL('../public/cargo-desk/tutorial-engine.js', import.meta.url), 'utf8'))(page);
+const tutorial = page.CargoTutorial;
+const tutorialParts = ["trading", "price", "basis", "spreads", "clients", "costs"];
+
+function openTutorial(barrels = 2000) {
+  const opened = tutorial.buy(tutorial.init(), { barrels, shortLots: barrels / game.lot });
+  assert.equal(opened.ok, true, opened.error);
+  return opened.state;
+}
+
+function bookTutorial(state, route = "local", month = 1) {
+  const choice = { route, month, closeLots: state.barrels / game.lot };
+  const offer = tutorial.forwardQuote(state, choice);
+  assert.equal(offer.ok, true, offer.error);
+  const booked = tutorial.forward(state, choice);
+  assert.equal(booked.ok, true, booked.error);
+  return booked.state;
+}
+
+test("the isolated opening matches the live engine book and quotes", () => {
+  const first = tutorial.init();
+  const second = tutorial.init();
+  assert.notEqual(first, second);
+  assert.deepEqual(first, second);
+  assert.deepEqual(first.market, game.replay(tutorial.seed, [], { withReview: false }));
+  assert.equal(first.step, "buy");
+  assert.equal(first.market.barrels, 6000);
+  assert.equal(first.market.cargoCost, 7220);
+  assert.deepEqual(first.market.futuresPositions, [-6, 0, 0, 0]);
+  assert.equal(first.opening, 120000);
+  assert.deepEqual(first.buyQuote, { price: 7261, hedgePrice: 7360, monthName: "Dec", tankLease: 80000, clientFee: 163700 });
+  assert.equal(first.market.decisions.length, 0);
+});
+
+test("every offered parcel, route and WTI month executes and reconciles", () => {
+  for (const barrels of tutorial.purchaseSizes) {
+    const bought = openTutorial(barrels);
+    assert.equal(bought.step, "forward");
+    assert.equal(bought.market.stage, 1);
+    assert.equal(bought.market.phase, "am");
+    assert.equal(bought.market.barrels, 6000 + barrels);
+    assert.equal(bought.market.futuresPositions[0], -6 - barrels / game.lot);
+    assert.equal(bought.market.netLots, 0);
+    assert.equal(bought.market.decisions[0].client, "redirect");
+    assert.equal(bought.forwardOptions.length, 8);
+    const routes = new Set(bought.forwardOptions.map((option) => option.route));
+    assert.deepEqual(routes, new Set(["local", "gulf"]));
+
+    for (const route of routes) {
+      for (const reference of bought.market.deliveryOptions.months) {
+        const booked = bookTutorial(bought, route, reference.month);
+        assert.equal(booked.step, "settle");
+        assert.equal(booked.market.stage, 2);
+        assert.equal(booked.market.phase, "am");
+        assert.equal(booked.market.reserved, barrels);
+        assert.equal(booked.market.availableBarrels, 6000);
+        assert.deepEqual(booked.market.futuresPositions, [-6, 0, 0, 0]);
+        assert.equal(booked.market.netLots, 0);
+        assert.equal(booked.contract.fixedGross, reference.price + booked.contract.basis);
+
+        const settlement = tutorial.settle(booked);
+        assert.equal(settlement.ok, true, settlement.error);
+        const done = settlement.state;
+        assert.equal(done.step, "complete");
+        assert.equal(done.market.stage, tutorial.deliveryCycle);
+        assert.equal(done.market.barrels, 6000);
+        assert.equal(done.market.reserved, 0);
+        assert.equal(done.market.futuresPositions[0], -6);
+        assert.equal(done.market.deliveryHistory.length, 1);
+        assert.equal(done.market.deliveryHistory[0].settledCycle, tutorial.deliveryCycle);
+        assert.equal(done.market.deliveryHistory[0].fixedGross, done.contract.fixedGross);
+        assert.equal(done.market.deliveryHistory[0].tariffCost, done.contract.tariffCost);
+        assert.deepEqual(done.market.history.map((ticket) => [ticket.cycle, ticket.phase]), [[1, "am"], [2, "am"], [3, "am"], [3, "pm"]]);
+        assert.equal(done.breakdown.total, done.market.net - done.opening);
+        assert.equal(tutorialParts.reduce((sum, part) => sum + done.breakdown[part], 0), done.breakdown.total);
+        assert.equal(done.breakdown.costs, -done.breakdown.tankFees - done.breakdown.clientFees - done.breakdown.tariffCost);
+        assert.equal(done.breakdown.parcel.priceMargin, barrels * (done.contract.fixedGross - done.buyQuote.price));
+        assert.deepEqual(done.market, game.replay(tutorial.seed, done.market.decisions, { withReview: false }));
+      }
+    }
+  }
+});
+
+test("wrong hedges show the live exposure and cannot advance the lesson", () => {
+  const start = tutorial.init();
+  const under = tutorial.buyQuote(start, { barrels: 2000, shortLots: 1 });
+  assert.equal(under.ok, false);
+  assert.equal(under.netLots, 1);
+  assert.equal(under.estimate.netLots, 1);
+  assert.match(under.error, /Sell 2 Dec lots/);
+  assert.equal(tutorial.buy(start, { barrels: 2000, shortLots: 1 }).state, start);
+  assert.equal(tutorial.buyQuote(start, { barrels: 2000, shortLots: 3 }).netLots, -1);
+  assert.equal(tutorial.buyQuote(start, { barrels: 2000 }).netLots, 2);
+
+  const bought = openTutorial();
+  const unclosed = tutorial.forwardQuote(bought, { route: "local", month: 1, closeLots: 0 });
+  assert.equal(unclosed.ok, false);
+  assert.equal(unclosed.netLots, -2);
+  assert.equal(unclosed.contract.fixedGross, 7295);
+  assert.match(unclosed.error, /Buy back the 2 Dec lots/);
+  assert.equal(tutorial.forward(bought, { route: "local", month: 1, closeLots: 0 }).state, bought);
+  assert.equal(tutorial.forwardQuote(bought, { route: "local", month: 1, closeLots: 3 }).netLots, 1);
+  assert.equal(tutorial.forwardQuote(bought, { route: "local", month: 1 }).netLots, -2);
+});
+
+test("invalid sizes, routes, months and premature actions preserve the current step", () => {
+  const start = tutorial.init();
+  for (const barrels of [0, 999, 3000, "1000", null, NaN]) {
+    assert.equal(tutorial.buy(start, { barrels, shortLots: 1 }).ok, false);
+  }
+  assert.equal(tutorial.buy(start, null).ok, false);
+  assert.equal(tutorial.forward(start, { route: "local", month: 1, closeLots: 1 }).state, start);
+  assert.equal(tutorial.settle(start).state, start);
+  const bought = openTutorial(1000);
+  for (const [route, month] of [["ship", 0], ["local", 4], ["gulf", "1"], ["local", null]]) {
+    const invalid = tutorial.forward(bought, { route, month, closeLots: 1 });
+    assert.equal(invalid.ok, false);
+    assert.equal(invalid.state, bought);
+    assert.equal(invalid.options.length, 8);
+  }
+  assert.equal(tutorial.forward(bought, null).ok, false);
+  assert.equal(tutorial.settle(bought).state, bought);
+  const done = tutorial.settle(bookTutorial(bought)).state;
+  assert.equal(tutorial.settle(done).ok, false);
+});
+
+test("the Local and Gulf Jan examples show how tariffs change the lesson result", () => {
+  const bought = openTutorial();
+  const local = tutorial.forwardQuote(bought, { route: "local", month: 1, closeLots: 2 });
+  const gulf = tutorial.forwardQuote(bought, { route: "gulf", month: 1, closeLots: 2 });
+  assert.deepEqual([local.fixedGross, local.tariff, local.netPrice], [7295, 0, 7295]);
+  assert.deepEqual([gulf.fixedGross, gulf.tariff, gulf.netPrice], [7345, 97, 7248]);
+  const { breakdown } = tutorial.settle(bookTutorial(bought)).state;
+  assert.deepEqual(breakdown, {
+    trading: 38000, price: 0, basis: 422000, spreads: 0, clients: 0, costs: -403700,
+    total: 56300, opening: 120000, closing: 176300, clientFees: 163700, tankFees: 240000, tariffCost: 0,
+    parcel: { priceMargin: 68000, hedgePnl: 56000, tariffCost: 0, netBeforeSharedCosts: 124000 },
+  });
+  const gulfBreakdown = tutorial.settle(bookTutorial(bought, "gulf")).state.breakdown;
+  assert.equal(gulfBreakdown.total, -37700);
+  assert.equal(gulfBreakdown.tariffCost, 194000);
+  assert.equal(breakdown.total - gulfBreakdown.total, 2000 * (local.netPrice - gulf.netPrice));
+});

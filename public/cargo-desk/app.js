@@ -972,6 +972,7 @@
 
   function renderGame(next) {
     state = next;
+    window.CargoTutorialUI?.offer(state.history.length === 0);
     quoteIndex = -1;
     renderHead();
     renderTerminal();
@@ -1108,7 +1109,8 @@
     saveRun();
     fields.disabled = true;
     element("confirm-button").disabled = true;
-    const controls = ["restart-button", "leaderboard-button", "help-button"].map(element);
+    const controls = ["restart-button", "leaderboard-button", "help-button", "tutorial-button", "tutorial-start", "tutorial-dismiss"]
+      .map(element).filter(Boolean);
     controls.forEach(control => { control.disabled = true; });
     form.setAttribute("aria-busy", "true");
 

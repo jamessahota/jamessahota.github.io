@@ -46,7 +46,7 @@
 }
 
 /* --------------------------------------------------------------------------
-   Run bar: where the run stands, and the three game controls
+   Run bar and tutorial entry
    -------------------------------------------------------------------------- */
 
 .cd-bar {
@@ -81,6 +81,48 @@
 
 .cd-bar .cd-mini {
   min-height: 2.5rem;
+}
+
+.cd-tutorial-prompt {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem 1rem;
+  margin-bottom: var(--space-4);
+  padding: 0.75rem clamp(0.75rem, 1vw + 0.5rem, 1rem);
+  border: 1px solid var(--line);
+  border-inline-start: 3px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--surface);
+  font-size: var(--text-sm);
+  color: var(--ink-2);
+}
+
+.cd-tutorial-prompt strong {
+  color: var(--ink);
+}
+
+.cd-tutorial-prompt__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.cd-tutorial-prompt__actions .cd-mini {
+  min-height: 2.75rem;
+}
+
+@media (max-width: 29rem) {
+  .cd-bar__actions:has(#tutorial-button:not([hidden])) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .cd-bar__actions:has(#tutorial-button:not([hidden])) .cd-mini {
+    min-height: 2.75rem;
+  }
 }
 
 .cd-badge {
@@ -1912,6 +1954,184 @@
 
 .cd-dialog .btn {
   margin-top: 1.4rem;
+}
+
+.cd-tutorial {
+  width: min(100% - 1.25rem, 32rem);
+  max-width: none;
+  max-height: calc(100dvh - 1.25rem);
+  padding: clamp(1rem, 0.75rem + 1.5vw, 1.6rem);
+  overscroll-behavior: contain;
+  scroll-padding-block-end: 4rem;
+}
+
+.cd-tutorial__header > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.65rem;
+  min-height: 2.4rem;
+  padding-inline-end: 2.75rem;
+}
+
+.cd-tutorial progress {
+  display: block;
+  width: 100%;
+  height: 0.3rem;
+  margin-top: 0.35rem;
+  appearance: none;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--line);
+  accent-color: var(--accent);
+}
+
+.cd-tutorial progress::-webkit-progress-bar {
+  border-radius: var(--radius);
+  background: var(--line);
+}
+
+.cd-tutorial progress::-webkit-progress-value {
+  border-radius: var(--radius);
+  background: var(--accent);
+}
+
+.cd-tutorial progress::-moz-progress-bar {
+  border-radius: var(--radius);
+  background: var(--accent);
+}
+
+.cd-tutorial h2 {
+  margin-top: 0.9rem;
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+.cd-tutorial #tutorial-instruction {
+  margin-top: 0.55rem;
+}
+
+.cd-tutorial__fields {
+  min-inline-size: 0;
+  margin: 0.85rem 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.cd-tutorial__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+  align-items: end;
+}
+
+.cd-tutorial__grid label {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.cd-tutorial__grid label:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
+
+.cd-tutorial__grid select {
+  width: 100%;
+  min-width: 0;
+  min-height: 2.75rem;
+  padding: 0.45rem 0.4rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--ink);
+  font: inherit;
+  font-size: 1rem;
+  text-overflow: ellipsis;
+}
+
+.cd-tutorial__quote {
+  margin-top: 0.65rem;
+  padding: 0.65rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--ink-2);
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+#tutorial-trade-quote {
+  margin-top: 0;
+  margin-bottom: 0.65rem;
+}
+
+.cd-tutorial__recap {
+  margin-top: 0.9rem;
+}
+
+.cd-tutorial__net {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.25rem 0.65rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+
+.cd-tutorial__net strong {
+  font-size: var(--text-xl);
+}
+
+.cd-tutorial__rows {
+  margin-top: 0.4rem;
+}
+
+.cd-tutorial__rows > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.65rem;
+  padding-block: 0.35rem;
+  border-bottom: 1px solid var(--line);
+  font-size: var(--text-sm);
+}
+
+.cd-tutorial__rows dd {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.cd-tutorial__explanation,
+.cd-tutorial > .cd-tutorial__feedback:not(.label) {
+  margin-top: 0.65rem;
+  font-size: var(--text-sm);
+  color: var(--ink-2);
+}
+
+.cd-tutorial > .cd-tutorial__feedback:empty {
+  margin: 0;
+}
+
+.cd-tutorial > .cd-tutorial__feedback.is-error {
+  color: var(--cd-down);
+  font-weight: 600;
+}
+
+.cd-tutorial__actions {
+  position: sticky;
+  z-index: 1;
+  bottom: -1rem;
+  padding-block: 0.7rem 0.1rem;
+  background: var(--surface);
+}
+
+.cd-tutorial__actions .btn {
+  min-height: 2.75rem;
+  width: 100%;
+  margin-top: 0;
 }
 
 .cd-dialog__wide {
