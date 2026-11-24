@@ -30,7 +30,7 @@ You start with 6,000 barrels of crude in a 10,000-barrel tank at Cushing, hedged
 - **Negotiation.** A local price is an opening price. You can ask the counterparty for more. They may agree, come back once with a counter, or walk away and close the route for the session. An emergency bid can clear an existing overflow shortfall after a local buyer walks.
 - **Storage.** The tank costs a fixed lease whether it is full or empty. Clients pay per barrel to use it. Anything that does not fit, yours or theirs, needs overflow space booked off-site.
 - **Hedging and the roll.** Four futures months trade on the ticket. Crude owned plus futures must stay within two lots of flat. In generated markets the first month expires at the close of the fifth day. The historical scenarios use their own expiry dates. The hedge shortcut adjusts within the gross and net limits.
-- **The curve.** When futures sit above spot, hedged crude in the tank gains as the gap closes, so storing pays. When they sit below spot, the same position loses.
+- **The curve.** When futures trade above spot (contango), the spread can make it worthwhile to store hedged crude if it covers tank rent, fees and the cost of getting the crude to a buyer.
 - **Events and the stocks report.** Some days an event is on watch for the coming night, with its odds and roughly what it would do to futures and to spot, and midday news can move those odds. The weekly stocks report lands at midday on both Wednesdays.
 - **Shocks.** About one day in ten the market is hit by something nobody saw coming and prices move by several dollars. A shock that moves every price does nothing to a hedged book. One that moves spot hardest hits anyone holding crude.
 
