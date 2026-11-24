@@ -728,6 +728,11 @@
   margin-top: 0.6rem;
 }
 
+.cd-hedge-status {
+  margin-top: 0.4rem;
+  color: var(--ink-2);
+}
+
 .cd-input {
   display: grid;
   gap: 0.3rem;
@@ -1371,6 +1376,10 @@
   margin-top: 0.9rem;
   font-size: var(--text-sm);
   color: var(--muted);
+}
+
+.cd-board-archive {
+  margin-top: 1.1rem;
 }
 
 .cd-board-empty {

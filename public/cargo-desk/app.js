@@ -39,7 +39,7 @@
 
   function lotsText(lots) {
     const size = Math.abs(lots);
-    return (Number.isInteger(size) ? String(size) : size.toFixed(1)) + (size === 1 ? " lot" : " lots");
+    return number(size) + (size === 1 ? " lot" : " lots");
   }
 
   function exposureText(lots) {
@@ -210,11 +210,18 @@
       storage: inputs.storage.valueAsNumber,
       storageCycles: inputs.storageCycles.valueAsNumber,
       client: state.round.orderBook.client ? form.elements.client.value : "none",
-      futuresTrades: futuresInputs.map(input => input.value.trim() === "" ? 0 : input.valueAsNumber),
+      futuresTrades: futuresInputs.map(input => !input.validity.badInput && input.value === "" ? 0 : input.valueAsNumber),
     };
   }
 
+  function showHedgeStatus(text = "") {
+    const status = element("hedge-shortcut-status");
+    status.hidden = !text;
+    status.textContent = text;
+  }
+
   function updateTicket() {
+    showHedgeStatus();
     const draft = readOrder();
     const book = state.round.orderBook;
     const result = preview(state, draft);
@@ -608,15 +615,47 @@
     updateTicket();
   });
 
-  // Sets the Dec order so that crude plus futures is as close to flat as whole lots allow.
+  // Adjust only December and leave every other order intact.
   element("hedge-flat").addEventListener("click", () => {
     if (busy || !state.round) return;
     const draft = readOrder();
-    const barrels = preview(state, draft).barrels;
-    const others = state.futuresPositions.reduce((total, held, month) =>
-      total + held + (month && Number.isSafeInteger(draft.futuresTrades[month]) ? draft.futuresTrades[month] : 0), 0);
-    futuresInputs[0].value = String(-Math.round(barrels / lot + others));
+    const otherTrades = draft.futuresTrades.slice(1);
+    if (otherTrades.some(quantity => !Number.isSafeInteger(quantity) || Math.abs(quantity) > 2 * maxFuturesLots)) {
+      showHedgeStatus("Enter valid whole-lot orders in the other months first.");
+      return;
+    }
+
+    const current = preview(state, draft);
+    if (current.errors.side || current.errors.barrels) {
+      showHedgeStatus("Enter a valid crude order before adjusting the December hedge.");
+      return;
+    }
+
+    const otherPositions = otherTrades.map((quantity, index) => state.futuresPositions[index + 1] + quantity);
+    const grossRoom = maxFuturesLots - otherPositions.reduce((total, position) => total + Math.abs(position), 0);
+    if (grossRoom < 0) {
+      showHedgeStatus("Reduce open lots in the other months before adjusting December.");
+      return;
+    }
+
+    const exposureWithoutDec = current.barrels / lot + otherPositions.reduce((sum, position) => sum + position, 0);
+    const flatTarget = -Math.round(exposureWithoutDec);
+    const decTarget = Math.min(grossRoom, Math.max(-grossRoom, flatTarget));
+    const decTrade = decTarget - state.futuresPositions[0];
+    const adjusted = preview(state, { ...draft, futuresTrades: [decTrade, ...otherTrades] });
+    if (adjusted.errors.futuresTrades || adjusted.errors.exposure) {
+      showHedgeStatus("December alone cannot bring the ticket within the limits. Reduce open lots in another month or change the crude order.");
+      return;
+    }
+
+    futuresInputs[0].value = String(decTrade);
     updateTicket();
+    if (!adjusted.netLots) showHedgeStatus("Net exposure is flat after this ticket.");
+    else if (decTarget !== flatTarget) {
+      showHedgeStatus("The gross limit leaves " + exposureText(adjusted.netLots) + ". Change the crude order or adjust another month to get closer to flat.");
+    } else {
+      showHedgeStatus("The closest whole-lot hedge leaves " + exposureText(adjusted.netLots) + ".");
+    }
   });
 
   form.addEventListener("submit", async event => {

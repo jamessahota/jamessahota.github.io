@@ -1,5 +1,6 @@
 (function () {
   const storagePrefix = "cargo-desk-score-v3:";
+  const archivePrefix = "cargo-desk-campaign-v2:score:";
   const limit = 20;
   const date = new Intl.DateTimeFormat("en-US", { dateStyle: "medium" });
   const wholeDollars = new Intl.NumberFormat("en-US", {
@@ -57,20 +58,21 @@
       try { storage = view?.localStorage; } catch { storage = null; }
     }
     let canPersist = !!storage;
-    let lastRead = [];
+    let lastRead = { ranked: [], archived: [] };
     const unsaved = new Map();
 
     function readSaved() {
-      if (!storage) return [];
+      if (!storage) return lastRead;
       try {
-        const scores = [];
+        const scores = { ranked: [], archived: [] };
         for (let index = 0; index < storage.length; index++) {
           const key = storage.key(index);
-          if (!key?.startsWith(storagePrefix)) continue;
+          const prefix = key?.startsWith(storagePrefix) ? storagePrefix : key?.startsWith(archivePrefix) ? archivePrefix : null;
+          if (!prefix) continue;
           let saved;
           try { saved = JSON.parse(storage.getItem(key)); } catch { continue; }
           const score = cleanRecord(saved);
-          if (score && key === storagePrefix + score.id) scores.push(score);
+          if (score && key === prefix + score.id) scores[prefix === storagePrefix ? "ranked" : "archived"].push(score);
         }
         lastRead = scores;
       } catch {
@@ -94,66 +96,99 @@
       return node;
     }
 
-    function render(scores = rankScores(readSaved()).slice(0, limit)) {
-      const focused = doc.activeElement;
-      let focusAfterRender = null;
-      const content = [];
-      if (scores.length > 0) {
-        const table = element("table", undefined, "cd-table");
-        table.append(element("caption", "Best ranked runs, by final P&L", "visually-hidden"));
-        const headings = element("tr");
-        for (const label of ["Rank", "Run", "Final P&L", "Practise"]) {
-          const header = element("th", label);
-          header.scope = "col";
-          if (label === "Practise") header.firstChild.replaceWith(element("span", label, "visually-hidden"));
-          if (label === "Final P&L") header.className = "num";
-          if (label === "Final P&L") header.setAttribute("aria-sort", "descending");
-          headings.append(header);
+    function scoreTable(scores, archived) {
+      const table = element("table", undefined, "cd-table");
+      table.append(element("caption", archived ? "Earlier runs, by final P&L" : "Best ranked runs, by final P&L", "visually-hidden"));
+      const headings = element("tr");
+      for (const label of ["Rank", "Run", "Final P&L"]) {
+        const header = element("th", label);
+        header.scope = "col";
+        if (label === "Final P&L") {
+          header.className = "num";
+          header.setAttribute("aria-sort", "descending");
         }
-        const head = element("thead");
-        head.append(headings);
-        table.append(head);
-        const body = element("tbody");
-        scores.forEach((score, index) => {
-          const row = element("tr");
-          const rank = element("th", String(index + 1));
-          rank.scope = "row";
-          const run = element("td");
-          const completion = new Date(score.completedAt);
-          const completed = element("time", date.format(completion));
-          completed.dateTime = completion.toISOString();
-          const meta = element("small");
-          meta.append(completed);
-          if (score.drawdown !== null) meta.append(" · largest fall " + dollars(score.drawdown));
-          run.append("Seed " + score.seed, meta);
-          const amount = element("td", (score.net < 0 ? "−" : score.net > 0 ? "+" : "") + dollars(score.net),
-            score.net < 0 ? "negative" : score.net > 0 ? "positive" : "");
+        headings.append(header);
+      }
+      if (!archived) {
+        const practice = element("th");
+        practice.scope = "col";
+        practice.append(element("span", "Practise", "visually-hidden"));
+        headings.append(practice);
+      }
+      const head = element("thead");
+      head.append(headings);
+      table.append(head);
+      const body = element("tbody");
+      scores.forEach((score, index) => {
+        const row = element("tr");
+        const rank = element("th", String(index + 1));
+        rank.scope = "row";
+        const run = element("td");
+        const completion = new Date(score.completedAt);
+        const completed = element("time", date.format(completion));
+        completed.dateTime = completion.toISOString();
+        const meta = element("small");
+        meta.append(completed);
+        if (score.drawdown !== null) meta.append(" · largest fall " + dollars(score.drawdown));
+        run.append("Seed " + score.seed, meta);
+        const amount = element("td", (score.net < 0 ? "−" : score.net > 0 ? "+" : "") + dollars(score.net),
+          score.net < 0 ? "negative" : score.net > 0 ? "positive" : "");
+        row.append(rank, run, amount);
+        if (!archived) {
           const replayCell = element("td");
           const replay = element("button", "Practise", "cd-mini");
           replay.type = "button";
           replay.dataset.run = score.id;
           replay.setAttribute("aria-label", "Practise on seed " + score.seed + ", rank " + (index + 1));
           replay.addEventListener("click", () => onReplay?.(score.seed));
-          if (focused?.dataset?.run === score.id && container.contains(focused)) focusAfterRender = replay;
           replayCell.append(replay);
-          row.append(rank, run, amount, replayCell);
-          body.append(row);
-        });
-        table.append(body);
+          row.append(replayCell);
+        }
+        body.append(row);
+      });
+      table.append(body);
+      return table;
+    }
+
+    function paint(scores, archived) {
+      const focused = doc.activeElement;
+      const previousArchive = container.querySelector(".cd-board-archive");
+      let focusAfterRender = null;
+      const content = [];
+      if (scores.length > 0) {
+        const table = scoreTable(scores, false);
+        if (focused?.dataset?.run && container.contains(focused)) {
+          focusAfterRender = Array.from(table.querySelectorAll("button[data-run]"))
+            .find((button) => button.dataset.run === focused.dataset.run);
+        }
         content.push(table);
       } else {
         content.push(element("p", "Finish a ranked run to set your first score.", "cd-board-empty"));
       }
       content.push(element("p", canPersist ? "Your best 20 ranked runs are kept in this browser. Practising on a seed does not change them." :
         "Browser storage is unavailable. Scores are kept while this page stays open.", "cd-board-note"));
+      if (archived.length > 0) {
+        const disclosure = element("details", undefined, "cd-details cd-board-archive");
+        const summary = element("summary", "Earlier leaderboard scores (" + archived.length + ")");
+        disclosure.open = previousArchive?.open ?? (scores.length === 0);
+        disclosure.append(summary, element("p", "These runs were scored under the previous rules.", "cd-board-note"),
+          scoreTable(archived.slice().sort(compareScores), true));
+        if (focused === previousArchive?.firstElementChild) focusAfterRender = summary;
+        content.push(disclosure);
+      }
       container.replaceChildren(...content);
       focusAfterRender?.focus({ preventScroll: true });
+    }
+
+    function render() {
+      const saved = readSaved();
+      paint(rankScores(saved.ranked).slice(0, limit), saved.archived);
     }
 
     function record(input) {
       const score = cleanRecord(input, Date.now());
       if (!score) return null;
-      const saved = readSaved();
+      const { ranked: saved, archived } = readSaved();
       const known = saved.find((item) => item.id === score.id) || unsaved.get(score.id);
       if (!known) {
         try {
@@ -172,13 +207,13 @@
         unsaved.delete(entry.id);
         try { storage?.removeItem(storagePrefix + entry.id); } catch { canPersist = false; }
       }
-      render(best);
+      paint(best, archived);
       const place = best.findIndex((entry) => entry.id === score.id);
       return place === -1 ? null : place + 1;
     }
 
     view?.addEventListener("storage", (event) => {
-      if (event.key === null || event.key.startsWith(storagePrefix)) render();
+      if (event.key === null || event.key?.startsWith(storagePrefix) || event.key?.startsWith(archivePrefix)) render();
     });
     render();
     return { render, record };

@@ -166,6 +166,7 @@ import '../styles/cargo-desk.css';
               <tbody id="futures-rows"></tbody>
             </table>
             <p class="cd-hint" id="hedge-hint"></p>
+            <p class="cd-hint cd-hedge-status" id="hedge-shortcut-status" role="status" hidden></p>
           </fieldset>
         </fieldset>
 
@@ -237,7 +238,7 @@ import '../styles/cargo-desk.css';
     <div><dt>The tank</dt><dd>Tank A holds 10,000 barrels and costs a fixed lease every cycle, full or empty. Clients pay you per barrel to store their crude in it. Anything that does not fit, yours or theirs, needs overflow space booked off-site.</dd></div>
     <div><dt>Physical trades</dt><dd>One physical order per cycle: buy, sell locally or, when a pipeline slot is open, ship to the Gulf Coast. Bids and offers move around spot with events at the terminal. Selling into a bid above spot and buying an offer below it is where the physical book earns its money.</dd></div>
     <div><dt>Contango and backwardation</dt><dd>When futures sit above spot (contango), hedged crude in the tank gains as the gap closes, so storing pays. When futures sit below spot (backwardation), the same position loses, so sell.</dd></div>
-    <div><dt>The desk limit</dt><dd>Crude owned plus futures must stay within two lots of flat, long or short. Sell crude and you must buy back futures on the same ticket. The Hedge to flat button sets the Dec order for you. Calendar spreads are free to trade: buy one month and sell another.</dd></div>
+    <div><dt>The desk limit</dt><dd>Crude owned plus futures must stay within two lots of flat, long or short. A crude sale may require buying back futures on the same ticket. Hedge to flat adjusts the December order as far as the desk limits allow and leaves the other months alone. To trade a calendar spread, buy one month and sell another.</dd></div>
     <div><dt>Ranked and practice runs</dt><dd>The first play of a fresh random market is ranked on the leaderboard. Typing a seed, or replaying one you have already seen, is a practice run. The prices repeat, so it would not be a fair score.</dd></div>
   </dl>
   <form method="dialog"><button class="btn">Back to the desk</button></form>

@@ -26,6 +26,7 @@ const roles = (await getExperience()).filter((role) => role.data.showOnHome);
 const projects = await getPublicProjects();
 const project = projects.find((entry) => entry.data.featured);
 const investmentProject = projects.find((entry) => entry.data.investmentCase);
+const cargoDeskProject = projects.find((entry) => entry.data.game === 'cargo-desk');
 const headlineLines = profile.positioning.split(/(?=energy and)/);
 
 const jsonLd = {
@@ -135,6 +136,7 @@ const jsonLd = {
         {investmentProject?.data.investmentCase && (
           <ProjectPreview entry={investmentProject} id="investment-proposal" />
         )}
+        {cargoDeskProject && <ProjectPreview entry={cargoDeskProject} />}
       </section>
     )
   }
