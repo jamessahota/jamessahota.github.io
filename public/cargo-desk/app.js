@@ -220,6 +220,7 @@
     kind.title = run.weekly ? "Everyone plays this week's market." : history ? "Real prices, so the outcome is known. Scenarios are practice runs." :
       run.ranked ? "This run counts for the leaderboard." : "This seed has been played or typed in, so the run is not ranked.";
     element("restart-button").hidden = Boolean(run.weekly);
+    element("scenario-button").hidden = Boolean(run.weekly) || !scenarios.length;
     set("seed-value", run.weekly ? "Week of " + dateLabel(run.weekly.week) : history ? history.title + " · " + history.period : "Seed " + run.seed);
     element("seed-value").title = history ? history.title + " · " + history.period : run.seed;
     set("foot-note", history ? "Prices: U.S. Energy Information Administration, daily WTI spot and futures settlements · Bids, clients, storage rates and counterparties are the game’s own · 1 lot = 1,000 bbl" :
@@ -1140,10 +1141,14 @@
     return true;
   }
 
+  function replacingRunNote() {
+    if (!state.history.length || !state.round) return "";
+    return "Starting another market replaces the current run" + (run.ranked ? ", and it cannot be ranked later. " : ". ");
+  }
+
   function openNewRun(seed = "") {
     if (fields.disabled || run.weekly) return;
-    const midRun = state.history.length > 0 && !!state.round;
-    set("restart-message", (midRun ? "Starting a new run abandons this one" + (run.ranked ? ", and it cannot be ranked later. " : ". ") : "") +
+    set("restart-message", replacingRunNote() +
       "A new random market is ranked. A seed you type in is a practice run.");
     element("seed-input").value = seed;
     element("seed-input").setCustomValidity("");
@@ -1329,7 +1334,7 @@
     fields.disabled = true;
     element("confirm-button").disabled = true;
     const controls = ["restart-button", "leaderboard-button", "help-button", "tutorial-button", "tutorial-start", "tutorial-dismiss",
-      "weekly-button", "weekly-leave"]
+      "scenario-button", "weekly-button", "weekly-leave"]
       .map(element).filter(Boolean);
     controls.forEach(control => { control.disabled = true; });
     form.setAttribute("aria-busy", "true");
@@ -1441,7 +1446,13 @@
     begin(randomSeed(), true);
   });
 
-  // The historical scenarios, listed in the New run dialog.
+  element("scenario-button").addEventListener("click", () => {
+    if (fields.disabled || run.weekly || !scenarios.length) return;
+    set("scenario-message", replacingRunNote() + "Each practice run covers ten historical trading days.");
+    element("scenario-dialog").showModal();
+  });
+
+  // The historical scenarios have their own picker.
   for (const scenario of scenarios) {
     const item = append(element("scenario-list"), "li");
     const button = append(item, "button", undefined, "cd-scenario");
@@ -1450,12 +1461,11 @@
     append(button, "b", scenario.title);
     append(button, "span", scenario.summary, "cd-scenario__text");
     button.addEventListener("click", () => {
-      if (fields.disabled) return;
-      element("restart-dialog").close();
+      if (fields.disabled || run.weekly) return;
+      element("scenario-dialog").close();
       begin("scenario-" + scenario.key, false, true, scenario.key);
     });
   }
-  element("scenario-list").closest(".cd-scenarios").hidden = scenarios.length === 0;
 
   // Light and dark. Standalone, the game has its own switch, saved under the same
   // key as the main site. On the site, the site's header switch does the work.

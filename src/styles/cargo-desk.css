@@ -2372,23 +2372,15 @@
   }
 }
 
-/* Historical scenarios in the New run dialog. */
+/* Historical scenario picker. */
+#scenario-title {
+  padding-inline-end: 2rem;
+}
+
 .cd-scenarios {
-  margin-top: 1.4rem;
-  padding-top: 1.1rem;
-  border-top: 1px solid var(--line);
-}
-
-.cd-scenarios__note {
-  margin-top: 0.3rem;
-  font-size: var(--text-sm);
-  color: var(--muted);
-}
-
-.cd-scenarios ul {
   display: grid;
   gap: 1px;
-  margin: 0.7rem 0 0;
+  margin: 1rem 0 0;
   padding: 0;
   background: var(--line);
   border: 1px solid var(--line);

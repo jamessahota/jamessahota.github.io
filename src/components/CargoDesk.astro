@@ -21,7 +21,8 @@ import '../styles/cargo-desk.css';
       <button class="cd-mini" id="tutorial-button" type="button" aria-haspopup="dialog" aria-controls="tutorial-dialog">Tutorial</button>
       <button class="cd-mini" id="help-button" type="button">How to play</button>
       <button class="cd-mini" id="leaderboard-button" type="button">Leaderboard</button>
-      <button class="cd-mini cd-mini--solid" id="restart-button" type="button">New run</button>
+      <button class="cd-mini" id="scenario-button" type="button" aria-haspopup="dialog" aria-controls="scenario-dialog" hidden>Historical scenarios</button>
+      <button class="cd-mini cd-mini--solid" id="restart-button" type="button" aria-haspopup="dialog" aria-controls="restart-dialog">New run</button>
       <button class="cd-mini" id="weekly-leave" type="button" hidden>Back to campaign</button>
     </div>
   </div>
@@ -441,7 +442,7 @@ import '../styles/cargo-desk.css';
     <details class="cd-tutorial__note">
       <summary>What changes in the full game?</summary>
       <dl>
-        <div><dt>New tickets</dt><dd>Review prices, tank space, fees and net exposure before committing each morning. Generated markets can open a shorter afternoon ticket after news. A new run starts a fresh ten-cycle market or opens a historical scenario.</dd></div>
+        <div><dt>New tickets</dt><dd>Review prices, tank space, fees and net exposure before committing each morning. Generated markets can open a shorter afternoon ticket after news. Choose New run for a generated market or Historical scenarios to replay a real episode.</dd></div>
         <div><dt>Futures limits and expiry</dt><dd>The desk allows up to two net lots long or short and twenty total open futures lots. A roll closes an expiring contract and opens a later one to keep the hedge. The order ticket flags expiry and offers Roll and hedge.</dd></div>
         <div><dt>Calendar spreads</dt><dd>Buy one futures month and sell another to trade the price difference between them. A later price above a nearer price is contango. The reverse is backwardation.</dd></div>
       </dl>
@@ -490,11 +491,6 @@ import '../styles/cargo-desk.css';
   <h2 id="restart-title">Start a new run</h2>
   <p id="restart-message"></p>
   <button class="btn cd-dialog__wide" id="random-run" type="button">New ranked market</button>
-  <div class="cd-scenarios">
-    <p class="label">Or play a historical scenario</p>
-    <p class="cd-scenarios__note">Ten historical trading days. Each is a practice run.</p>
-    <ul id="scenario-list"></ul>
-  </div>
   <form id="seed-form" class="cd-seed" novalidate>
     <label class="label" for="seed-input">Or practise on a seed</label>
     <div class="cd-seed__row">
@@ -502,6 +498,13 @@ import '../styles/cargo-desk.css';
       <button class="btn btn--secondary" type="submit">Practise</button>
     </div>
   </form>
+</dialog>
+
+<dialog id="scenario-dialog" class="cd-dialog cd-dialog--narrow" aria-labelledby="scenario-title" aria-describedby="scenario-message">
+  <form method="dialog"><button class="cd-dialog__close" aria-label="Close historical scenarios" autofocus>×</button></form>
+  <h2 id="scenario-title">Play a historical scenario</h2>
+  <p id="scenario-message"></p>
+  <ul class="cd-scenarios" id="scenario-list"></ul>
 </dialog>
 
 <dialog id="leaderboard-dialog" class="cd-dialog" aria-labelledby="leaderboard-title">
@@ -528,4 +531,4 @@ import '../styles/cargo-desk.css';
 <script is:inline src="/cargo-desk/tutorial.js?v=3" defer></script>
 <script is:inline src="/cargo-desk/weekly.js?v=1" defer></script>
 <script is:inline src="/cargo-desk/share.js?v=2" defer></script>
-<script is:inline src="/cargo-desk/app.js?v=10" defer></script>
+<script is:inline src="/cargo-desk/app.js?v=11" defer></script>

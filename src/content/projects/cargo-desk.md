@@ -42,17 +42,13 @@ After each ticket the desk explains the profit or loss: trade prices against spo
 
 ## Historical scenarios
 
-From New run you can also play seven real episodes on real prices: the two weeks in April 2020 when WTI settled below zero, the March 2020 price war, the weeks after Russia invaded Ukraine in 2022, the attack on Abqaiq in September 2019, the Lehman week of September 2008 with its record squeeze on the expiring contract, OPEC’s decision not to cut output in November 2014, and Hurricane Harvey in 2017. Each is ten real trading days. Every morning you get a briefing on what was known at the time, and the day's closing marks after you commit.
+Open **Historical scenarios** to play seven episodes using real prices: the two weeks in April 2020 when WTI settled below zero, the March 2020 price war, the weeks after Russia invaded Ukraine in 2022, the attack on Abqaiq in September 2019, the Lehman week of September 2008 with its record squeeze on the expiring contract, OPEC’s decision not to cut output in November 2014, and Hurricane Harvey in 2017. Each is ten real trading days. Every morning you get a briefing on what was known at the time, and the day's closing marks after you commit.
 
 Trading marks use the U.S. Energy Information Administration’s daily Cushing spot and NYMEX WTI futures series. Where a settlement is unavailable, the displayed estimate is view-only. The bids and offers around spot, the clients, the storage rates and the counterparties are still the game's own, tuned to suit each period. Scenarios are practice runs: the outcome is a matter of record, so they are not ranked.
 
 ## Ranked and practice runs
 
 A market is generated from a seed, and its prices are the same every time that seed is played. Only the first play of a fresh random market is ranked on the leaderboard. Typing in a seed, or replaying one already seen, is a practice run. Scores are kept in your own browser and are not shared.
-
-## Sharing a result
-
-The debrief has a share button. It makes a result card as an image and as a few lines of text, with one square for each day. The card includes drawdown and a Play this market link. The link opens the same seed or historical scenario as a practice run after you confirm.
 
 ## Weekly challenge
 
