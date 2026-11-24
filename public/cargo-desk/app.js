@@ -278,6 +278,9 @@
     if (closed) {
       set("outbound-value", "Book settled");
       set("outbound-note", "All crude sold and futures closed");
+    } else if (state.reserved > 0 && state.availableBarrels === 0) {
+      set("outbound-value", "Crude committed");
+      set("outbound-note", number(state.reserved) + " bbl committed to delivery. None available to sell.");
     } else {
       set("outbound-value", book.sell.max ? "Local bid " + quote(book.sell.price) : "Nothing to sell");
       set("outbound-note", [
