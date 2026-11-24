@@ -100,6 +100,18 @@ import '../styles/cargo-desk.css';
           <p class="cd-node__note" id="outbound-note"></p>
         </div>
       </div>
+      <div class="cd-tank-actions" id="tank-actions" role="group" aria-label="Tank orders" hidden>
+        <p class="cd-tank-actions__decision" id="tank-decision" role="status" hidden></p>
+        <div class="cd-tank-actions__buttons">
+          <button class="cd-mini" id="tank-buy" type="button" aria-controls="order-barrels">Buy crude</button>
+          <button class="cd-mini" id="tank-sell" type="button" aria-controls="order-barrels">Sell crude</button>
+          <button class="cd-mini" id="tank-book" type="button" aria-controls="storage-step">Book overflow</button>
+          <button class="cd-mini" id="tank-client-accept" type="button" aria-controls="client-step" hidden>Accept client</button>
+          <button class="cd-mini" id="tank-client-defer" type="button" aria-controls="client-step" hidden>Reschedule</button>
+          <button class="cd-mini" id="tank-client-redirect" type="button" aria-controls="client-step" hidden>Turn away</button>
+          <button class="cd-mini cd-tank-actions__details" id="tank-ticket" type="button" aria-controls="ticket">Order details <span aria-hidden="true">↓</span></button>
+        </div>
+      </div>
       <div class="cd-overflow">
         <p class="label">Overflow, off-site</p>
         <div class="cd-overflow__bar" aria-hidden="true"><i id="overflow-fill"></i></div>
@@ -130,7 +142,11 @@ import '../styles/cargo-desk.css';
         <p class="label" id="cycle-headline"></p>
         <p class="cd-last__news" id="cycle-news" hidden></p>
         <p class="cd-last__line"><span id="cycle-outcome"></span><strong class="numeric" id="cycle-delta"></strong></p>
-        <p class="cd-last__why numeric" id="cycle-why"></p>
+        <p class="cd-last__why" id="cycle-why"></p>
+        <details class="cd-last__breakdown" id="cycle-breakdown" hidden>
+          <summary>P&amp;L breakdown</summary>
+          <ul id="cycle-parts" role="list"></ul>
+        </details>
       </div>
 
       <div class="cd-brief">
@@ -270,13 +286,27 @@ import '../styles/cargo-desk.css';
         </fieldset>
 
         <div class="cd-review" id="order-review">
-          <dl aria-live="polite" aria-atomic="true">
-            <div><dt class="label">Crude after</dt><dd id="order-position">–</dd></div>
-            <div><dt class="label">Net position</dt><dd><span id="order-exposure">–</span><span class="cd-gauge" aria-hidden="true"><i></i><b id="gauge-marker"></b></span></dd></div>
-            <div><dt class="label" id="scenario-label">If prices move</dt><dd id="order-scenario">–</dd></div>
-            <div><dt class="label">Logistics</dt><dd id="order-fees">–</dd></div>
-          </dl>
+          <details class="cd-details cd-review__details">
+            <summary>Price and logistics details</summary>
+            <dl>
+              <div><dt class="label">Crude after</dt><dd id="order-position">–</dd></div>
+              <div><dt class="label">Net position</dt><dd><span id="order-exposure">–</span><span class="cd-gauge" aria-hidden="true"><i></i><b id="gauge-marker"></b></span></dd></div>
+              <div><dt class="label" id="scenario-label">If prices move</dt><dd id="order-scenario">–</dd></div>
+              <div><dt class="label">Logistics</dt><dd id="order-fees">–</dd></div>
+            </dl>
+          </details>
           <div class="cd-commitbar">
+            <dl class="cd-impact" id="ticket-impact" aria-label="After these orders" aria-live="polite" aria-atomic="true">
+              <div><dt class="label">Tank space</dt><dd id="impact-space">–</dd></div>
+              <div><dt class="label">Overflow</dt><dd id="impact-storage">–</dd></div>
+              <div>
+                <dt class="label">Hedge</dt>
+                <dd class="cd-impact__hedge">
+                  <span id="impact-hedge" tabindex="-1">–</span>
+                  <button class="cd-mini cd-impact__adjust" id="impact-adjust-hedge" type="button" aria-controls="futures-rows" hidden>Adjust hedge</button>
+                </dd>
+              </div>
+            </dl>
             <p class="cd-message" id="order-error" role="status" hidden></p>
             <button class="btn cd-commit" id="confirm-button" type="submit" disabled>Commit orders</button>
           </div>
@@ -526,9 +556,9 @@ import '../styles/cargo-desk.css';
 <script is:inline src="/cargo-desk/engine.js?v=7" defer></script>
 <script is:inline src="/cargo-desk/scenarios.js?v=8" defer></script>
 <script is:inline src="/cargo-desk/leaderboard.js?v=7" defer></script>
-<script is:inline src="/cargo-desk/motion.js?v=7" defer></script>
+<script is:inline src="/cargo-desk/motion.js?v=8" defer></script>
 <script is:inline src="/cargo-desk/tutorial-engine.js?v=2" defer></script>
 <script is:inline src="/cargo-desk/tutorial.js?v=3" defer></script>
 <script is:inline src="/cargo-desk/weekly.js?v=1" defer></script>
 <script is:inline src="/cargo-desk/share.js?v=2" defer></script>
-<script is:inline src="/cargo-desk/app.js?v=11" defer></script>
+<script is:inline src="/cargo-desk/app.js?v=12" defer></script>

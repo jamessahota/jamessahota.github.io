@@ -14,6 +14,45 @@
   let panel;
   let settlePanel;
 
+  function shouldShowTape(segments) {
+    // The quotes are in cents per barrel. Check both intraday jumps and the net move.
+    const largeMove = (from, to) => Math.max(Math.abs(to.spot - from.spot), Math.abs(to.front - from.front)) >= 150;
+    return segments.length > 0 && (segments.some(({ event, from, to }) => event || largeMove(from, to)) ||
+      largeMove(segments[0].from, segments.at(-1).to));
+  }
+
+  async function moveTank(tank, levels, capacity) {
+    if (still() || document.hidden) return;
+    const { top, bottom } = tank.getBoundingClientRect();
+    if (top >= window.innerHeight || bottom <= 0) return;
+    const changed = levels.filter(({ fill, from, to }) => from !== to && fill.animate);
+    if (changed.length === 0) return;
+
+    const duration = 340;
+    tank.classList.add("is-settling");
+    try {
+      const animations = changed.map(({ fill, from, to }) => fill.animate(
+        [{ height: from / capacity * 100 + "%" }, { height: to / capacity * 100 + "%" }],
+        { duration, easing: "ease-out" },
+      ));
+      await new Promise(resolve => {
+        const finish = () => {
+          window.clearTimeout(deadline);
+          document.removeEventListener("visibilitychange", onVisibility);
+          window.removeEventListener("pagehide", finish);
+          animations.forEach(animation => animation.cancel());
+          resolve();
+        };
+        const onVisibility = () => { if (document.hidden) finish(); };
+        const deadline = window.setTimeout(finish, duration);
+        document.addEventListener("visibilitychange", onVisibility);
+        window.addEventListener("pagehide", finish);
+      });
+    } finally {
+      tank.classList.remove("is-settling");
+    }
+  }
+
   // A small repeatable source of wiggle. The tape between two real prices is drawn for
   // effect: only the prices at each end of a session come from the game.
   function wiggle(seed) {
@@ -60,7 +99,7 @@
   }
 
   async function transition({ title, time, label, frontName, segments, delta }) {
-    if (panel || !segments?.length) return;
+    if (panel || !segments?.length || still()) return;
     const activePanel = build();
     panel = activePanel;
     const find = (selector) => activePanel.querySelector(selector);
@@ -165,7 +204,7 @@
       return true;
     }
 
-    const duration = still() ? 0 : 1500 * segments.length;
+    const duration = 1500 * segments.length;
     const hold = newsItems.length ? 1300 : 700;
     await new Promise((resolve) => {
       let finished = false;
@@ -212,7 +251,7 @@
 
       const start = performance.now();
       const tick = (now) => {
-        const progress = duration ? clamp((now - start) / duration) : 1;
+        const progress = clamp((now - start) / duration);
         if (!paint(progress)) {
           finish(false);
           return;
@@ -239,5 +278,5 @@
     window.setTimeout(() => departing.remove(), 240);
   }
 
-  window.CargoMotion = { transition, reveal };
+  window.CargoMotion = { transition, reveal, shouldShowTape, moveTank };
 })();

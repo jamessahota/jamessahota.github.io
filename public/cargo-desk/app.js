@@ -4,7 +4,7 @@
   const { replay, preview, hedgeOrder, negotiate, dateLabel, totalCycles, capacity, lot, maxFuturesLots, netLimitLots } = window.CargoDesk;
   // Historical scenarios: real prices in place of the generated market.
   const scenarios = window.CargoScenarios || [];
-  const { transition, reveal } = window.CargoMotion;
+  const { transition, reveal, shouldShowTape, moveTank } = window.CargoMotion;
   const root = document.documentElement;
   const element = (id) => document.getElementById(id);
   const set = (id, value) => { element(id).textContent = value; };
@@ -251,6 +251,7 @@
     const book = state.round?.orderBook;
     element("tank-grip").hidden = closed;
     element("tank-draft").hidden = closed;
+    element("tank-actions").hidden = closed;
     set("location-clock", state.market.time + (state.scenario ? "" : " CT"));
 
     set("inbound-value", closed ? "Run closed" : state.incoming ? number(state.incoming) + " bbl" : "None due");
@@ -466,6 +467,84 @@
     button.setAttribute("aria-expanded", String(monthsOpen));
   }
 
+  // The shortcuts write to the same ticket as the detailed controls.
+  function renderTankActions(draft, result, booked) {
+    const book = state.round.orderBook;
+    const client = book.client;
+    const awaitingClient = client && !draft.client;
+    const planned = awaitingClient ? preview(state, { ...draft, client: "accept" }) : result;
+    const short = Math.max(0, planned.storageRequired - booked);
+    const decision = element("tank-decision");
+    decision.hidden = !client;
+    if (client) {
+      if (draft.client === "defer") {
+        decision.textContent = "Reschedule to cycle " + client.defer.cycle + " for " + unsignedMoney(client.defer.fee) + ".";
+      } else if (draft.client === "redirect") {
+        decision.textContent = "Turning the client away costs " + unsignedMoney(client.redirect.fee) + ".";
+      } else {
+        decision.textContent = (awaitingClient ? "Accept the client to earn " : "Client fees bring in ") +
+          unsignedMoney(client.barrels * client.rate) + "." + (short ? " You need " + number(short) + " bbl more space." : "");
+      }
+    }
+
+    const committed = result.delivery?.barrels || 0;
+    for (const side of ["buy", "sell"]) {
+      const button = element("tank-" + side);
+      const isBuy = side === "buy";
+      const allowed = book[side].max && (!haggles[side].length || negotiate(state, side, haggles[side]).status !== "walked");
+      const limit = isBuy ? book.buy.max : Math.min(book.sell.max, Math.max(0, state.availableBarrels - committed));
+      const volume = Math.min(limit, (side === "sell" && draft.side === "hold" && short) || lot);
+      const editing = draft.side === side;
+      button.hidden = !allowed || (!volume && !editing);
+      button.dataset.volume = editing ? "0" : String(volume);
+      button.textContent = editing ? (isBuy ? "Edit purchase" : "Edit sale") :
+        (isBuy ? "Buy " : "Sell ") + number(volume) + " bbl";
+    }
+
+    for (const choice of ["accept", "defer", "redirect"]) {
+      const button = element("tank-client-" + choice);
+      button.hidden = !client || (choice === "defer" && !client.defer);
+      button.setAttribute("aria-pressed", String(draft.client === choice));
+    }
+
+    const bookSpace = element("tank-book");
+    const volume = Math.min(planned.storageRequired, book.storage.max);
+    const suggest = short && volume > booked;
+    bookSpace.hidden = !book.storage.max;
+    bookSpace.dataset.volume = suggest ? String(volume) : "0";
+    bookSpace.textContent = suggest ? "Book " + number(volume) + " bbl" :
+      booked ? "Edit overflow" : "Book overflow";
+  }
+
+  function renderTicketImpact(draft, result, booked) {
+    const short = Math.max(0, result.storageRequired - booked);
+    set("impact-space", short ? number(short) + " bbl short" : number(capacity - result.occupancy) + " bbl free");
+    element("impact-space").classList.toggle("negative", short > 0);
+    set("impact-storage", booked ?
+      number(booked) + " bbl for " + unsignedMoney(result.storageCost) + " · " + draft.storageCycles + (draft.storageCycles === 1 ? " cycle" : " cycles") :
+      result.activeStorage ? number(result.activeStorage) + " bbl already booked" : "No new booking");
+
+    const adjustment = draft.futuresTrades.every(Number.isSafeInteger) ? hedgeOrder(state, draft) : null;
+    const changes = [];
+    adjustment?.trades?.forEach((trade, slot) => {
+      const delta = trade - draft.futuresTrades[slot];
+      if (!delta) return;
+      const verb = delta < 0 ? "sell " : result.futuresPositions[slot] <= -delta ? "buy back " : "buy ";
+      changes.push(verb + lotsText(delta) + " of " + state.months[slot] + " WTI");
+    });
+    const hedge = element("impact-hedge");
+    hedge.textContent = exposureText(result.netLots);
+    if (changes.length) {
+      hedge.textContent += " · " + changes.join(" and ") +
+        (adjustment.netLots === 0 ? " to go flat" : " for " + exposureText(adjustment.netLots).toLowerCase());
+    }
+    hedge.classList.toggle("negative", !!(result.errors.exposure || result.errors.expiry));
+    const button = element("impact-adjust-hedge");
+    button.hidden = !changes.length;
+    button.disabled = fields.disabled;
+    button.textContent = state.expiryToday ? "Roll hedge" : "Adjust hedge";
+  }
+
   function updateTicket() {
     element("hedge-status").hidden = true;
     const draft = readOrder();
@@ -568,8 +647,10 @@
     }[draft.side];
     set("tank-draft", tankAction && Number.isSafeInteger(draft.barrels) && draft.barrels > 0 ?
       "Draft · " + tankAction[0] + number(draft.barrels) + " bbl" + tankAction[1] : "Drag the tank handle to buy or sell.");
-    const newBooking = result.storageThroughCycle ? draft.storage : 0;
+    const newBooking = result.storageThroughCycle ? Math.min(draft.storage, book.storage.max) : 0;
     renderOverflow(result.ownedOverflow, result.clientOverflow, result.activeStorage + newBooking, changed || newBooking > 0);
+    renderTankActions(draft, result, newBooking);
+    renderTicketImpact(draft, result, newBooking);
 
     const cash = result.clientCashflow - result.storageCost - result.transportCost - result.tankLease;
     set("order-fees", [
@@ -1068,6 +1149,23 @@
 
   // --- Whole-page render ---------------------------------------------------------
 
+  function resultExplanation(part, phase) {
+    if (!part) return "No trading gains, losses or costs this session.";
+    const [key, value] = part;
+    const dollars = unsignedMoney(value);
+    const effect = value > 0 ? " added " + dollars : " cost " + dollars;
+    switch (key) {
+      case "trading": return "The prices you traded at" + effect + " compared with spot.";
+      case "price": return "The market move" + effect + " on the price exposure you kept.";
+      case "basis": return "Spot " + (value > 0 ? "strengthened" : "weakened") +
+        " against front-month WTI, " + (value > 0 ? "adding " : "costing you ") + dollars + " on the crude you held.";
+      case "spreads": return "The change in spreads between futures months" + effect + ".";
+      case "clients": return "Handling the client’s crude earned " + dollars + ".";
+      case "costs": return phase !== "pm" && value === -window.CargoDesk.tankLease ? "Tank rent cost " + dollars + "." :
+        "Terminal costs took " + dollars + " out of P&L.";
+    }
+  }
+
   function renderGame(next) {
     state = next;
     window.CargoTutorialUI?.offer(!run.weekly && state.history.length === 0);
@@ -1092,15 +1190,18 @@
       if (history) set("cycle-news", state.market.headline);
       set("cycle-outcome", last.outcome);
       amount("cycle-delta", last.delta);
-      // The explanation: the three largest parts of the change, biggest first.
-      const why = element("cycle-why");
-      why.replaceChildren();
-      Object.entries(last.parts).filter(([, value]) => value).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])).slice(0, 3).forEach(([key, value], index) => {
-        if (index) why.append(" · ");
-        why.append(partNames[key] + " ");
-        append(why, "b", money(value), tone(value));
-      });
-      why.hidden = !why.childNodes.length;
+      const parts = Object.entries(last.parts).filter(([, value]) => value).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
+      set("cycle-why", resultExplanation(parts[0], last.phase));
+      const breakdown = element("cycle-breakdown");
+      breakdown.hidden = !parts.length;
+      breakdown.open = false;
+      const list = element("cycle-parts");
+      list.replaceChildren();
+      for (const [key, value] of parts) {
+        const row = append(list, "li");
+        append(row, "span", partNames[key]);
+        append(row, "strong", money(value), "numeric " + tone(value));
+      }
     }
   }
 
@@ -1231,6 +1332,49 @@
     updateTicket();
   });
 
+  for (const side of ["buy", "sell"]) {
+    element("tank-" + side).addEventListener("click", event => {
+      if (fields.disabled || !state.round) return;
+      const volume = Number(event.currentTarget.dataset.volume);
+      if (!volume) {
+        inputs.barrels.focus();
+        return;
+      }
+      form.elements.side.value = side;
+      inputs.barrels.value = String(volume);
+      updateTicket();
+    });
+  }
+
+  for (const choice of ["accept", "defer", "redirect"]) {
+    element("tank-client-" + choice).addEventListener("click", () => {
+      if (fields.disabled || !state.round) return;
+      form.elements.client.value = choice;
+      updateTicket();
+    });
+  }
+
+  element("tank-book").addEventListener("click", event => {
+    if (fields.disabled || !state.round) return;
+    const volume = Number(event.currentTarget.dataset.volume);
+    storageOpen = true;
+    if (volume) {
+      inputs.storage.value = String(volume);
+      const cycles = inputs.storageCycles.valueAsNumber;
+      if (!Number.isSafeInteger(cycles) || cycles < 1 || cycles > state.round.orderBook.storage.maxCycles) {
+        inputs.storageCycles.value = "1";
+      }
+    }
+    updateTicket();
+    if (!volume) inputs.storage.focus();
+  });
+
+  element("tank-ticket").addEventListener("click", () => {
+    if (fields.disabled || !state.round) return;
+    element("decision-title").focus({ preventScroll: true });
+    element("ticket").scrollIntoView({ block: "start", behavior: still() ? "instant" : "smooth" });
+  });
+
   // Dragging the level in the tank writes the physical order: up buys, down sells.
   // It only fills in the ticket, so every limit is still checked there.
   const tank = element("tank");
@@ -1304,7 +1448,7 @@
 
   // Sets the hedge so that crude plus futures is as close to flat as whole lots allow.
   // On expiry day it also closes the expiring month and puts the hedge in the next one.
-  element("hedge-flat").addEventListener("click", () => {
+  function applyHedge() {
     if (fields.disabled || !state.round) return;
     const result = hedgeOrder(state, readOrder());
     if (result.trades) {
@@ -1315,6 +1459,11 @@
     status.textContent = result.message || (result.limited ?
       "The gross limit leaves the book " + exposureText(result.netLots).toLowerCase() + "." : "");
     status.hidden = !status.textContent;
+  }
+  element("hedge-flat").addEventListener("click", applyHedge);
+  element("impact-adjust-hedge").addEventListener("click", () => {
+    applyHedge();
+    element("impact-hedge").focus({ preventScroll: true });
   });
 
   form.addEventListener("submit", async event => {
@@ -1336,6 +1485,7 @@
     const controls = ["restart-button", "leaderboard-button", "help-button", "tutorial-button", "tutorial-start", "tutorial-dismiss",
       "scenario-button", "weekly-button", "weekly-leave"]
       .map(element).filter(Boolean);
+    controls.push(...document.querySelectorAll("#tank-actions button:not(:disabled), #impact-adjust-hedge:not(:disabled)"));
     controls.forEach(control => { control.disabled = true; });
     form.setAttribute("aria-busy", "true");
 
@@ -1348,23 +1498,37 @@
           label: previous.scenario ? shortDate(scenarioOf().dates[to.day]) : to.phase === "pm" ? "Morning" : to.phase === "close" ? "Afternoon to the close" : "Afternoon and overnight",
           from: { spot: from.prices[0], front: monthPrice(from, front) },
           to: { spot: to.prices[0], front: monthPrice(to, front) },
+          event: Boolean(to.shock || to.resolved || to.revision || to.expired),
           news: previous.scenario ? [{ text: to.headline.split(/(?<=\.)\s+(?=[A-Z])/)[0] }] : newsOf(to),
         };
       });
-      await transition({
-        title: "Cycle " + step.cycle + (previous.phase === "pm" ? " · afternoon" : next.phase === "pm" ? " · morning" : ""),
-        time: previous.scenario ? "Real prices" : next.market.time + " CT",
-        label: step.label,
-        frontName: previous.allMonths[front],
-        segments,
-        delta: step.delta,
-      });
+      if (shouldShowTape(segments)) {
+        await transition({
+          title: "Cycle " + step.cycle + (previous.phase === "pm" ? " · afternoon" : next.phase === "pm" ? " · morning" : ""),
+          time: previous.scenario ? "Real prices" : next.market.time + " CT",
+          label: step.label,
+          frontName: previous.allMonths[front],
+          segments,
+          delta: step.delta,
+        });
+      } else {
+        // The ticket has previewed the new levels. Replay the actual change before
+        // the next turn displays any releases, deliveries, or final auction.
+        await moveTank(element("tank"), [
+          { fill: element("tank-owned"), from: previous.barrels - previous.ownedOverflow, to: result.barrels - result.ownedOverflow },
+          { fill: element("tank-client"), from: previous.clientInTank, to: result.clientInTank },
+        ], capacity);
+      }
     } finally {
       fields.disabled = false;
       controls.forEach(control => { control.disabled = false; });
       form.removeAttribute("aria-busy");
       try {
         renderGame(next);
+        if (!still() && !document.hidden) {
+          element("cycle-delta").animate?.([{ opacity: 0.5, transform: "translateY(3px)" }, { opacity: 1, transform: "none" }],
+            { duration: 240, easing: "ease-out" });
+        }
         const ticket = element("ticket");
         element("decision-title").focus({ preventScroll: true });
         const box = ticket.getBoundingClientRect();

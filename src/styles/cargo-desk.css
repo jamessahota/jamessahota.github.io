@@ -313,6 +313,7 @@
   color: var(--panel-ink);
   border: 1px solid var(--panel-line);
   border-radius: var(--radius);
+  container-type: inline-size;
 }
 
 .cd-terminal .label { color: var(--panel-muted); }
@@ -323,12 +324,16 @@
 .cd-flow {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-areas: 'inbound outbound' 'tank tank';
   gap: var(--space-5) var(--space-4);
   padding: clamp(1.1rem, 0.8rem + 1.6vw, 2rem);
 }
 
+.cd-node--in { grid-area: inbound; }
+.cd-node--out { grid-area: outbound; }
+
 .cd-tank-wrap {
-  grid-column: 1 / -1;
+  grid-area: tank;
   display: flex;
   align-items: stretch;
   gap: var(--space-5);
@@ -463,6 +468,45 @@
 .cd-swatch--owned { background: var(--accent); border-color: var(--accent); }
 .cd-swatch--client { background: repeating-linear-gradient(-45deg, var(--panel-muted) 0 1.5px, transparent 1.5px 4px); }
 
+.cd-tank-actions {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.85rem clamp(1.1rem, 0.8rem + 1.6vw, 2rem);
+  border-top: 1px solid var(--panel-line);
+}
+
+.cd-tank-actions__decision {
+  border-inline-start: 2px solid var(--accent-on-panel);
+  padding-inline-start: 0.65rem;
+  font-size: var(--text-sm);
+  font-weight: 560;
+  line-height: 1.4;
+}
+
+.cd-tank-actions__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.cd-tank-actions__buttons .cd-mini {
+  flex: 1 1 auto;
+  padding-inline: 0.6rem;
+  border-color: var(--panel-line);
+  color: var(--panel-ink);
+  letter-spacing: 0.04em;
+}
+
+.cd-tank-actions__buttons .cd-mini:hover:not(:disabled),
+.cd-tank-actions__buttons .cd-mini[aria-pressed='true'] {
+  border-color: var(--accent-on-panel);
+  background: color-mix(in srgb, var(--accent-on-panel) 12%, var(--panel));
+  color: var(--panel-ink);
+}
+
+.cd-tank-actions__buttons .cd-tank-actions__details { color: var(--panel-muted); }
+.cd-tank-actions__details span { margin-inline-start: 0.25rem; }
+
 .cd-overflow {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -497,20 +541,20 @@
   color: var(--accent-on-panel);
 }
 
-@media (min-width: 44rem) {
+@container (min-width: 47rem) {
   .cd-flow {
     grid-template-columns: minmax(7rem, 1fr) minmax(1.5rem, 3.5rem) auto minmax(1.5rem, 3.5rem) minmax(7rem, 1fr);
+    grid-template-areas: none;
     align-items: center;
     gap: 0 var(--space-3);
   }
 
   .cd-tank-wrap {
-    grid-column: auto;
+    grid-column: 3;
     grid-row: 1;
   }
 
   .cd-node--in { grid-column: 1; grid-row: 1; }
-  .cd-tank-wrap { grid-column: 3; }
   .cd-node--out { grid-column: 5; grid-row: 1; }
 
   .cd-key-wrap {
@@ -586,18 +630,42 @@
   color: var(--ink);
 }
 
-/* Why the last ticket made or lost money: its largest parts, biggest first. */
 .cd-last__why {
   margin-top: 0.35rem;
-  font-family: var(--mono);
-  font-size: 0.6875rem;
+  font-size: var(--text-sm);
   line-height: 1.5;
-  color: var(--muted);
+  color: var(--ink);
 }
 
-.cd-last__why b {
-  font-weight: 600;
+.cd-last__breakdown {
+  margin-top: 0.35rem;
+  font-size: var(--text-xs);
+  line-height: 1.5;
 }
+
+.cd-last__breakdown summary {
+  width: fit-content;
+  padding-block: 0.35rem;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.cd-last__breakdown ul {
+  display: grid;
+  gap: 0.2rem;
+  margin: 0.3rem 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--ink-2);
+}
+
+.cd-last__breakdown li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.cd-last__breakdown strong { white-space: nowrap; }
 
 .cd-brief {
   padding: 1.1rem 1.1rem 1.15rem;
@@ -1412,12 +1480,20 @@
   border-inline: 1px solid var(--line);
 }
 
-/* Review and commit: pinned to the bottom of the ticket. */
+/* Keep the compact consequences by Commit. The detailed breakdown scrolls. */
 .cd-review {
+  display: contents;
+}
+
+.cd-review__details dl {
+  padding: 0 1.1rem 0.85rem;
+}
+
+.cd-commitbar {
   position: sticky;
   bottom: 0;
   z-index: 2;
-  padding: 0.9rem 1.1rem 1.1rem;
+  padding: 0.65rem 1.1rem 0.85rem;
   background: var(--surface);
   border-top: 1px solid var(--ink);
 }
@@ -1452,6 +1528,19 @@
 
 .cd-review dd b.positive { color: var(--cd-up); }
 .cd-review dd b.negative { color: var(--cd-down); }
+
+.cd-review .cd-impact { gap: 0.2rem; }
+.cd-review .cd-impact > div { grid-template-columns: 4.65rem minmax(0, 1fr); }
+.cd-impact dd { overflow-wrap: anywhere; }
+
+.cd-impact__hedge {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 0.6rem;
+}
+
+.cd-impact__adjust { padding-inline: 0.5rem; }
 
 /* Net position gauge: the shaded band is the desk limit, the marker is this ticket. */
 .cd-gauge {
@@ -1500,28 +1589,13 @@
 
 .cd-commit {
   width: 100%;
-  margin-top: 0.8rem;
+  margin-top: 0.6rem;
 }
 
-/* On a phone only the message and the button stay pinned. The summary above
-   them scrolls with the ticket, so it does not cover half the screen. */
-@media (max-width: 40rem) {
-  .cd-review {
-    display: contents;
-  }
-
-  .cd-review > dl {
-    padding: 0.9rem 1.1rem;
-    border-top: 1px solid var(--ink);
-  }
-
+/* A short window or magnified page needs its full height for ticket fields. */
+@media (max-height: 36rem) {
   .cd-commitbar {
-    position: sticky;
-    bottom: 0;
-    z-index: 2;
-    padding: 0.1rem 1.1rem 1rem;
-    background: var(--surface);
-    border-top: 1px solid var(--line);
+    position: static;
   }
 }
 
@@ -2688,7 +2762,12 @@
     var(--panel);
 }
 
-.cd-tank.is-dragging .cd-tank__fill { transition: none; }
+.cd-tank:is(.is-dragging, .is-settling) .cd-tank__fill,
+:root[data-motion='paused'] .cd-tank__fill { transition: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cd-tank__fill { transition: none; }
+}
 
 .cd-key__hint {
   max-width: 13rem;
