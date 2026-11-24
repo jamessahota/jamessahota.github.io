@@ -495,8 +495,7 @@
 }
 
 /* The main site's pause control stills the pipes too. */
-:root[data-motion='paused'] .cd-pipe.is-live,
-:root[data-motion='paused'] .cycle-ticket-track {
+:root[data-motion='paused'] .cd-pipe.is-live {
   animation: none;
 }
 
@@ -526,6 +525,19 @@
   font-family: var(--mono);
   font-weight: 600;
   white-space: nowrap;
+}
+
+/* Why the last ticket made or lost money: its largest parts, biggest first. */
+.cd-last__why {
+  margin-top: 0.35rem;
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.cd-last__why b {
+  font-weight: 600;
 }
 
 .cd-brief {
@@ -602,6 +614,14 @@
   font-size: var(--text-sm);
   line-height: 1.45;
   color: var(--ink-2);
+}
+
+.cd-watch__revised {
+  margin-top: 0.5rem;
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  line-height: 1.5;
+  color: var(--accent-text);
 }
 
 .cd-watch__cases {
@@ -875,6 +895,94 @@
 
 .cd-range + .cd-hint {
   margin-top: 0.25rem;
+}
+
+/* Negotiation with the counterparty on a local trade. */
+.cd-haggle {
+  margin-top: 0.8rem;
+  padding: 0.8rem 0.9rem 0.9rem;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.cd-haggle__who {
+  font-size: var(--text-sm);
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+
+.cd-haggle__who b {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.cd-haggle__log {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0.65rem 0 0;
+  padding: 0.6rem 0 0;
+  border-top: 1px solid var(--line);
+  list-style: none;
+}
+
+.cd-haggle__log li {
+  padding-left: 0.7rem;
+  border-left: 2px solid var(--line);
+  font-size: var(--text-sm);
+  line-height: 1.4;
+  color: var(--ink-2);
+}
+
+.cd-haggle__log li.is-deal {
+  border-color: var(--cd-up);
+  color: var(--cd-up);
+  font-weight: 600;
+}
+
+.cd-haggle__log li.is-walked {
+  border-color: var(--cd-down);
+  color: var(--cd-down);
+  font-weight: 600;
+}
+
+.cd-haggle__ask {
+  margin-top: 0.7rem;
+}
+
+.cd-haggle__ask .label {
+  display: block;
+  font-size: 0.6875rem;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.cd-haggle__price {
+  font-family: var(--mono);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.cd-haggle__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+
+.cd-haggle__buttons .cd-mini {
+  min-height: 2.5rem;
+}
+
+/* A short notice inside a step, such as an expiry coming up. */
+.cd-notice {
+  margin-top: 0.7rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--accent-text);
+  border-radius: var(--radius);
+  font-size: var(--text-sm);
+  line-height: 1.4;
+  color: var(--accent-text);
 }
 
 .cd-row + .cd-hint,
@@ -1181,6 +1289,28 @@
   margin-top: 0.8rem;
 }
 
+/* On a phone only the message and the button stay pinned. The summary above
+   them scrolls with the ticket, so it does not cover half the screen. */
+@media (max-width: 40rem) {
+  .cd-review {
+    display: contents;
+  }
+
+  .cd-review > dl {
+    padding: 0.9rem 1.1rem;
+    border-top: 1px solid var(--ink);
+  }
+
+  .cd-commitbar {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    padding: 0.1rem 1.1rem 1rem;
+    background: var(--surface);
+    border-top: 1px solid var(--line);
+  }
+}
+
 .cd-commit:disabled {
   opacity: 0.4;
   cursor: not-allowed;
@@ -1200,6 +1330,109 @@
   font-weight: 560;
   line-height: 1;
   letter-spacing: -0.055em;
+}
+
+/* The risk grade: a letter, and what it was worked out from. */
+.cd-grade {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.9rem;
+  align-items: center;
+  margin-top: 1rem;
+  padding: 0.9rem;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.cd-grade__letter {
+  display: grid;
+  place-items: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  background: var(--ink);
+  color: var(--bg);
+  border-radius: var(--radius);
+  font-family: var(--display);
+  font-size: 2.25rem;
+  line-height: 1;
+}
+
+.cd-grade__text {
+  margin-top: 0.2rem;
+  font-size: var(--text-sm);
+  line-height: 1.4;
+  color: var(--ink-2);
+}
+
+.cd-versus {
+  margin-top: 0.8rem;
+  font-size: var(--text-sm);
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+
+.cd-versus b {
+  font-family: var(--mono);
+  font-weight: 600;
+}
+
+.cd-debrief__head {
+  margin-top: 1.2rem;
+}
+
+/* Where the result came from: one bar per source, losses to the left of centre. */
+.cd-bars {
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cd-bars li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.2rem 0.75rem;
+  align-items: baseline;
+  padding: 0.5rem 0;
+  border-top: 1px solid var(--line);
+}
+
+.cd-bars__name {
+  font-size: var(--text-sm);
+  line-height: 1.35;
+}
+
+.cd-bars strong {
+  font-family: var(--mono);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.cd-bars__track {
+  position: relative;
+  grid-column: 1 / -1;
+  height: 0.4rem;
+  background: linear-gradient(90deg, transparent calc(50% - 0.5px), var(--muted) calc(50% - 0.5px), var(--muted) calc(50% + 0.5px), transparent calc(50% + 0.5px));
+}
+
+.cd-bars__track i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--muted);
+}
+
+.cd-bars__track i.positive { background: var(--cd-up); }
+.cd-bars__track i.negative { background: var(--cd-down); }
+
+.cd-details--inset {
+  margin-top: 1rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.cd-details--inset summary {
+  padding-inline: 0;
 }
 
 .cd-debrief__meta {
@@ -1608,18 +1841,23 @@
   display: grid;
   place-items: center;
   padding: var(--space-4);
-  pointer-events: none;
+  background: color-mix(in srgb, #101214 45%, transparent);
+  cursor: pointer;
 }
 
 .cycle-ticket {
-  width: min(100%, 24rem);
-  padding: 1.1rem 1.25rem 1.25rem;
+  width: min(100%, 30rem);
+  padding: 1.1rem 1.25rem 1rem;
   background: #101214;
   color: #eef0f1;
   border: 1px solid #383e44;
   border-radius: var(--radius);
-  box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 0.35);
+  box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 0.4);
   animation: cd-slip-in 0.42s var(--ease-out) both;
+}
+
+.cycle-transition-out {
+  background: transparent;
 }
 
 .cycle-transition-out .cycle-ticket {
@@ -1627,8 +1865,9 @@
 }
 
 .cycle-ticket-header,
-.cycle-ticket-amount span,
-.cycle-ticket-from {
+.cycle-ticket-result span,
+.cycle-ticket-legend,
+.cycle-ticket-skip {
   font-family: var(--mono);
   font-size: 0.6875rem;
   letter-spacing: 0.06em;
@@ -1642,22 +1881,8 @@
   gap: var(--space-3);
 }
 
-.cycle-ticket-route {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-top: 0.9rem;
-}
-
-.cycle-ticket-track {
-  flex: 1;
-  height: 2px;
-  background: repeating-linear-gradient(90deg, #ff6a33 0 6px, transparent 6px 12px);
-  background-size: 12px 2px;
-  animation: cd-pipe 0.5s linear infinite;
-}
-
-.cycle-ticket-to {
+.cycle-ticket-title {
+  margin-top: 0.7rem;
   font-family: var(--display);
   font-size: 1.75rem;
   font-weight: 400;
@@ -1665,12 +1890,52 @@
   text-transform: uppercase;
 }
 
+.cycle-ticket-label {
+  margin-top: 0.4rem;
+  font-size: var(--text-sm);
+  line-height: 1.35;
+  color: #c7ccd1;
+}
+
+.cycle-ticket-tape {
+  position: relative;
+  height: clamp(7rem, 22vh, 10rem);
+  margin-top: 0.9rem;
+  border-top: 1px solid #383e44;
+  border-bottom: 1px solid #383e44;
+}
+
+.cycle-ticket-tape canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.cycle-ticket-legend {
+  display: flex;
+  gap: 1.25rem;
+  margin-top: 0.5rem;
+}
+
+.cycle-ticket-legend b {
+  font-weight: 600;
+  color: #eef0f1;
+}
+
+.cycle-ticket-legend .is-spot b {
+  color: #ff6a33;
+}
+
+.cycle-ticket-legend i {
+  font-style: normal;
+}
+
 .cycle-ticket-news {
   display: grid;
   gap: 0.4rem;
-  margin: 0.9rem 0 0;
-  padding: 0.8rem 0 0;
-  border-top: 1px solid #383e44;
+  margin: 0.8rem 0 0;
+  padding: 0;
   list-style: none;
 }
 
@@ -1681,7 +1946,7 @@
   font-weight: 560;
   line-height: 1.3;
   letter-spacing: -0.015em;
-  animation: cd-slip-in 0.4s var(--ease-out) both;
+  animation: cd-slip-in 0.35s var(--ease-out) both;
 }
 
 .cycle-ticket-news li.is-shock {
@@ -1691,35 +1956,30 @@
 
 .cycle-ticket-result {
   display: flex;
-  align-items: end;
+  align-items: baseline;
   justify-content: space-between;
   gap: var(--space-4);
-  margin-top: 1rem;
-  padding-top: 0.8rem;
+  margin-top: 0.9rem;
+  padding-top: 0.7rem;
   border-top: 1px solid #383e44;
 }
 
-.cycle-ticket-label {
-  font-size: var(--text-sm);
-  line-height: 1.35;
-  color: #c7ccd1;
-}
-
-.cycle-ticket-amount {
-  flex: none;
-  text-align: right;
-}
-
-.cycle-ticket-amount strong {
-  display: block;
+.cycle-ticket-result strong {
   font-family: var(--mono);
-  font-size: 1.0625rem;
+  font-size: 1.25rem;
   font-weight: 600;
   white-space: nowrap;
 }
 
-.cycle-ticket-amount strong.positive { color: #63d49b; }
-.cycle-ticket-amount strong.negative { color: #ff8f85; }
+.cycle-ticket-result strong.positive { color: #63d49b; }
+.cycle-ticket-result strong.negative { color: #ff8f85; }
+
+.cycle-ticket-skip {
+  margin-top: 0.6rem;
+  font-size: 0.625rem;
+  text-align: center;
+  opacity: 0.7;
+}
 
 @keyframes cd-slip-in {
   from { opacity: 0; transform: translateY(1rem); }

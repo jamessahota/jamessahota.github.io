@@ -1,5 +1,5 @@
 (function () {
-  const storagePrefix = "cargo-desk-score-v4:";
+  const storagePrefix = "cargo-desk-score-v5:";
   const archivePrefix = "cargo-desk-campaign-v2:score:";
   const limit = 20;
   const date = new Intl.DateTimeFormat("en-US", { dateStyle: "medium" });

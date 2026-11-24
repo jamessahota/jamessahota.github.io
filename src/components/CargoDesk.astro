@@ -99,6 +99,7 @@ import '../styles/cargo-desk.css';
       <div class="cd-last" id="cycle-note" aria-live="polite" hidden>
         <p class="label" id="cycle-headline"></p>
         <p class="cd-last__line"><span id="cycle-outcome"></span><strong class="numeric" id="cycle-delta"></strong></p>
+        <p class="cd-last__why numeric" id="cycle-why"></p>
       </div>
 
       <div class="cd-brief">
@@ -109,10 +110,11 @@ import '../styles/cargo-desk.css';
       </div>
 
       <div class="cd-watch" id="watch" hidden>
-        <p class="cd-watch__head"><span class="label label--accent">On watch for tomorrow</span><span class="label label--ink numeric" id="watch-odds"></span></p>
+        <p class="cd-watch__head"><span class="label label--accent" id="watch-when">On watch tonight</span><span class="label label--ink numeric" id="watch-odds"></span></p>
         <div class="cd-watch__meter" aria-hidden="true"><i id="watch-meter"></i></div>
         <p class="cd-watch__title" id="watch-title"></p>
         <p class="cd-watch__detail" id="watch-detail"></p>
+        <p class="cd-watch__revised numeric" id="watch-revised" hidden></p>
         <dl class="cd-watch__cases">
           <div><dt class="label">If it happens</dt><dd class="numeric" id="watch-hit"></dd></div>
           <div><dt class="label">If it does not</dt><dd class="numeric" id="watch-miss"></dd></div>
@@ -124,7 +126,7 @@ import '../styles/cargo-desk.css';
           <div class="cell"><dt class="label">Local bid</dt><dd class="numeric" id="ticket-bid">–</dd></div>
           <div class="cell"><dt class="label">Local ask</dt><dd class="numeric" id="ticket-ask">–</dd></div>
           <div class="cell"><dt class="label">Spot</dt><dd class="numeric" id="ticket-spot">–</dd></div>
-          <div class="cell"><dt class="label">Dec futures</dt><dd class="numeric" id="ticket-front">–</dd></div>
+          <div class="cell"><dt class="label" id="ticket-front-label">Dec futures</dt><dd class="numeric" id="ticket-front">–</dd></div>
         </dl>
 
         <fieldset id="order-ticket" class="cd-fields">
@@ -156,9 +158,22 @@ import '../styles/cargo-desk.css';
             </div>
             <input class="cd-range" id="order-barrels-range" type="range" min="0" max="0" step="100" value="0" aria-label="Crude volume, by slider">
             <p class="cd-hint" id="order-quote"></p>
+            <div class="cd-haggle" id="haggle" hidden>
+              <p class="cd-haggle__who"><b id="haggle-name"></b> <span id="haggle-line"></span></p>
+              <ol class="cd-haggle__log" id="haggle-log" aria-live="polite"></ol>
+              <div class="cd-haggle__ask" id="haggle-ask">
+                <label class="label" for="haggle-range" id="haggle-label">Ask for more</label>
+                <input class="cd-range" id="haggle-range" type="range" min="5" max="80" step="5" value="20">
+                <p class="cd-haggle__price numeric" id="haggle-price"></p>
+                <div class="cd-haggle__buttons">
+                  <button class="cd-mini cd-mini--solid" id="haggle-send" type="button">Make the offer</button>
+                  <button class="cd-mini" id="haggle-take" type="button" hidden></button>
+                </div>
+              </div>
+            </div>
           </fieldset>
 
-          <fieldset class="cd-step">
+          <fieldset class="cd-step" id="storage-step">
             <legend><span class="cd-step__n numeric" aria-hidden="true" data-step-number>03</span>Overflow storage</legend>
             <div class="cd-row cd-row--two">
               <label class="cd-input" for="order-storage">
@@ -181,6 +196,7 @@ import '../styles/cargo-desk.css';
               <tbody id="futures-rows"></tbody>
             </table>
             <p class="cd-hint" id="hedge-hint"></p>
+            <p class="cd-notice" id="expiry-note" hidden></p>
             <p class="cd-hint cd-hedge-status" id="hedge-shortcut-status" role="status" hidden></p>
           </fieldset>
         </fieldset>
@@ -192,8 +208,10 @@ import '../styles/cargo-desk.css';
             <div><dt class="label" id="scenario-label">If prices move</dt><dd id="order-scenario">–</dd></div>
             <div><dt class="label">Logistics</dt><dd id="order-fees">–</dd></div>
           </dl>
-          <p class="cd-message" id="order-error" role="status" hidden></p>
-          <button class="btn cd-commit" id="confirm-button" type="submit" disabled>Commit orders</button>
+          <div class="cd-commitbar">
+            <p class="cd-message" id="order-error" role="status" hidden></p>
+            <button class="btn cd-commit" id="confirm-button" type="submit" disabled>Commit orders</button>
+          </div>
         </div>
       </form>
 
@@ -252,14 +270,19 @@ import '../styles/cargo-desk.css';
   <form method="dialog"><button class="cd-dialog__close" aria-label="Close">×</button></form>
   <p class="label label--marked">How to play</p>
   <h2 id="help-title">Run the book for ten cycles</h2>
-  <p>Each cycle is one trading day. Fill in the order ticket and commit. The market then moves and the next day opens. After cycle ten everything still open is closed and the result is final.</p>
+  <p>Each cycle is one trading day. Fill in the morning ticket and commit, then watch the day trade. If news lands at midday you get a shorter afternoon ticket before the market moves overnight. After cycle ten everything still open is closed and the result is final.</p>
   <dl class="cd-help">
     <div><dt>What you start with</dt><dd>6,000 barrels of crude in Tank A, bought at $72.20, and a hedge of six Dec futures sold at $73.60. One lot is 1,000 barrels.</dd></div>
     <div><dt>The tank</dt><dd>Tank A holds 10,000 barrels and costs a fixed lease every cycle, full or empty. Clients pay you per barrel to store their crude in it. Anything that does not fit, yours or theirs, needs overflow space booked off-site.</dd></div>
-    <div><dt>Physical trades</dt><dd>One physical order per cycle: buy, sell locally or, when a pipeline slot is open, ship to the Gulf Coast. Bids and offers move around spot with events at the terminal. Selling into a bid above spot and buying an offer below it is where the physical book earns its money.</dd></div>
+    <div><dt>Physical trades</dt><dd>One physical order per ticket: buy, sell locally or, when a pipeline slot is open, ship to the Gulf Coast. Bids and offers move around spot with events at the terminal. Selling into a bid above spot and buying an offer below it is where the physical book earns its money.</dd></div>
+    <div><dt>Negotiating</dt><dd>A local price is an opening price. You can ask the counterparty for more. If they refuse they come back once with a counter, which you can take, or you can ask one last time. A second refusal and they walk, and that route is closed for the session. How they sound is a guide to how far they will move.</dd></div>
+    <div><dt>The afternoon</dt><dd>On days with midday news you get a second, shorter ticket: local trades in half the size at ten cents worse, and futures. Clients and overflow are morning business only.</dd></div>
     <div><dt>Contango and backwardation</dt><dd>When futures sit above spot (contango), hedged crude in the tank gains as the gap closes, so storing pays. When futures sit below spot (backwardation), the same position loses, so sell.</dd></div>
-    <div><dt>On watch</dt><dd>Some days an event is on watch for tomorrow, with its odds and roughly what it would do to futures and to spot. The odds are honest, but the size of the reaction is not exact. The ticket shows what your book would make or lose each way before you commit.</dd></div>
+    <div><dt>On watch</dt><dd>Some days an event is on watch for the coming night, with its odds and roughly what it would do to futures and to spot. The odds are honest, but the size of the reaction is not exact, and fresh news at midday can move the odds. The ticket shows what your book would make or lose each way before you commit.</dd></div>
+    <div><dt>The stocks report</dt><dd>The weekly stocks report comes out at midday on both Wednesdays. It is close to a coin flip, it moves spot more than futures, and you get the afternoon to react to it.</dd></div>
+    <div><dt>Expiry and the roll</dt><dd>Dec futures stop trading at the close of cycle 5 and anything left in them is settled at spot. To stay hedged you must roll: buy back Dec and sell Jan. On that day the hedge button does both.</dd></div>
     <div><dt>Shocks</dt><dd>About one day in ten the market is hit by something nobody saw coming, and prices move by several dollars. A shock that moves every price does nothing to a hedged book. One that moves spot hardest hits anyone holding crude, hedged or not.</dd></div>
+    <div><dt>Reading the result</dt><dd>After each ticket the desk explains the profit or loss: trade prices against spot, the whole curve moving on your net position, spot moving against futures, calendar spreads, client income and costs. The debrief adds them up, grades the return against the risk taken, and compares you with simply holding the hedged cargo.</dd></div>
     <div><dt>The desk limit</dt><dd>Crude owned plus futures must stay within two lots of flat, long or short. A crude sale may require buying back futures on the same ticket. Hedge to flat adjusts the December order as far as the desk limits allow and leaves the other months alone. To trade a calendar spread, buy one month and sell another.</dd></div>
     <div><dt>Ranked and practice runs</dt><dd>The first play of a fresh random market is ranked on the leaderboard. Typing a seed, or replaying one you have already seen, is a practice run. The prices repeat, so it would not be a fair score.</dd></div>
   </dl>

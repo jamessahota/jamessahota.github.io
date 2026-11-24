@@ -1,22 +1,22 @@
 (function () {
   "use strict";
 
-  const { replay, preview, totalCycles, capacity, lot, futuresMonths, maxFuturesLots, netLimitLots } = window.CargoDesk;
+  const { replay, preview, negotiate, totalCycles, capacity, lot, monthNames, maxFuturesLots, netLimitLots, expiryCycle } = window.CargoDesk;
   const { transition, reveal } = window.CargoMotion;
   const root = document.documentElement;
   const element = (id) => document.getElementById(id);
   const set = (id, value) => { element(id).textContent = value; };
   const number = (value) => value.toLocaleString("en-US");
   const quote = (cents) => "$" + (cents / 100).toFixed(2);
+  const cents = (value) => value + "¢";
   const wholeDollars = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
   const exactDollars = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
-  const unsignedMoney = (cents) => (cents % 100 ? exactDollars : wholeDollars).format(Math.abs(cents) / 100);
-  const money = (cents) => (cents < 0 ? "−" : cents > 0 ? "+" : "") + unsignedMoney(cents);
-  const tone = (cents) => cents < 0 ? "negative" : cents > 0 ? "positive" : "";
-  const curveLabels = ["Spot", ...futuresMonths];
+  const unsignedMoney = (value) => (value % 100 ? exactDollars : wholeDollars).format(Math.abs(value) / 100);
+  const money = (value) => (value < 0 ? "−" : value > 0 ? "+" : "") + unsignedMoney(value);
+  const tone = (value) => value < 0 ? "negative" : value > 0 ? "positive" : "";
   const curveMargins = { left: 40, right: 10, top: 14, bottom: 12 };
-  const runKey = "cargo-desk-run-v4";
-  const seedsKey = "cargo-desk-seeds-v4";
+  const runKey = "cargo-desk-run-v5";
+  const seedsKey = "cargo-desk-seeds-v5";
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   // The main site has its own pause control, stored on the root element.
   const still = () => reducedMotion.matches || root.dataset.motion === "paused";
@@ -28,28 +28,31 @@
     storage: element("order-storage"),
     storageCycles: element("order-storage-cycles"),
   };
+  // What each part of a day's profit or loss is called on screen.
+  const partNames = {
+    trading: "Trade prices against spot",
+    price: "The whole curve moving on your net position",
+    basis: "Spot moving against futures",
+    spreads: "Calendar spreads",
+    clients: "Client income",
+    costs: "Lease, storage and fees",
+  };
   let futuresInputs = [];
   let run;
   let state;
+  // What the player has said so far to each counterparty on this ticket.
+  let haggles = { buy: [], sell: [] };
   let quoteIndex = -1;
-  let movingPrices = null;
-  let frameRequest;
-  let busy = false;
 
   // --- Formatting ------------------------------------------------------------
 
   function lotsText(lots) {
     const size = Math.abs(lots);
-    return number(size) + (size === 1 ? " lot" : " lots");
+    return (Number.isInteger(size) ? String(size) : size.toFixed(1)) + (size === 1 ? " lot" : " lots");
   }
 
-  function exposureText(lots) {
-    return lots ? lotsText(lots) + (lots > 0 ? " long" : " short") : "Flat";
-  }
-
-  function positionText(lots) {
-    return lots ? (lots > 0 ? "Long " : "Short ") + number(Math.abs(lots)) : "Flat";
-  }
+  const exposureText = (lots) => lots ? lotsText(lots) + (lots > 0 ? " long" : " short") : "Flat";
+  const positionText = (lots) => lots ? (lots > 0 ? "Long " : "Short ") + number(Math.abs(lots)) : "Flat";
 
   function futuresSummary(positions) {
     const long = positions.reduce((total, lots) => total + Math.max(0, lots), 0);
@@ -58,16 +61,16 @@
   }
 
   // A price change in dollars with its sign, for example +$1.20.
-  const move = (cents) => (cents < 0 ? "−" : "+") + "$" + (Math.abs(cents) / 100).toFixed(2);
+  const move = (value) => (value < 0 ? "−" : "+") + "$" + (Math.abs(value) / 100).toFixed(2);
   // Estimates are shown to the nearest ten dollars, so they do not read as exact.
-  const roughly = (cents) => money(Math.round(cents / 1000) * 1000);
+  const roughly = (value) => money(Math.round(value / 1000) * 1000);
   const effectText = (effect) => "Futures about " + move(effect.flat) + ", spot about " + move(effect.flat + effect.premium);
 
-  function amount(id, cents) {
+  function amount(id, value) {
     const node = element(id);
-    node.textContent = money(cents);
-    node.classList.toggle("positive", cents > 0);
-    node.classList.toggle("negative", cents < 0);
+    node.textContent = money(value);
+    node.classList.toggle("positive", value > 0);
+    node.classList.toggle("negative", value < 0);
   }
 
   function withUnit(id, value, unit) {
@@ -82,6 +85,13 @@
     if (className) child.className = className;
     parent.append(child);
     return child;
+  }
+
+  // The price of a futures month, named by its place in the full list of months.
+  function monthPrice(market, month) {
+    if (market.expired?.month === month) return market.expired.price;
+    const slot = month - market.firstMonth;
+    return slot >= 0 && slot < 4 ? market.prices[slot + 1] : null;
   }
 
   // --- Saved run and the ranked/practice rule ---------------------------------
@@ -111,28 +121,34 @@
     return fresh;
   }
 
+  const validAsks = (asks) => Array.isArray(asks) && asks.length <= 2 && asks.every(ask => ask === "take" || Number.isSafeInteger(ask));
+
   function loadRun() {
     try {
       const saved = JSON.parse(localStorage.getItem(runKey));
       if (typeof saved?.id !== "string" || !saved.id || typeof saved.seed !== "string" ||
           !saved.seed.trim() || saved.seed.length > 64 || !Array.isArray(saved.decisions)) return null;
-      const decisions = replay(saved.seed, saved.decisions.slice(0, totalCycles)).decisions;
+      const decisions = replay(saved.seed, saved.decisions.slice(0, totalCycles * 2), { withReview: false }).decisions;
       const completedAt = Number.isSafeInteger(saved.completedAt) && saved.completedAt > 0 ? saved.completedAt : null;
-      return { id: saved.id, seed: saved.seed, ranked: saved.ranked === true, decisions, completedAt };
+      // A negotiation in progress is kept, so reloading the page cannot undo a refusal.
+      const talks = saved.talks?.ticket === decisions.length && validAsks(saved.talks.buy) && validAsks(saved.talks.sell) ? saved.talks : null;
+      return { id: saved.id, seed: saved.seed, ranked: saved.ranked === true, decisions, completedAt, talks };
     } catch {
       return null;
     }
   }
 
   function saveRun() {
+    run.talks = { ticket: run.decisions.length, buy: haggles.buy, sell: haggles.sell };
     try { localStorage.setItem(runKey, JSON.stringify(run)); } catch {}
   }
 
   // --- Head and headline numbers ----------------------------------------------
 
   function renderHead() {
-    const closed = state.stage === totalCycles;
-    set("campaign-progress", closed ? totalCycles + " cycles complete" : "Cycle " + (state.stage + 1) + " of " + totalCycles);
+    const closed = !state.round;
+    set("campaign-progress", closed ? totalCycles + " cycles complete" :
+      "Cycle " + (state.stage + 1) + " of " + totalCycles + (state.phase === "pm" ? " · afternoon" : ""));
     const kind = element("run-kind");
     kind.textContent = run.ranked ? "Ranked run" : "Practice run";
     kind.dataset.kind = run.ranked ? "ranked" : "practice";
@@ -141,10 +157,10 @@
     element("seed-value").title = run.seed;
     for (const item of element("timeline").children) {
       const step = Number(item.dataset.step);
-      item.classList.toggle("is-current", step === state.stage);
-      item.classList.toggle("is-done", step < state.stage);
-      item.setAttribute("aria-label", "Cycle " + (step + 1) + (step < state.stage ? ", complete" : ""));
-      if (step === state.stage) item.setAttribute("aria-current", "step");
+      item.classList.toggle("is-current", !closed && step === state.stage);
+      item.classList.toggle("is-done", closed || step < state.stage);
+      item.setAttribute("aria-label", "Cycle " + (step + 1) + (closed || step < state.stage ? ", complete" : ""));
+      if (!closed && step === state.stage) item.setAttribute("aria-current", "step");
       else item.removeAttribute("aria-current");
     }
 
@@ -152,9 +168,8 @@
     amount("net-value", state.net);
     withUnit("crude-value", number(state.barrels), "bbl");
     set("crude-detail", state.barrels ? "Average cost " + quote(state.cargoCost) : "No crude owned");
-    const exposure = element("exposure-value");
-    exposure.textContent = exposureText(state.netLots);
-    set("exposure-detail", futuresSummary(state.futuresPositions) + " · limit ±" + netLimitLots + " lots");
+    set("exposure-value", exposureText(state.netLots));
+    set("exposure-detail", futuresSummary(state.futuresBook.map(month => month.position)) + " · limit ±" + netLimitLots + " lots");
     set("tank-value", Math.round(state.occupancy / capacity * 100) + "%");
     set("tank-detail", number(state.occupancy) + " of " + number(capacity) + " bbl in use");
   }
@@ -162,17 +177,17 @@
   // --- Terminal ----------------------------------------------------------------
 
   function renderTerminal() {
-    const closed = state.stage === totalCycles;
+    const closed = !state.round;
     const book = state.round?.orderBook;
-    const ownedInTank = state.barrels - state.ownedOverflow;
     set("location-clock", state.market.time + " CT");
 
     set("inbound-value", closed ? "Run closed" : state.incoming ? number(state.incoming) + " bbl" : "None due");
     set("inbound-note", closed ? "" : state.incoming ? "Wants tank space this cycle" :
-      state.scheduled ? number(state.scheduled.barrels) + " bbl booked in for cycle " + state.scheduled.cycle : "No client arrival this cycle");
+      state.scheduled ? number(state.scheduled.barrels) + " bbl booked in for cycle " + state.scheduled.cycle :
+      state.phase === "pm" ? "Clients are morning business" : "No client arrival this cycle");
     element("pipe-in").classList.toggle("is-live", !closed && !!state.incoming);
 
-    renderLevels(ownedInTank, state.clientInTank, false);
+    renderLevels(state.barrels - state.ownedOverflow, state.clientInTank, false);
 
     if (closed) {
       set("outbound-value", "Book settled");
@@ -185,80 +200,124 @@
       ].filter(Boolean).join(" · "));
     }
     element("pipe-out").classList.toggle("is-live", !closed && !!book.sell.max);
-
     renderOverflow(state.ownedOverflow, state.clientOverflow, state.storageBooked, false);
   }
 
   // The off-site strip, for the book as it stands or as the ticket would leave it.
-  function renderOverflow(owned, clients, booked, preview) {
+  function renderOverflow(owned, clients, booked, previewing) {
     const used = owned + clients;
     const short = Math.max(0, used - booked);
     const whose = [owned ? number(owned) + " bbl of yours" : "", clients ? number(clients) + " bbl of clients’" : ""].filter(Boolean).join(" and ");
     element("overflow-fill").style.width = booked ? Math.min(100, used / booked * 100) + "%" : "0%";
     const text = element("overflow-text");
     text.textContent = short ?
-      number(short) + " bbl off-site has no booking " + (preview ? "on this ticket" : "this cycle") + " (" + whose + "). Book space or sell crude." :
-      booked ? number(used) + " of " + number(booked) + " bbl of booked space in use" + (preview ? " after this ticket" : "") + (whose ? " (" + whose + ")" : "") :
+      number(short) + " bbl off-site has no booking " + (previewing ? "on this ticket" : "this cycle") + " (" + whose + "). Book space or sell crude." :
+      booked ? number(used) + " of " + number(booked) + " bbl of booked space in use" + (previewing ? " after this ticket" : "") + (whose ? " (" + whose + ")" : "") :
       "No space booked";
     text.classList.toggle("is-short", short > 0);
   }
 
   // The tank drawing. While a ticket is being filled in, it shows the tank as that
   // ticket would leave it, so every change on the ticket is seen at once.
-  function renderLevels(ownedInTank, clientInTank, preview) {
+  function renderLevels(ownedInTank, clientInTank, previewing) {
     const used = ownedInTank + clientInTank;
     const percent = Math.round(used / capacity * 100);
     element("tank-owned").style.height = ownedInTank / capacity * 100 + "%";
     element("tank-client").style.height = clientInTank / capacity * 100 + "%";
     set("tank-pct", percent + "%");
-    element("tank").setAttribute("aria-label", "Tank A " + (preview ? "after this ticket" : "now") + ": " + percent + "% full, with " +
+    element("tank").setAttribute("aria-label", "Tank A " + (previewing ? "after this ticket" : "now") + ": " + percent + "% full, with " +
       number(ownedInTank) + " barrels of your crude and " + number(clientInTank) + " barrels of client crude.");
     set("key-owned", number(ownedInTank) + " bbl");
     set("key-client", number(clientInTank) + " bbl");
     set("key-free", number(capacity - used) + " bbl");
     const tag = element("tank-tag");
-    tag.textContent = preview ? "After this ticket" : "Now";
-    tag.classList.toggle("is-preview", preview);
+    tag.textContent = previewing ? "After this ticket" : "Now";
+    tag.classList.toggle("is-preview", previewing);
   }
 
   // --- Order ticket ------------------------------------------------------------
 
   function readOrder() {
+    const afternoon = state.phase === "pm";
     const side = form.elements.side.value || "hold";
-    return {
+    const asks = haggles[side];
+    const order = {
       side,
       barrels: side === "hold" ? 0 : inputs.barrels.valueAsNumber,
-      storage: inputs.storage.valueAsNumber,
-      storageCycles: inputs.storageCycles.valueAsNumber,
+      storage: afternoon ? 0 : inputs.storage.valueAsNumber,
+      storageCycles: afternoon ? 0 : inputs.storageCycles.valueAsNumber,
       client: state.round.orderBook.client ? form.elements.client.value : "none",
-      futuresTrades: futuresInputs.map(input => !input.validity.badInput && input.value === "" ? 0 : input.valueAsNumber),
+      futuresTrades: futuresInputs.map(input => input.value.trim() === "" ? 0 : input.valueAsNumber),
     };
+    if (asks?.length) order.haggle = { side, asks: asks.slice() };
+    return order;
   }
 
-  function showHedgeStatus(text = "") {
-    const status = element("hedge-shortcut-status");
-    status.hidden = !text;
-    status.textContent = text;
+  // The talk with the counterparty on a local route: who they are, what has been said, what you can say next.
+  function renderHaggle(side) {
+    const panel = element("haggle");
+    const local = (side === "sell" || side === "buy") && state.round.orderBook[side].max > 0;
+    panel.hidden = !local;
+    if (!local) return;
+    const selling = side === "sell";
+    const sign = selling ? 1 : -1;
+    const asks = haggles[side];
+    const talk = negotiate(state, side, asks);
+    set("haggle-name", talk.name + (selling ? " is bidding " : " is offering at ") + quote(talk.firm) + ".");
+    set("haggle-line", talk.line);
+
+    const log = element("haggle-log");
+    log.replaceChildren();
+    const said = (ask) => "You " + (selling ? "asked for " : "offered ") + quote(talk.firm + sign * ask) + ".";
+    if (asks.length) {
+      const first = negotiate(state, side, asks.slice(0, 1));
+      append(log, "li", said(asks[0]) + (first.status === "deal" ? " Done." : " They came back at " + quote(first.counterPrice) + "."));
+      if (asks.length === 2) {
+        append(log, "li", asks[1] === "take" ? "You took " + quote(first.counterPrice) + "." :
+          said(asks[1]) + (talk.status === "deal" ? " Done." : " They walked away."));
+      }
+    }
+    if (talk.status === "deal") append(log, "li", "Agreed at " + quote(talk.price) + ", " + cents(talk.improve) + " better than their opening price.", "is-deal");
+    if (talk.status === "walked") append(log, "li", "No local " + (selling ? "sale" : "purchase") + " this session.", "is-walked");
+    log.hidden = !log.children.length;
+
+    const open = talk.status === "open" || talk.status === "counter";
+    element("haggle-ask").hidden = !open;
+    if (!open) return;
+    const range = element("haggle-range");
+    range.min = String(talk.status === "counter" ? Math.min(talk.maxAsk, talk.counter + 5) : 5);
+    range.max = String(talk.maxAsk);
+    if (Number(range.value) < Number(range.min)) range.value = range.min;
+    range.style.setProperty("--fill", ((Number(range.value) - Number(range.min)) / Math.max(5, talk.maxAsk - Number(range.min)) * 100) + "%");
+    set("haggle-label", talk.status === "counter" ? "Or ask once more. A second refusal ends the talk." : selling ? "Ask for more" : "Offer less");
+    set("haggle-price", quote(talk.firm + sign * Number(range.value)) + ", " + cents(Number(range.value)) + (selling ? " over their bid" : " under their offer"));
+    set("haggle-send", talk.status === "counter" ? "Ask once more" : "Make the offer");
+    const take = element("haggle-take");
+    take.hidden = talk.status !== "counter";
+    if (talk.status === "counter") take.textContent = "Take " + quote(talk.counterPrice);
   }
 
   function updateTicket() {
-    showHedgeStatus();
     const draft = readOrder();
     const book = state.round.orderBook;
     const result = preview(state, draft);
     const route = book[draft.side];
+    const agreed = result.haggle?.status === "deal" && result.haggle.side === draft.side;
+    const price = result.price ?? route?.price;
 
     inputs.barrels.disabled = draft.side === "hold";
     inputs.barrels.max = String(result.physicalLimit);
-    slider.disabled = draft.side === "hold";
+    slider.disabled = draft.side === "hold" || !result.physicalLimit;
     slider.max = String(result.physicalLimit);
     slider.value = String(Number.isFinite(draft.barrels) ? draft.barrels : 0);
     slider.style.setProperty("--fill", (result.physicalLimit ? Math.min(100, (Number(slider.value) / result.physicalLimit) * 100) : 0) + "%");
-    element("barrels-max").disabled = draft.side === "hold";
+    element("barrels-max").disabled = draft.side === "hold" || !result.physicalLimit;
     set("order-quote", draft.side === "hold" ? "Keep the crude you have. Choose a route to trade." :
-      draft.side === "buy" ? quote(route.price) + " ask · up to " + number(route.max) + " bbl" :
-      draft.side === "sell" ? quote(route.price) + " bid · up to " + number(route.max) + " bbl" :
+      !result.physicalLimit ? "This route is closed for the session." :
+      draft.side === "buy" ? quote(price) + (agreed ? " agreed" : " ask") + " · up to " + number(route.max) + " bbl" :
+      draft.side === "sell" ? quote(price) + (agreed ? " agreed" : " bid") + " · up to " + number(route.max) + " bbl" :
       quote(route.price) + " less " + quote(route.tariff) + " tariff is " + quote(route.price - route.tariff) + " net · up to " + number(route.max) + " bbl");
+    renderHaggle(draft.side);
 
     inputs.storage.max = String(book.storage.max);
     inputs.storageCycles.max = String(book.storage.maxCycles);
@@ -266,14 +325,13 @@
       (result.storageThroughCycle ? ". Runs through cycle " + result.storageThroughCycle + " for " + unsignedMoney(result.storageCost) + "." :
         result.storageRequired ? ". This ticket needs " + number(result.storageRequired) + " bbl." : ". Not needed on this ticket."));
 
-    futuresInputs.forEach((input, month) => {
-      const before = state.futuresPositions[month];
-      const after = result.futuresPositions[month];
-      const cell = element("futures-after-" + month);
+    futuresInputs.forEach((input, slot) => {
+      const before = state.futuresPositions[slot];
+      const after = result.futuresPositions[slot];
+      const cell = element("futures-after-" + slot);
       cell.textContent = positionText(after);
       cell.classList.toggle("is-changed", after !== before);
-      const valid = Number.isSafeInteger(draft.futuresTrades[month]);
-      if (valid) input.removeAttribute("aria-invalid");
+      if (Number.isSafeInteger(draft.futuresTrades[slot])) input.removeAttribute("aria-invalid");
       else input.setAttribute("aria-invalid", "true");
     });
     set("hedge-hint", "A negative order sells. " + number(result.futuresGross) + " of " + maxFuturesLots + " open lots after this ticket.");
@@ -287,8 +345,9 @@
       (result.ownedOverflow ? " · " + number(result.ownedOverflow) + " bbl of yours off-site" : "") +
       (result.clientOverflow ? " · " + number(result.clientOverflow) + " client bbl off-site" : ""));
     const exposure = element("order-exposure");
-    exposure.textContent = exposureText(result.netLots) + " · limit ±" + netLimitLots + " lots";
-    exposure.classList.toggle("negative", !!result.errors.exposure);
+    exposure.textContent = exposureText(result.netLots) + " · limit ±" + netLimitLots + " lots" +
+      (result.netLotsAfterExpiry !== null ? " · " + exposureText(result.netLotsAfterExpiry).toLowerCase() + " once " + state.months[0] + " expires" : "");
+    exposure.classList.toggle("negative", !!(result.errors.exposure || result.errors.expiry));
     const marker = element("gauge-marker");
     marker.style.left = Math.max(0, Math.min(100, 50 + result.netLots / (netLimitLots * 2) * 50)) + "%";
     marker.classList.toggle("is-over", !!result.errors.exposure);
@@ -318,21 +377,23 @@
     renderLevels(result.barrels - result.ownedOverflow, result.clientInTank, changed);
     const newBooking = result.storageThroughCycle ? draft.storage : 0;
     renderOverflow(result.ownedOverflow, result.clientOverflow, result.activeStorage + newBooking, changed || newBooking > 0);
+
     const cash = result.clientCashflow - result.storageCost - result.transportCost - result.tankLease;
     set("order-fees", [
-      "Tank lease " + money(-result.tankLease),
+      result.tankLease ? "Tank lease " + money(-result.tankLease) : "",
       result.clientCashflow ? "client " + money(result.clientCashflow) : "",
       result.storageCost ? "overflow " + money(-result.storageCost) : "",
       result.transportCost ? "tariff " + money(-result.transportCost) : "",
-    ].filter(Boolean).join(" · ") + (cash !== -result.tankLease ? " · net " + money(cash) : ""));
+    ].filter(Boolean).join(" · ") || "Nothing to pay this afternoon");
+    if (cash !== -result.tankLease) element("order-fees").append(" · net " + money(cash));
 
-    const issue = ["side", "barrels", "client", "storage", "storageCycles", "futuresTrades", "exposure"]
+    const issue = ["side", "barrels", "haggle", "client", "storage", "storageCycles", "futuresTrades", "exposure", "expiry"]
       .map(key => result.errors[key]).find(Boolean);
     const message = element("order-error");
     message.textContent = issue || "";
     message.hidden = !issue;
     message.classList.toggle("is-prompt", !!result.awaitingClient);
-    element("confirm-button").disabled = busy || !result.ok;
+    element("confirm-button").disabled = fields.disabled || !result.ok;
     return { draft, result };
   }
 
@@ -346,31 +407,39 @@
     }
     const book = round.orderBook;
     const client = book.client;
+    const afternoon = round.phase === "pm";
     const final = state.stage === totalCycles - 1;
-    set("decision-label", "Order ticket");
-    set("phase", "Cycle " + (state.stage + 1));
+    const prices = state.market.prices;
+    set("decision-label", afternoon ? "Afternoon ticket" : "Order ticket");
+    set("phase", "Cycle " + (state.stage + 1) + (afternoon ? " · afternoon" : " · morning"));
     set("decision-desk", round.desk);
     set("decision-title", round.title);
     set("decision-brief", round.message);
     const note = element("market-note");
     note.hidden = !round.marketNote;
-    note.textContent = round.marketNote ? "Also in the market: " + round.marketNote.replace(/\.$/, "") + ". Check the bid and ask against spot." : "";
+    note.textContent = !round.marketNote ? "" : afternoon ? "Also this morning: " + round.marketNote :
+      "Also in the market: " + round.marketNote.replace(/\.$/, "") + ". Check the bid and ask against spot.";
 
     const watch = state.market.watch;
     element("watch").hidden = !watch;
     if (watch) {
+      set("watch-when", watch.due === "midday" ? "Due at midday today" : "On watch tonight");
       set("watch-odds", watch.odds + "% likely");
       element("watch-meter").style.width = watch.odds + "%";
       set("watch-title", watch.title + ".");
       set("watch-detail", watch.detail + " " + watch.lean);
+      const revision = state.market.revision;
+      element("watch-revised").hidden = !revision;
+      if (revision) set("watch-revised", "The odds moved from " + revision.from + "% to " + revision.to + "% at midday, and part of that is already in the price.");
       set("watch-hit", effectText(watch.hit));
       set("watch-miss", effectText(watch.miss));
     }
 
     set("ticket-bid", quote(book.sell.price));
     set("ticket-ask", quote(book.buy.price));
-    set("ticket-spot", quote(state.market.prices[0]));
-    set("ticket-front", quote(book.futuresPrices[0]));
+    set("ticket-spot", quote(prices[0]));
+    set("ticket-front-label", state.months[0] + " futures");
+    set("ticket-front", quote(prices[1]));
 
     element("client-step").hidden = !client;
     for (const radio of form.elements.client) {
@@ -385,8 +454,9 @@
         "No later slot is open.");
       set("client-redirect-detail", "Pay " + unsignedMoney(client.redirect.fee) + ". The space stays free.");
     }
-    let step = client ? 2 : 1;
-    for (const marker of form.querySelectorAll("[data-step-number]")) marker.textContent = String(step++).padStart(2, "0");
+    element("storage-step").hidden = afternoon;
+    let step = 1;
+    for (const marker of form.querySelectorAll(".cd-step:not([hidden]) > legend > .cd-step__n")) marker.textContent = String(step++).padStart(2, "0");
 
     for (const radio of form.elements.side) {
       radio.disabled = radio.value !== "hold" && !book[radio.value]?.max;
@@ -395,14 +465,26 @@
     inputs.barrels.value = "0";
     inputs.storage.value = "0";
     inputs.storageCycles.value = "1";
-    futuresInputs.forEach((input, month) => {
+    futuresInputs.forEach((input, slot) => {
       input.value = "0";
-      set("futures-mark-" + month, quote(book.futuresPrices[month]));
-      set("futures-open-" + month, positionText(state.futuresPositions[month]));
+      set("futures-name-" + slot, state.months[slot]);
+      set("futures-mark-" + slot, quote(prices[slot + 1]));
+      set("futures-open-" + slot, positionText(state.futuresPositions[slot]));
+      input.setAttribute("aria-label", state.months[slot] + " order in lots. Negative sells.");
     });
-    set("confirm-button", final ? "Settle the book" : "Commit orders");
+    set("hedge-flat", state.expiryToday ? "Roll and hedge" : "Hedge to flat");
+    const expiry = element("expiry-note");
+    const daysLeft = expiryCycle - (state.stage + 1);
+    expiry.hidden = !(state.months[0] === monthNames[0] && daysLeft >= 0 && daysLeft <= 1);
+    if (!expiry.hidden) {
+      expiry.textContent = state.months[0] + " futures expire at " + (daysLeft ? "tomorrow’s" : "today’s") + " close and settle at spot. " +
+        (daysLeft ? "You will have to move the hedge into " + state.months[1] + " tomorrow." : "Move the hedge into " + state.months[1] + " now: Roll and hedge does it in one step.");
+    }
+    set("confirm-button", final && state.market.phase !== "am" ? "Settle the book" : afternoon ? "Commit and close the day" : final ? "Commit final orders" : "Commit orders");
     updateTicket();
   }
+
+  // --- Debrief ------------------------------------------------------------------
 
   function renderDebrief() {
     const debrief = element("debrief");
@@ -411,6 +493,7 @@
       run.completedAt = Date.now();
       saveRun();
     }
+    const review = state.review;
     const rank = run.ranked ? board.record({
       id: run.id, seed: run.seed, net: state.net, drawdown: state.maxDrawdown, completedAt: run.completedAt,
     }) : null;
@@ -419,64 +502,104 @@
     set("decision-desk", !run.ranked ? "Practice run · not ranked" : rank === 1 ? "Ranked run · personal best" :
       rank ? "Ranked run · number " + rank + " on your leaderboard" : "Ranked run");
     set("decision-title", "Book closed.");
-    set("decision-brief", "All crude is sold and every futures position is closed. The result includes the tank lease, storage, tariffs and client income.");
+    set("decision-brief", "All crude is sold and every futures position is closed. Here is the result, where it came from and how much risk it took.");
     element("market-note").hidden = true;
     element("watch").hidden = true;
 
     append(debrief, "p", money(state.net), "cd-score numeric " + tone(state.net));
-    append(debrief, "p", "Largest fall from a peak: " + unsignedMoney(state.maxDrawdown), "cd-debrief__meta");
-    const table = append(debrief, "table", undefined, "cd-table");
-    append(table, "caption", "Orders and profit and loss change in each cycle", "visually-hidden");
+
+    // The grade: return for the risk taken, and the plain alternative.
+    const grade = append(debrief, "div", undefined, "cd-grade");
+    append(grade, "p", review.grade, "cd-grade__letter");
+    const words = append(grade, "div");
+    append(words, "p", "Return on risk", "label");
+    const perDollar = Math.abs(review.ratio).toLocaleString("en-US", { style: "currency", currency: "USD" });
+    append(words, "p", state.net >= 0 ?
+      perDollar + " made for each $1 of your largest fall, which was " + unsignedMoney(state.maxDrawdown) + "." :
+      "A loss, after a largest fall of " + unsignedMoney(state.maxDrawdown) + ".", "cd-grade__text");
+    append(words, "p", "You ran an average net position of " + review.averageExposure.toFixed(1) + " lots against a limit of " + netLimitLots + ".", "cd-grade__text");
+
+    if (review.benchmark !== null) {
+      const edge = state.net - review.benchmark;
+      const versus = append(debrief, "p", undefined, "cd-versus");
+      versus.append("Holding the hedged cargo and never trading would have made ");
+      append(versus, "b", money(review.benchmark), tone(review.benchmark));
+      versus.append(". You " + (edge >= 0 ? "beat" : "fell short of") + " that by ");
+      append(versus, "b", unsignedMoney(edge), tone(edge));
+      versus.append(".");
+    }
+
+    // Where the result came from, as bars on one scale.
+    append(debrief, "p", "Where it came from", "label cd-debrief__head");
+    const rows = [...Object.keys(partNames).map(key => [partNames[key], review.parts[key]]), ["Opening value of the cargo over cost", review.opening]];
+    const largest = Math.max(1, ...rows.map(row => Math.abs(row[1])));
+    const bars = append(debrief, "ul", undefined, "cd-bars");
+    for (const [name, value] of rows) {
+      const row = append(bars, "li");
+      append(row, "span", name, "cd-bars__name");
+      append(row, "strong", money(value), "numeric " + tone(value));
+      const track = append(row, "span", undefined, "cd-bars__track");
+      const bar = append(track, "i", undefined, tone(value));
+      bar.style.width = Math.abs(value) / largest * 50 + "%";
+      bar.style[value < 0 ? "right" : "left"] = "50%";
+    }
+
+    const detail = append(debrief, "details", undefined, "cd-details cd-details--inset");
+    append(detail, "summary", "Every ticket");
+    const table = append(detail, "table", undefined, "cd-table");
+    append(table, "caption", "Orders and profit and loss change on each ticket", "visually-hidden");
     const heading = table.createTHead().insertRow();
     ["Cycle", "Orders", "P&L change"].forEach((label, index) => {
-      const cell = append(heading, "th", label, index === 2 ? "num" : "");
-      cell.scope = "col";
+      append(heading, "th", label, index === 2 ? "num" : "").scope = "col";
     });
     const body = table.createTBody();
     for (const step of state.history) {
       const row = body.insertRow();
-      append(row, "td", String(step.cycle));
+      append(row, "td", step.cycle + (step.phase === "pm" ? " pm" : ""));
       append(row, "td", step.label);
       append(row, "td", money(step.delta), tone(step.delta));
     }
+
     const actions = append(debrief, "div", undefined, "cd-debrief__actions");
     const next = append(actions, "button", "Play a new ranked market", "btn");
     next.type = "button";
-    next.addEventListener("click", () => { if (!busy) begin(randomSeed(), true); });
+    next.addEventListener("click", () => { if (!fields.disabled) begin(randomSeed(), true); });
     const again = append(actions, "button", "Practise this market again", "btn btn--secondary");
     again.type = "button";
-    again.addEventListener("click", () => { if (!busy) begin(run.seed, false); });
+    again.addEventListener("click", () => { if (!fields.disabled) begin(run.seed, false); });
   }
 
   // --- Ledger ------------------------------------------------------------------
 
   function renderLedger() {
-    const settled = state.stage === totalCycles;
+    const settled = !state.round;
     set("ledger-status", settled ? "Settled" : "Open book");
     const rows = [
       ["Physical crude", state.barrels ? number(state.barrels) + " bbl at " + quote(state.cargoCost) : "Flat", state.components.physical],
-      ["WTI futures", futuresSummary(state.futuresPositions), state.components.hedge],
+      ["WTI futures", futuresSummary(state.futuresBook.map(month => month.position)), state.components.hedge],
       ["Logistics", "Lease, storage, tariffs, clients", state.components.logistics],
       ["Net P&L", settled ? "Final" : "Marked to market", state.net],
     ];
     const body = element("ledger-rows");
     body.replaceChildren();
-    rows.forEach(([name, position, cents], index) => {
+    rows.forEach(([name, position, value], index) => {
       const row = body.insertRow();
       if (index === rows.length - 1) row.className = "is-total";
       append(row, "td", name);
       append(row, "td", position);
-      append(row, "td", money(cents), tone(cents));
+      append(row, "td", money(value), tone(value));
     });
 
     const months = element("futures-ledger-rows");
     months.replaceChildren();
-    state.futuresBook.forEach((month, index) => {
+    for (const month of state.futuresBook) {
+      if (!month.listed && !month.pnl) continue;
       const row = months.insertRow();
-      append(row, "td", futuresMonths[index] + " WTI");
-      append(row, "td", month.position ? positionText(month.position) + " at " + quote(month.averageEntry) + ", now " + quote(month.mark) : "Flat");
+      append(row, "td", month.name + " WTI");
+      append(row, "td", month.expired ? "Expired" :
+        month.position ? positionText(month.position) + " at " + quote(month.averageEntry) + ", now " + quote(month.mark) : "Flat");
       append(row, "td", money(month.pnl), tone(month.pnl));
-    });
+    }
 
     const storage = element("storage-list");
     storage.replaceChildren();
@@ -501,19 +624,31 @@
     });
   }
 
-  // --- Forward curve -----------------------------------------------------------
+  // --- Forward curve and the wire ------------------------------------------------
+
+  // The news in one market move, most important first.
+  function newsOf(market) {
+    return [
+      market.shock ? { text: market.shock.headline + ".", shock: true } : null,
+      market.resolved || market.revision ? { text: market.headline + "." } : null,
+      market.expired ? { text: market.expired.name + " futures expired at " + quote(market.expired.price) + "." } : null,
+    ].filter(Boolean);
+  }
 
   function renderQuotes() {
     const prices = state.market.prices;
-    const previous = state.history.at(-1)?.marketBefore.prices;
+    const last = state.history.at(-1);
+    // Yesterday's curve is only comparable when the same months are listed.
+    const previous = last && last.marketBefore.firstMonth === state.market.firstMonth ? last.marketBefore.prices : null;
+    const labels = ["Spot", ...state.months];
     const spread = prices[1] - prices[0];
-    set("curve-shape", spread > 0 ? "Contango · Dec " + quote(spread) + " over spot" :
-      spread < 0 ? "Backwardation · Dec " + quote(-spread) + " under spot" : "Flat · Dec at spot");
+    set("curve-shape", spread > 0 ? "Contango · " + state.months[0] + " " + quote(spread) + " over spot" :
+      spread < 0 ? "Backwardation · " + state.months[0] + " " + quote(-spread) + " under spot" : "Flat · " + state.months[0] + " at spot");
     element("price-chart").setAttribute("aria-label", "WTI forward curve. " +
-      curveLabels.map((label, index) => label + " " + quote(prices[index])).join(", ") + ".");
+      labels.map((label, index) => label + " " + quote(prices[index])).join(", ") + ".");
     const quotes = element("quotes");
     quotes.replaceChildren();
-    curveLabels.forEach((label, index) => {
+    labels.forEach((label, index) => {
       const button = append(quotes, "button", undefined, "cd-quote");
       button.type = "button";
       button.dataset.quote = index;
@@ -522,21 +657,27 @@
       append(button, "span", label, "label");
       append(button, "strong", quote(prices[index]));
       const change = previous ? prices[index] - previous[index] : 0;
-      append(button, "small", previous ? (change > 0 ? "+" : change < 0 ? "−" : "") + (Math.abs(change) / 100).toFixed(2) : "Opening", tone(change));
+      append(button, "small", previous ? (change > 0 ? "+" : change < 0 ? "−" : "") + (Math.abs(change) / 100).toFixed(2) : last ? "New front" : "Opening", tone(change));
     });
     element("curve-hint").hidden = !state.round;
 
-    // The wire: every day's news so far, newest first.
-    element("wire").hidden = state.history.length === 0;
+    // The wire: every piece of news so far, newest first.
     const wire = element("wire-list");
     wire.replaceChildren();
     state.history.slice().reverse().forEach(step => {
-      const change = step.market.prices[0] - step.marketBefore.prices[0];
-      const row = append(wire, "li");
-      const text = append(row, "span", step.market.shock ? step.market.shock.headline : step.market.headline);
-      append(text, "small", "After cycle " + step.cycle + (step.market.shock && step.market.resolved ? " · also: " + step.market.headline : ""));
-      append(row, "strong", "Spot " + move(change), tone(change));
+      for (let index = step.path.length - 1; index >= 1; index--) {
+        const market = step.path[index];
+        const items = newsOf(market);
+        // A quiet midday on the way to the close is not news.
+        if (!items.length && market.phase === "pm") continue;
+        const change = market.prices[0] - step.path[index - 1].prices[0];
+        const row = append(wire, "li");
+        const text = append(row, "span", items.length ? items.map(item => item.text.replace(/\.$/, "")).join(". ") : market.headline);
+        append(text, "small", "Cycle " + step.cycle + (market.phase === "pm" ? ", midday" : ", overnight"));
+        append(row, "strong", "Spot " + move(change), tone(change));
+      }
     });
+    element("wire").hidden = wire.children.length === 0;
     drawCurve();
   }
 
@@ -555,9 +696,10 @@
     // Colours come from the site's tokens, so the chart follows the theme.
     const styles = getComputedStyle(root);
     const token = (name) => styles.getPropertyValue(name).trim();
-    const prices = movingPrices || state.market.prices;
-    const previous = state.history.at(-1)?.marketBefore.prices;
-    const series = [...state.market.prices, ...(previous || []), ...prices];
+    const prices = state.market.prices;
+    const last = state.history.at(-1);
+    const previous = last && last.marketBefore.firstMonth === state.market.firstMonth ? last.marketBefore.prices : null;
+    const series = [...prices, ...(previous || [])];
     const low = Math.floor((Math.min(...series) - 25) / 100) * 100;
     const high = Math.ceil((Math.max(...series) + 25) / 100) * 100;
     const interval = high - low > 900 ? 300 : high - low > 500 ? 200 : 100;
@@ -606,30 +748,9 @@
     });
   }
 
-  function animateMarket(previous) {
-    if (still()) return;
-    const start = performance.now();
-    const before = previous.market.prices;
-    const after = state.market.prices;
-    const finalNet = state.net;
-    const tick = now => {
-      const progress = Math.min(1, (now - start) / 560);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      movingPrices = progress < 1 ? before.map((price, index) => price + (after[index] - price) * eased) : null;
-      // Whole dollars while it counts, so the figure does not flicker through cents.
-      amount("net-value", progress < 1 ? Math.round((previous.net + (finalNet - previous.net) * eased) / 100) * 100 : finalNet);
-      drawCurve();
-      frameRequest = progress < 1 ? requestAnimationFrame(tick) : undefined;
-    };
-    tick(start);
-  }
-
   // --- Whole-page render ---------------------------------------------------------
 
-  function renderGame(next, previous) {
-    if (frameRequest !== undefined) cancelAnimationFrame(frameRequest);
-    frameRequest = undefined;
-    movingPrices = null;
+  function renderGame(next) {
     state = next;
     quoteIndex = -1;
     renderHead();
@@ -640,14 +761,25 @@
     const last = state.history.at(-1);
     element("cycle-note").hidden = !last;
     if (last) {
-      set("cycle-headline", "Cycle " + last.cycle + " · " + (state.market.shock ? state.market.shock.headline : state.market.headline));
+      const news = newsOf(state.market);
+      set("cycle-headline", "Cycle " + last.cycle + (last.phase === "pm" || state.phase !== "pm" ? "" : " morning") + " · " +
+        (news.length ? news[0].text.replace(/\.$/, "") : state.market.headline));
       set("cycle-outcome", last.outcome);
       amount("cycle-delta", last.delta);
+      // The explanation: the three largest parts of the change, biggest first.
+      const why = element("cycle-why");
+      why.replaceChildren();
+      Object.entries(last.parts).filter(([, value]) => value).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])).slice(0, 3).forEach(([key, value], index) => {
+        if (index) why.append(" · ");
+        why.append(partNames[key] + " ");
+        append(why, "b", money(value), tone(value));
+      });
+      why.hidden = !why.childNodes.length;
     }
-    if (previous) animateMarket(previous);
   }
 
   function begin(seed, generated, show = true) {
+    haggles = { buy: [], sell: [] };
     run = { id: window.CargoLeaderboard.newRunId(), seed, ranked: claimSeed(seed, generated), decisions: [], completedAt: null };
     saveRun();
     renderGame(replay(run.seed, run.decisions));
@@ -656,8 +788,8 @@
   }
 
   function openNewRun(seed = "") {
-    if (busy) return;
-    const midRun = state.stage > 0 && state.stage < totalCycles;
+    if (fields.disabled) return;
+    const midRun = state.history.length > 0 && !!state.round;
     set("restart-message", (midRun ? "Starting a new run abandons this one" + (run.ranked ? ", and it cannot be ranked later. " : ". ") : "") +
       "A new random market is ranked. A seed you type in is a practice run.");
     element("seed-input").value = seed;
@@ -668,9 +800,9 @@
   const board = window.CargoLeaderboard.create({
     container: element("leaderboard-content"),
     onReplay(seed) {
-      if (busy) return;
+      if (fields.disabled) return;
       element("leaderboard-dialog").close();
-      if (state.stage > 0 && state.stage < totalCycles) openNewRun(seed);
+      if (state.history.length > 0 && state.round) openNewRun(seed);
       else begin(seed, false);
     },
   });
@@ -678,10 +810,11 @@
   // --- Events ------------------------------------------------------------------
 
   form.addEventListener("input", event => {
-    if (busy || !state.round) return;
+    if (fields.disabled || !state.round) return;
     if (event.target.name === "side") {
       const route = state.round.orderBook[event.target.value];
-      inputs.barrels.value = route ? String(route.max) : "0";
+      const walked = haggles[event.target.value]?.length === 2 && negotiate(state, event.target.value, haggles[event.target.value]).status === "walked";
+      inputs.barrels.value = route && !walked ? String(route.max) : "0";
     }
     updateTicket();
   });
@@ -689,7 +822,7 @@
   // The slider and the number box are two handles on the same volume.
   slider.addEventListener("input", event => {
     event.stopPropagation();
-    if (busy || !state.round) return;
+    if (fields.disabled || !state.round) return;
     inputs.barrels.value = slider.value;
     updateTicket();
   });
@@ -701,83 +834,80 @@
     updateTicket();
   });
 
-  // Adjust only December and leave every other order intact.
-  element("hedge-flat").addEventListener("click", () => {
-    if (busy || !state.round) return;
-    const draft = readOrder();
-    const otherTrades = draft.futuresTrades.slice(1);
-    if (otherTrades.some(quantity => !Number.isSafeInteger(quantity) || Math.abs(quantity) > 2 * maxFuturesLots)) {
-      showHedgeStatus("Enter valid whole-lot orders in the other months first.");
-      return;
-    }
-
-    const current = preview(state, draft);
-    if (current.errors.side || current.errors.barrels) {
-      showHedgeStatus("Enter a valid crude order before adjusting the December hedge.");
-      return;
-    }
-
-    const otherPositions = otherTrades.map((quantity, index) => state.futuresPositions[index + 1] + quantity);
-    const grossRoom = maxFuturesLots - otherPositions.reduce((total, position) => total + Math.abs(position), 0);
-    if (grossRoom < 0) {
-      showHedgeStatus("Reduce open lots in the other months before adjusting December.");
-      return;
-    }
-
-    const exposureWithoutDec = current.barrels / lot + otherPositions.reduce((sum, position) => sum + position, 0);
-    const flatTarget = -Math.round(exposureWithoutDec);
-    const decTarget = Math.min(grossRoom, Math.max(-grossRoom, flatTarget));
-    const decTrade = decTarget - state.futuresPositions[0];
-    const adjusted = preview(state, { ...draft, futuresTrades: [decTrade, ...otherTrades] });
-    if (adjusted.errors.futuresTrades || adjusted.errors.exposure) {
-      showHedgeStatus("December alone cannot bring the ticket within the limits. Reduce open lots in another month or change the crude order.");
-      return;
-    }
-
-    futuresInputs[0].value = String(decTrade);
+  // Negotiation. Each thing said is saved at once, so it cannot be taken back.
+  function say(ask) {
+    const side = form.elements.side.value;
+    if (fields.disabled || !state.round || !haggles[side] || haggles[side].length >= 2) return;
+    haggles[side].push(ask);
+    saveRun();
+    if (negotiate(state, side, haggles[side]).status === "walked") inputs.barrels.value = "0";
     updateTicket();
-    if (!adjusted.netLots) showHedgeStatus("Net exposure is flat after this ticket.");
-    else if (decTarget !== flatTarget) {
-      showHedgeStatus("The gross limit leaves " + exposureText(adjusted.netLots) + ". Change the crude order or adjust another month to get closer to flat.");
-    } else {
-      showHedgeStatus("The closest whole-lot hedge leaves " + exposureText(adjusted.netLots) + ".");
-    }
+  }
+  element("haggle-range").addEventListener("input", event => {
+    event.stopPropagation();
+    if (state.round) renderHaggle(form.elements.side.value);
+  });
+  element("haggle-send").addEventListener("click", () => say(Number(element("haggle-range").value)));
+  element("haggle-take").addEventListener("click", () => say("take"));
+
+  // Sets the hedge so that crude plus futures is as close to flat as whole lots allow.
+  // On expiry day it also closes the expiring month and puts the hedge in the next one.
+  element("hedge-flat").addEventListener("click", () => {
+    if (fields.disabled || !state.round) return;
+    const slot = state.expiryToday ? 1 : 0;
+    if (state.expiryToday) futuresInputs[0].value = String(-state.futuresPositions[0]);
+    const draft = readOrder();
+    const barrels = preview(state, draft).barrels;
+    const others = state.futuresPositions.reduce((total, held, month) =>
+      total + held + (month !== slot && Number.isSafeInteger(draft.futuresTrades[month]) ? draft.futuresTrades[month] : 0), 0);
+    futuresInputs[slot].value = String(-Math.round(barrels / lot + others));
+    updateTicket();
   });
 
   form.addEventListener("submit", async event => {
     event.preventDefault();
-    if (busy || !state.round) return;
+    if (fields.disabled || !state.round) return;
     const { draft, result } = updateTicket();
     if (!result.ok) return;
 
     const previous = state;
     const next = replay(run.seed, [...run.decisions, draft]);
-    if (next.stage !== previous.stage + 1) return;
+    if (next.history.length !== previous.history.length + 1) return;
+    const step = next.history.at(-1);
     run.decisions = next.decisions;
-    if (next.stage === totalCycles) run.completedAt = Date.now();
+    haggles = { buy: [], sell: [] };
+    if (!next.round) run.completedAt = Date.now();
     saveRun();
-    busy = true;
     fields.disabled = true;
     element("confirm-button").disabled = true;
-    for (const id of ["restart-button", "leaderboard-button", "help-button"]) element(id).disabled = true;
+    const controls = ["restart-button", "leaderboard-button", "help-button"].map(element);
+    controls.forEach(control => { control.disabled = true; });
     form.setAttribute("aria-busy", "true");
+
+    // One stretch of tape for each market move since the ticket: morning, then afternoon and overnight.
+    const front = previous.market.firstMonth;
+    const segments = step.path.slice(1).map((to, index) => {
+      const from = step.path[index];
+      return {
+        label: to.phase === "pm" ? "Morning" : to.phase === "close" ? "Afternoon to the close" : "Afternoon and overnight",
+        from: { spot: from.prices[0], front: monthPrice(from, front) },
+        to: { spot: to.prices[0], front: monthPrice(to, front) },
+        news: newsOf(to),
+      };
+    });
     try {
       await transition({
-        from: "Cycle " + next.stage,
-        to: next.stage === totalCycles ? "Settled" : "Cycle " + (next.stage + 1),
-        label: next.history.at(-1).label,
-        delta: next.net - previous.net,
+        title: "Cycle " + step.cycle + (previous.phase === "pm" ? " · afternoon" : next.phase === "pm" ? " · morning" : ""),
         time: next.market.time + " CT",
-        news: [
-          next.market.resolved ? { text: next.market.headline + "." } : null,
-          next.market.shock ? { text: next.market.shock.headline + ".", shock: true } : null,
-        ].filter(Boolean),
+        label: step.label,
+        frontName: monthNames[front],
+        segments,
+        delta: step.delta,
       });
     } finally {
-      busy = false;
       fields.disabled = false;
-      renderGame(next, previous);
-      for (const id of ["restart-button", "leaderboard-button", "help-button"]) element(id).disabled = false;
+      renderGame(next);
+      controls.forEach(control => { control.disabled = false; });
       form.removeAttribute("aria-busy");
       const ticket = element("ticket");
       element("decision-title").focus({ preventScroll: true });
@@ -795,7 +925,7 @@
       button.setAttribute("aria-pressed", String(Number(button.dataset.quote) === quoteIndex));
     }
     drawCurve();
-    if (next > 0 && quoteIndex === next && state.round && !busy) {
+    if (next > 0 && quoteIndex === next && state.round && !fields.disabled) {
       futuresInputs[next - 1].focus();
       futuresInputs[next - 1].select();
     }
@@ -806,18 +936,17 @@
     if (button) selectQuote(Number(button.dataset.quote));
   });
   element("price-chart").addEventListener("click", event => {
-    if (!state.round || busy) return;
+    if (!state.round || fields.disabled) return;
     const plot = event.currentTarget.getBoundingClientRect();
     const cursor = event.clientX - plot.left;
     const right = plot.width - curveMargins.right;
     if (cursor < curveMargins.left - 12 || cursor > right + 12) return;
-    const index = Math.round((cursor - curveMargins.left) * (curveLabels.length - 1) / (right - curveMargins.left));
-    selectQuote(Math.max(0, Math.min(curveLabels.length - 1, index)));
+    selectQuote(Math.max(0, Math.min(4, Math.round((cursor - curveMargins.left) * 4 / (right - curveMargins.left)))));
   });
 
-  element("help-button").addEventListener("click", () => { if (!busy) element("help-dialog").showModal(); });
+  element("help-button").addEventListener("click", () => { if (!fields.disabled) element("help-dialog").showModal(); });
   element("leaderboard-button").addEventListener("click", () => {
-    if (busy) return;
+    if (fields.disabled) return;
     board.render();
     element("leaderboard-dialog").showModal();
   });
@@ -825,7 +954,7 @@
   element("seed-input").addEventListener("input", event => event.target.setCustomValidity(""));
   element("seed-form").addEventListener("submit", event => {
     event.preventDefault();
-    if (busy) return;
+    if (fields.disabled) return;
     const input = element("seed-input");
     const seed = input.value.trim();
     if (!seed) {
@@ -837,7 +966,7 @@
     begin(seed, false);
   });
   element("random-run").addEventListener("click", () => {
-    if (busy) return;
+    if (fields.disabled) return;
     element("restart-dialog").close();
     begin(randomSeed(), true);
   });
@@ -867,21 +996,21 @@
     item.dataset.step = step;
   }
 
-  futuresInputs = futuresMonths.map((name, month) => {
+  futuresInputs = [0, 1, 2, 3].map(slot => {
     const row = element("futures-rows").insertRow();
     const head = append(row, "th");
     head.scope = "row";
-    head.append(name);
-    append(head, "small").id = "futures-mark-" + month;
-    append(row, "td").id = "futures-open-" + month;
+    append(head, "span").id = "futures-name-" + slot;
+    append(head, "small").id = "futures-mark-" + slot;
+    append(row, "td").id = "futures-open-" + slot;
     const stepper = append(append(row, "td"), "div", undefined, "cd-stepper");
     const input = document.createElement("input");
     const nudge = (label, text, by) => {
       const button = append(stepper, "button", text);
       button.type = "button";
-      button.setAttribute("aria-label", label + " one " + name + " lot");
+      button.setAttribute("aria-label", label + " one lot");
       button.addEventListener("click", () => {
-        if (busy || !state.round) return;
+        if (fields.disabled || !state.round) return;
         input.value = String((Number.isSafeInteger(input.valueAsNumber) ? input.valueAsNumber : 0) + by);
         updateTicket();
       });
@@ -891,17 +1020,17 @@
     input.step = "1";
     input.value = "0";
     input.inputMode = "numeric";
-    input.name = "futures" + month;
-    input.id = "futures-lots-" + month;
-    input.setAttribute("aria-label", name + " order in lots. Negative sells.");
+    input.name = "futures" + slot;
+    input.id = "futures-lots-" + slot;
     stepper.append(input);
     nudge("Buy", "+", 1);
-    append(row, "td").id = "futures-after-" + month;
+    append(row, "td").id = "futures-after-" + slot;
     return input;
   });
 
   run = loadRun();
   if (run) {
+    if (run.talks) haggles = { buy: run.talks.buy.slice(), sell: run.talks.sell.slice() };
     saveRun();
     renderGame(replay(run.seed, run.decisions));
   } else {
