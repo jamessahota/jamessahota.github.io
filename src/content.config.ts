@@ -139,6 +139,7 @@ const research = defineCollection({
       visibility: z.enum(['public', 'private']),
       pdf: publicFile.optional(),
       originalUrl: httpsUrl.optional(),
+      playScenario: z.object({ href: link, label: z.string().min(3) }).optional(),
       fullReportMinutes: z.number().int().positive().optional(),
       featured: z.boolean().default(false),
       order: z.number().optional(),
@@ -289,11 +290,11 @@ const research = defineCollection({
       if (data.publicationStatus === 'published' && !data.date) {
         ctx.addIssue({ code: 'custom', path: ['date'], message: 'Published research needs a date' });
       }
-      if (data.publicationStatus === 'published' && !data.originalUrl && !data.pdf) {
+      if (data.publicationStatus === 'published' && !data.originalUrl && !data.pdf && !data.playScenario) {
         ctx.addIssue({
           code: 'custom',
           path: ['originalUrl'],
-          message: 'Published research needs an originalUrl or a pdf so readers can reach the full piece',
+          message: 'Published research needs an originalUrl, a pdf, or a playable scenario for an on-site case study',
         });
       }
       for (const table of data.tables ?? []) {

@@ -507,6 +507,31 @@ test("a saved Harvey booking settles under its original rules without opening ne
   assert.equal(settled.deliveryHistory[0].barrels, 2000);
 });
 
+test("the published Harvey case study reconciles both tickets at the August 30 close", () => {
+  const scenario = scenarios.find(item => item.key === "harvey2017");
+  const options = { ...deliveryReplayOptions, scenario };
+  let start = game.replay("scenario-harvey2017", [], options);
+  for (let cycle = 1; cycle <= 3; cycle++) start = entry(start, {}, options);
+  assert.equal(scenario.dates[start.stage + 1], "2017-08-29");
+  assert.equal(start.net, -723900);
+  assert.equal(start.round.orderBook.sell.price, 4598);
+  assert.equal(start.round.orderBook.ship, null);
+  assert.deepEqual(start.market.prices.slice(0, 2), [4640, 4657]);
+
+  const sold = entry(entry(start, { side: "sell", barrels: 2000, client: "accept" }, options), {}, options);
+  const stored = entry(entry(start, { client: "accept", storage: 2000, storageCycles: 2 }, options), {}, options);
+  for (const [result, expected] of [[sold, [-84000, 68000, -160000, -557900]], [stored, [0, 102000, -232000, -511900]]]) {
+    const days = result.history.slice(start.stage);
+    const total = (part) => days.reduce((sum, day) => sum + day.parts[part], 0);
+    assert.equal(result.netLots, 0);
+    assert.deepEqual(result.market.prices.slice(0, 2), [4596, 4596]);
+    assert.equal(total("price"), 0);
+    assert.equal(total("clients"), 342000);
+    assert.deepEqual([total("trading"), total("basis"), total("costs"), result.net], expected);
+  }
+  assert.equal(stored.net - sold.net, 46000);
+});
+
 test("cycle ten settles the contracted cargo before the auction", () => {
   const start = game.replay("forward-to-close");
   const delivery = { cycle: 10, barrels: 4000, route: "local", month: 0 };

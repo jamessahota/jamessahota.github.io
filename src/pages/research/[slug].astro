@@ -55,6 +55,7 @@ const { Content, headings } = await render(entry);
 const reviewSections = data.reviewAsOf ? headings.filter((heading) => heading.depth === 3) : [];
 const hasViews = (await getCollection('views')).some((view) => view.data.report === entry.id);
 const hasBody = Boolean(entry.body?.trim());
+if (data.playScenario && !hasBody) throw new Error(`Research ${entry.id} needs a case study for its playable scenario`);
 // Without a report-specific exhibit, the header visual shows the first chart, or failing that
 // the first two key numbers, so the body leaves them out rather than repeat them.
 const headerChart = !data.headerVisual && Boolean(data.charts?.length);
@@ -128,14 +129,15 @@ const jsonLd = {
       </div>
       <nav class="report-sections side-scroll" aria-label="On this page">
         {data.tradeSetup && <a href="#trade-setup">Trade proposal</a>}
-        {hasBody && <a href="#summary-heading">{data.reviewAsOf ? 'Case study' : 'Summary'}</a>}
+        {hasBody && <a href="#summary-heading">{data.reviewAsOf || data.playScenario ? 'Case study' : 'Summary'}</a>}
         {reviewSections.map((section) => <a href={`#${section.slug}`}>{section.text}</a>)}
         {data.keyFindings.length > 0 && <a href="#findings-heading">{data.reviewAsOf ? 'Original findings' : 'Key findings'}</a>}
         {hasViews && <a href="#views">Views and outcomes</a>}
         {data.viewChangers && <a href="#changers-heading">{data.reviewAsOf ? 'Original thesis conditions' : 'What would change the view'}</a>}
-        {hasExhibits && <a href="#exhibits-heading">From the report</a>}
+        {hasExhibits && <a href="#exhibits-heading">{data.playScenario ? 'P&L breakdown' : 'From the report'}</a>}
         {data.approach && <a href="#approach-heading">Data and approach</a>}
         {data.sources && <a href="#sources-heading">Sources</a>}
+        {data.playScenario && <a href="#play-scenario">Play scenario</a>}
       </nav>
     </header>
 
@@ -147,7 +149,7 @@ const jsonLd = {
           hasBody && (
             <section class="block" aria-labelledby="summary-heading">
               <h2 id="summary-heading" class="block__title label label--marked">
-                {data.reviewAsOf ? 'Historical case study' : 'Summary'}
+                {data.reviewAsOf ? 'Historical case study' : data.playScenario ? 'Case study' : 'Summary'}
               </h2>
               <div class:list={['prose summary', { 'summary--review': Boolean(data.reviewAsOf) }]}>
                 <Content />
@@ -207,7 +209,7 @@ const jsonLd = {
           hasExhibits && (
             <section class="block" aria-labelledby="exhibits-heading">
               <h2 id="exhibits-heading" class="block__title label label--marked">
-                From the report
+                {data.playScenario ? 'P&L breakdown' : 'From the report'}
               </h2>
               <div class="exhibits">
                 {charts?.map((chart) => (chart.kind === 'futures-curve' ? <CurveChart {...chart} /> : <BarChart {...chart} />))}
@@ -254,7 +256,12 @@ const jsonLd = {
           )
         }
 
-        <div class="panel panel--night closing" data-reveal>
+        {data.playScenario ? (
+          <div class="panel panel--night closing" id="play-scenario" data-reveal>
+            <p class="closing__lead">Try the decision on the desk.</p>
+            <ButtonLink href={data.playScenario.href} label={data.playScenario.label} variant="on-dark" />
+          </div>
+        ) : <div class="panel panel--night closing" data-reveal>
           <p class="closing__lead">
             {data.originalUrl ? `Read the full ${typeLabel} for the complete analysis.` : 'Research summary.'}
           </p>
@@ -271,7 +278,7 @@ const jsonLd = {
               : `${data.date ? `Dated analysis from ${formatDate(data.date)}. ` : ''}${hasViews ? 'Views and price ranges' : 'Views'} reflect the information available at the time and have not been updated.`}
             {' '}Nothing here is investment advice.
           </p>
-        </div>
+        </div>}
       </div>
 
       <aside class="details" aria-label="About this piece">

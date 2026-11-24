@@ -40,6 +40,11 @@ const sections = headings.filter((heading) => heading.depth === 2);
       {data.investmentCase && <p class="project-prepared">Prepared for {data.investmentCase.preparedFor}</p>}
       <h1 style={`view-transition-name: project-title-${entry.id.replace(/[^a-zA-Z0-9_-]/g, '-')}`}>{data.title}</h1>
       <p class="lede">{data.summary}</p>
+      {data.game === 'cargo-desk' && (
+        <div class="project-actions">
+          <ButtonLink href="/research/harvey-hedged-oil-cargo/" label="Read the Harvey case study" variant="secondary" />
+        </div>
+      )}
       {data.investmentCase && (
         <div class="project-actions">
           <ButtonLink href={data.investmentCase.pdf} label="View pitch (PDF)" icon="arrow-up-right" />
