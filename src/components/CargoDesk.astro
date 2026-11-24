@@ -2,7 +2,7 @@
 // Cargo Desk: a ten-cycle crude oil trading game, played in the page.
 // The markup here matches the game's own index.html, and the four scripts in
 // public/cargo-desk/ are plain browser scripts that find it by id. They run in
-// order: rules, leaderboard, the commit slip, then the screen code.
+// order: rules, historical scenarios, leaderboard, the tape, then the screen code.
 // The game is styled entirely with the site's tokens, so it follows the theme.
 import '../styles/cargo-desk.css';
 ---
@@ -98,6 +98,7 @@ import '../styles/cargo-desk.css';
 
       <div class="cd-last" id="cycle-note" aria-live="polite" hidden>
         <p class="label" id="cycle-headline"></p>
+        <p class="cd-last__news" id="cycle-news" hidden></p>
         <p class="cd-last__line"><span id="cycle-outcome"></span><strong class="numeric" id="cycle-delta"></strong></p>
         <p class="cd-last__why numeric" id="cycle-why"></p>
       </div>
@@ -107,6 +108,12 @@ import '../styles/cargo-desk.css';
         <h3 id="decision-title" tabindex="-1"></h3>
         <p id="decision-brief"></p>
         <p class="cd-brief__market" id="market-note" hidden></p>
+      </div>
+
+      <div class="cd-watch" id="briefing" hidden>
+        <p class="cd-watch__head"><span class="label label--accent" id="briefing-when"></span><span class="label label--ink">Real prices</span></p>
+        <p class="cd-watch__detail" id="briefing-intro" hidden></p>
+        <p class="cd-watch__title" id="briefing-text"></p>
       </div>
 
       <div class="cd-watch" id="watch" hidden>
@@ -263,7 +270,7 @@ import '../styles/cargo-desk.css';
     </section>
   </div>
 
-  <p class="cd-foot label">Simulated terminal and prices · All times Central · 1 lot = 1,000 bbl</p>
+  <p class="cd-foot label" id="foot-note">Simulated terminal and prices · All times Central · 1 lot = 1,000 bbl</p>
 </section>
 
 <dialog id="help-dialog" class="cd-dialog" aria-labelledby="help-title">
@@ -282,6 +289,7 @@ import '../styles/cargo-desk.css';
     <div><dt>The stocks report</dt><dd>The weekly stocks report comes out at midday on both Wednesdays. It is close to a coin flip, it moves spot more than futures, and you get the afternoon to react to it.</dd></div>
     <div><dt>Expiry and the roll</dt><dd>Dec futures stop trading at the close of cycle 5 and anything left in them is settled at spot. To stay hedged you must roll: buy back Dec and sell Jan. On that day the hedge button does both.</dd></div>
     <div><dt>Shocks</dt><dd>About one day in ten the market is hit by something nobody saw coming, and prices move by several dollars. A shock that moves every price does nothing to a hedged book. One that moves spot hardest hits anyone holding crude, hedged or not.</dd></div>
+    <div><dt>Historical scenarios</dt><dd>From New run you can play four real episodes on real daily prices from the U.S. Energy Information Administration. Each ticket trades at the previous day’s closing prices, with a briefing on what was known at that close and nothing later. Then you see what the day brought. There are no afternoons, odds or shocks, because the history is fixed. Bids, clients and storage rates are still the game’s own.</dd></div>
     <div><dt>Reading the result</dt><dd>After each ticket the desk explains the profit or loss: trade prices against spot, the whole curve moving on your net position, spot moving against futures, calendar spreads, client income and costs. The debrief adds them up, grades the return against the risk taken, and compares you with simply holding the hedged cargo.</dd></div>
     <div><dt>The desk limit</dt><dd>Crude owned plus futures must stay within two lots of flat, long or short. A crude sale may require buying back futures on the same ticket. Hedge to flat adjusts the December order as far as the desk limits allow and leaves the other months alone. To trade a calendar spread, buy one month and sell another.</dd></div>
     <div><dt>Ranked and practice runs</dt><dd>The first play of a fresh random market is ranked on the leaderboard. Typing a seed, or replaying one you have already seen, is a practice run. The prices repeat, so it would not be a fair score.</dd></div>
@@ -295,6 +303,11 @@ import '../styles/cargo-desk.css';
   <h2 id="restart-title">Start a new run</h2>
   <p id="restart-message"></p>
   <button class="btn cd-dialog__wide" id="random-run" type="button">New ranked market</button>
+  <div class="cd-scenarios">
+    <p class="label">Or play a historical scenario</p>
+    <p class="cd-scenarios__note">Ten real trading days on real prices. Practice runs, not ranked.</p>
+    <ul id="scenario-list"></ul>
+  </div>
   <form id="seed-form" class="cd-seed" novalidate>
     <label class="label" for="seed-input">Or practise on a seed</label>
     <div class="cd-seed__row">
@@ -313,6 +326,7 @@ import '../styles/cargo-desk.css';
 </dialog>
 
 <script is:inline src="/cargo-desk/engine.js" defer></script>
+<script is:inline src="/cargo-desk/scenarios.js" defer></script>
 <script is:inline src="/cargo-desk/leaderboard.js" defer></script>
 <script is:inline src="/cargo-desk/motion.js" defer></script>
 <script is:inline src="/cargo-desk/app.js" defer></script>

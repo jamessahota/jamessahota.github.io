@@ -527,6 +527,15 @@
   white-space: nowrap;
 }
 
+/* In a scenario: what really happened that day. */
+.cd-last__news {
+  margin-top: 0.3rem;
+  font-size: var(--text-sm);
+  font-weight: 560;
+  line-height: 1.4;
+  color: var(--ink);
+}
+
 /* Why the last ticket made or lost money: its largest parts, biggest first. */
 .cd-last__why {
   margin-top: 0.35rem;
@@ -1345,6 +1354,10 @@
   border-radius: var(--radius);
 }
 
+.cd-grade--plain {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .cd-grade__letter {
   display: grid;
   place-items: center;
@@ -1774,6 +1787,71 @@
   .cd-help div {
     grid-template-columns: 11rem minmax(0, 1fr);
   }
+}
+
+/* Historical scenarios in the New run dialog. */
+.cd-scenarios {
+  margin-top: 1.4rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--line);
+}
+
+.cd-scenarios__note {
+  margin-top: 0.3rem;
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.cd-scenarios ul {
+  display: grid;
+  gap: 1px;
+  margin: 0.7rem 0 0;
+  padding: 0;
+  background: var(--line);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  list-style: none;
+}
+
+.cd-scenario {
+  display: grid;
+  gap: 0.15rem;
+  width: 100%;
+  padding: 0.7rem 0.85rem 0.8rem;
+  background: var(--surface);
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.2s var(--ease), color 0.2s var(--ease);
+}
+
+.cd-scenario b {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.cd-scenario__text {
+  font-size: var(--text-sm);
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.cd-scenario:hover,
+.cd-scenario:focus-visible {
+  background: var(--invert-bg);
+  color: var(--invert-ink);
+  outline: none;
+}
+
+.cd-scenario:hover .label,
+.cd-scenario:hover .cd-scenario__text,
+.cd-scenario:focus-visible .label,
+.cd-scenario:focus-visible .cd-scenario__text {
+  color: inherit;
+  opacity: 0.75;
 }
 
 .cd-seed {

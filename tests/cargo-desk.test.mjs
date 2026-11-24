@@ -9,6 +9,8 @@ import { test } from 'node:test';
 const page = {};
 new Function('window', readFileSync(new URL('../public/cargo-desk/engine.js', import.meta.url), 'utf8'))(page);
 const game = page.CargoDesk;
+new Function('window', readFileSync(new URL('../public/cargo-desk/scenarios.js', import.meta.url), 'utf8'))(page);
+const scenarios = page.CargoScenarios;
 const quiet = { withReview: false };
 
 const random = (seed) => () => {
@@ -201,4 +203,99 @@ test('the front month expires on schedule and the stocks report lands on Wednesd
     state = game.replay('calendar', [...state.decisions, firstValid(state, safeOrders(state))], quiet);
   }
   assert.deepEqual([...reports], game.reportCycles);
+});
+
+// --- Historical scenarios ------------------------------------------------------------
+
+const words = (text) => text.trim().split(/\s+/).length;
+
+test('each historical scenario is complete and well formed', () => {
+  assert.ok(scenarios.length >= 4, 'the historical scenarios are missing');
+  for (const scenario of scenarios) {
+    const where = `scenario ${scenario.key}`;
+    assert.equal(scenario.dates.length, 11, `${where} needs the prior close and ten trading days`);
+    assert.equal(scenario.prices.length, 11, `${where} needs a price row for each date`);
+    scenario.dates.forEach((date, index) => {
+      assert.match(date, /^\d{4}-\d{2}-\d{2}$/);
+      const weekday = new Date(`${date}T12:00:00Z`).getUTCDay();
+      assert.ok(weekday >= 1 && weekday <= 5, `${where} has a weekend date, ${date}`);
+      if (index) assert.ok(date > scenario.dates[index - 1], `${where} dates are out of order at ${date}`);
+    });
+    for (const row of scenario.prices) {
+      assert.equal(row.length, 5, `${where} needs spot and four futures on every row`);
+      assert.ok(row.every(Number.isSafeInteger), `${where} prices must be whole cents`);
+    }
+    // A month that expires mid-run needs a fifth month to take its place, and a price for it.
+    assert.equal(scenario.months.length, scenario.expiry ? 5 : 4, `${where} lists the wrong number of months`);
+    if (scenario.expiry) assert.ok(Number.isSafeInteger(scenario.afterExpiry?.price), `${where} needs a price for the newly listed month`);
+    assert.equal(scenario.days.length, 10, `${where} needs a briefing and a result for each of its ten days`);
+    for (const [index, day] of scenario.days.entries()) {
+      for (const text of [day.known, day.happened]) {
+        assert.ok(text && words(text) >= 5 && words(text) <= 48, `${where} day ${index + 1} has a missing or overlong text`);
+        assert.match(text, /[.]$/, `${where} day ${index + 1} text should be a finished sentence`);
+      }
+    }
+    for (const text of [scenario.intro, scenario.aftermath, scenario.summary]) assert.ok(text && words(text) >= 8 && words(text) <= 70, `${where} intro, summary or aftermath is missing or overlong`);
+    // Every date must be a weekday, with no gap longer than a long weekend.
+    scenario.dates.forEach((date, index) => {
+      if (index) assert.ok((new Date(`${date}T12:00:00Z`) - new Date(`${scenario.dates[index - 1]}T12:00:00Z`)) / 864e5 <= 4, `${where} skips trading days before ${date}`);
+    });
+  }
+});
+
+test('a historical scenario plays its real prices and keeps the books straight', () => {
+  for (const scenario of scenarios) {
+    const options = { ...quiet, scenario };
+    for (let run = 0; run < 25; run++) {
+      const seed = `scenario-${scenario.key}`;
+      const pick = random(run + 11);
+      let state = game.replay(seed, [], options);
+      assert.equal(state.net, 0, `${scenario.key} should open with the cargo bought and hedged at that day's prices`);
+      while (state.round) {
+        assert.equal(state.phase, 'am', `${scenario.key} must have no afternoon tickets`);
+        assert.equal(state.market.watch, null, `${scenario.key} must quote no odds`);
+        // Before the front month expires, the ticket shows that close's real row in full.
+        if (!scenario.expiry || state.stage < scenario.expiry) assert.deepEqual(state.market.prices, scenario.prices[state.stage], `${scenario.key} is not on its real prices on day ${state.stage + 1}`);
+        assert.equal(state.market.prices[0], scenario.prices[state.stage][0], `${scenario.key} is not on its real spot price on day ${state.stage + 1}`);
+        assert.equal(state.market.briefing, scenario.days[state.stage].known, `${scenario.key} shows the wrong briefing on day ${state.stage + 1}`);
+        const order = firstValid(state, [randomOrder(state, pick), ...safeOrders(state)]);
+        assert.ok(order, `${scenario.key} has no valid order on day ${state.stage + 1}`);
+        const next = game.replay(seed, [...state.decisions, order], options);
+        assert.equal(next.history.length, state.history.length + 1, `${scenario.key} rejected an order its preview accepted`);
+        const step = next.history.at(-1);
+        assert.equal(Object.values(step.parts).reduce((a, b) => a + b, 0), step.delta, `${scenario.key} P&L explain does not add up`);
+        if (next.round) assert.ok(Math.abs(next.netLots) <= game.netLimitLots, `${scenario.key} exceeded the desk limit`);
+        state = next;
+      }
+      const closed = game.replay(seed, state.decisions, { scenario });
+      assert.equal(closed.history.at(-1).market.prices[0], scenario.prices[10][0], `${scenario.key} did not end on its real closing price`);
+      assert.equal(closed.barrels, 0);
+      assert.ok(closed.futuresBook.every((month) => month.position === 0), `${scenario.key} ended with futures open`);
+      assert.equal(closed.entries.reduce((total, entry) => total + entry.cents, 0), closed.net, `${scenario.key} ledger does not sum to net`);
+      assert.ok(closed.review.benchmark !== null, `${scenario.key} could not play the hold-and-hedge comparison`);
+      assert.equal(closed.review.grade, null, `${scenario.key} should not be given a letter grade`);
+      assert.equal(closed.history.length, game.totalCycles, `${scenario.key} should take exactly ten tickets`);
+    }
+  }
+});
+
+test('a malformed scenario is refused at the start of a run', () => {
+  const good = scenarios[0];
+  assert.throws(() => game.replay('bad', [], { scenario: { ...good, dates: good.dates.slice(1) } }), /dates/);
+  assert.throws(() => game.replay('bad', [], { scenario: { ...good, expiry: 10 } }), /expiry/);
+  assert.throws(() => game.replay('bad', [], { scenario: { ...good, months: good.months.slice(0, 4) } }), /month/);
+  assert.throws(() => game.replay('bad', [], { scenario: { ...good, terminal: { events: ['nonsense'] } } }), /unknown terminal event/);
+});
+
+test('the expiring contract in a scenario settles at its real final price', () => {
+  const scenario = scenarios.find((item) => item.expiry);
+  let state = game.replay(`scenario-${scenario.key}`, [], { ...quiet, scenario });
+  while (state.round && state.stage < scenario.expiry) {
+    assert.equal(state.expiryToday, state.stage + 1 === scenario.expiry);
+    state = game.replay(state.seed, [...state.decisions, firstValid(state, safeOrders(state))], { ...quiet, scenario });
+  }
+  const expired = state.history.at(-1).market.expired;
+  assert.equal(expired.name, scenario.months[0]);
+  assert.equal(expired.price, scenario.prices[scenario.expiry][1], 'the expiring month must settle at the front-month price of its last day');
+  assert.equal(state.months[0], scenario.months[1], 'the next month should be the front month after expiry');
 });

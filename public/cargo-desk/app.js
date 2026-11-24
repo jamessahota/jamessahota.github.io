@@ -1,18 +1,22 @@
 (function () {
   "use strict";
 
-  const { replay, preview, negotiate, totalCycles, capacity, lot, monthNames, maxFuturesLots, netLimitLots, expiryCycle } = window.CargoDesk;
+  const { replay, preview, negotiate, dateLabel, totalCycles, capacity, lot, maxFuturesLots, netLimitLots } = window.CargoDesk;
+  // Historical scenarios: real prices in place of the generated market.
+  const scenarios = window.CargoScenarios || [];
   const { transition, reveal } = window.CargoMotion;
   const root = document.documentElement;
   const element = (id) => document.getElementById(id);
   const set = (id, value) => { element(id).textContent = value; };
   const number = (value) => value.toLocaleString("en-US");
-  const quote = (cents) => "$" + (cents / 100).toFixed(2);
+  // Prices can be negative in a historical scenario, so the sign goes before the dollar.
+  // The word joiner keeps a minus sign on the same line as its figure.
+  const quote = (cents) => (cents < 0 ? "−\u2060" : "") + "$" + (Math.abs(cents) / 100).toFixed(2);
   const cents = (value) => value + "¢";
   const wholeDollars = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
   const exactDollars = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
   const unsignedMoney = (value) => (value % 100 ? exactDollars : wholeDollars).format(Math.abs(value) / 100);
-  const money = (value) => (value < 0 ? "−" : value > 0 ? "+" : "") + unsignedMoney(value);
+  const money = (value) => (value < 0 ? "−\u2060" : value > 0 ? "+" : "") + unsignedMoney(value);
   const tone = (value) => value < 0 ? "negative" : value > 0 ? "positive" : "";
   const curveMargins = { left: 40, right: 10, top: 14, bottom: 12 };
   const runKey = "cargo-desk-run-v5";
@@ -94,6 +98,11 @@
     return slot >= 0 && slot < 4 ? market.prices[slot + 1] : null;
   }
 
+  // The scenario a run is playing, if any, and a replay of the run so far.
+  const scenarioOf = (target = run) => scenarios.find(item => item.key === target?.scenario) || null;
+  const play = (decisions, options = {}) => replay(run.seed, decisions, { ...options, scenario: scenarioOf() });
+  const shortDate = dateLabel;
+
   // --- Saved run and the ranked/practice rule ---------------------------------
 
   function randomSeed() {
@@ -128,11 +137,13 @@
       const saved = JSON.parse(localStorage.getItem(runKey));
       if (typeof saved?.id !== "string" || !saved.id || typeof saved.seed !== "string" ||
           !saved.seed.trim() || saved.seed.length > 64 || !Array.isArray(saved.decisions)) return null;
-      const decisions = replay(saved.seed, saved.decisions.slice(0, totalCycles * 2), { withReview: false }).decisions;
+      const scenario = typeof saved.scenario === "string" ? scenarios.find(item => item.key === saved.scenario) : null;
+      if (saved.scenario && !scenario) return null;
+      const decisions = replay(saved.seed, saved.decisions.slice(0, totalCycles * 2), { withReview: false, scenario }).decisions;
       const completedAt = Number.isSafeInteger(saved.completedAt) && saved.completedAt > 0 ? saved.completedAt : null;
       // A negotiation in progress is kept, so reloading the page cannot undo a refusal.
       const talks = saved.talks?.ticket === decisions.length && validAsks(saved.talks.buy) && validAsks(saved.talks.sell) ? saved.talks : null;
-      return { id: saved.id, seed: saved.seed, ranked: saved.ranked === true, decisions, completedAt, talks };
+      return { id: saved.id, seed: saved.seed, scenario: scenario?.key || null, ranked: saved.ranked === true && !scenario, decisions, completedAt, talks };
     } catch {
       return null;
     }
@@ -149,12 +160,16 @@
     const closed = !state.round;
     set("campaign-progress", closed ? totalCycles + " cycles complete" :
       "Cycle " + (state.stage + 1) + " of " + totalCycles + (state.phase === "pm" ? " · afternoon" : ""));
+    const history = scenarioOf();
     const kind = element("run-kind");
-    kind.textContent = run.ranked ? "Ranked run" : "Practice run";
+    kind.textContent = history ? "Historical scenario" : run.ranked ? "Ranked run" : "Practice run";
     kind.dataset.kind = run.ranked ? "ranked" : "practice";
-    kind.title = run.ranked ? "This run counts for the leaderboard." : "This seed has been played or typed in, so the run is not ranked.";
-    set("seed-value", "Seed " + run.seed);
-    element("seed-value").title = run.seed;
+    kind.title = history ? "Real prices, so the outcome is known. Scenarios are practice runs." :
+      run.ranked ? "This run counts for the leaderboard." : "This seed has been played or typed in, so the run is not ranked.";
+    set("seed-value", history ? history.title + " · " + history.period : "Seed " + run.seed);
+    element("seed-value").title = history ? history.title + " · " + history.period : run.seed;
+    set("foot-note", history ? "Prices: U.S. Energy Information Administration, daily WTI spot and futures settlements · Bids, clients, storage rates and counterparties are the game’s own · 1 lot = 1,000 bbl" :
+      "Simulated terminal and prices · All times Central · 1 lot = 1,000 bbl");
     for (const item of element("timeline").children) {
       const step = Number(item.dataset.step);
       item.classList.toggle("is-current", !closed && step === state.stage);
@@ -179,7 +194,7 @@
   function renderTerminal() {
     const closed = !state.round;
     const book = state.round?.orderBook;
-    set("location-clock", state.market.time + " CT");
+    set("location-clock", state.market.time + (state.scenario ? "" : " CT"));
 
     set("inbound-value", closed ? "Run closed" : state.incoming ? number(state.incoming) + " bbl" : "None due");
     set("inbound-note", closed ? "" : state.incoming ? "Wants tank space this cycle" :
@@ -411,7 +426,7 @@
     const final = state.stage === totalCycles - 1;
     const prices = state.market.prices;
     set("decision-label", afternoon ? "Afternoon ticket" : "Order ticket");
-    set("phase", "Cycle " + (state.stage + 1) + (afternoon ? " · afternoon" : " · morning"));
+    set("phase", "Cycle " + (state.stage + 1) + (state.scenario ? " · " + state.market.time : afternoon ? " · afternoon" : " · morning"));
     set("decision-desk", round.desk);
     set("decision-title", round.title);
     set("decision-brief", round.message);
@@ -419,6 +434,18 @@
     note.hidden = !round.marketNote;
     note.textContent = !round.marketNote ? "" : afternoon ? "Also this morning: " + round.marketNote :
       "Also in the market: " + round.marketNote.replace(/\.$/, "") + ". Check the bid and ask against spot.";
+
+    // A scenario has no odds to quote. It has what was actually known that morning.
+    const history = scenarioOf();
+    element("briefing").hidden = !history;
+    if (history) {
+      // The ticket trades at the last close, so this is what was known at that close and no later.
+      set("briefing-when", "Known at the close on " + state.market.knownAt);
+      set("briefing-text", state.market.briefing);
+      const intro = element("briefing-intro");
+      intro.hidden = state.stage !== 0;
+      intro.textContent = history.intro;
+    }
 
     const watch = state.market.watch;
     element("watch").hidden = !watch;
@@ -474,11 +501,15 @@
     });
     set("hedge-flat", state.expiryToday ? "Roll and hedge" : "Hedge to flat");
     const expiry = element("expiry-note");
-    const daysLeft = expiryCycle - (state.stage + 1);
-    expiry.hidden = !(state.months[0] === monthNames[0] && daysLeft >= 0 && daysLeft <= 1);
+    const daysLeft = state.expiryCycle ? state.expiryCycle - (state.stage + 1) : -1;
+    expiry.hidden = !(state.months[0] === state.allMonths[0] && daysLeft >= 0 && daysLeft <= 1);
     if (!expiry.hidden) {
-      expiry.textContent = state.months[0] + " futures expire at " + (daysLeft ? "tomorrow’s" : "today’s") + " close and settle at spot. " +
-        (daysLeft ? "You will have to move the hedge into " + state.months[1] + " tomorrow." : "Move the hedge into " + state.months[1] + " now: Roll and hedge does it in one step.");
+      const next = state.months[1];
+      expiry.textContent = state.scenario ?
+        state.months[0] + " futures expire at the close on " + shortDate(scenarioOf().dates[state.expiryCycle]) + ", at their real final settlement. " +
+          (daysLeft ? "The hedge will have to move into " + next + " on that day’s ticket." : "Move the hedge into " + next + " on this ticket: Roll and hedge does it in one step.") :
+        state.months[0] + " futures expire at " + (daysLeft ? "tomorrow’s" : "today’s") + " close and settle at spot. " +
+          (daysLeft ? "You will have to move the hedge into " + next + " tomorrow." : "Move the hedge into " + next + " now: Roll and hedge does it in one step.");
     }
     set("confirm-button", final && state.market.phase !== "am" ? "Settle the book" : afternoon ? "Commit and close the day" : final ? "Commit final orders" : "Commit orders");
     updateTicket();
@@ -505,18 +536,28 @@
     set("decision-brief", "All crude is sold and every futures position is closed. Here is the result, where it came from and how much risk it took.");
     element("market-note").hidden = true;
     element("watch").hidden = true;
+    element("briefing").hidden = true;
+    const history = scenarioOf();
+    if (history) set("decision-desk", "Historical scenario · " + history.period);
 
     append(debrief, "p", money(state.net), "cd-score numeric " + tone(state.net));
 
     // The grade: return for the risk taken, and the plain alternative.
     const grade = append(debrief, "div", undefined, "cd-grade");
-    append(grade, "p", review.grade, "cd-grade__letter");
     const words = append(grade, "div");
-    append(words, "p", "Return on risk", "label");
-    const perDollar = Math.abs(review.ratio).toLocaleString("en-US", { style: "currency", currency: "USD" });
-    append(words, "p", state.net >= 0 ?
-      perDollar + " made for each $1 of your largest fall, which was " + unsignedMoney(state.maxDrawdown) + "." :
-      "A loss, after a largest fall of " + unsignedMoney(state.maxDrawdown) + ".", "cd-grade__text");
+    if (review.grade) {
+      grade.prepend(append(grade, "p", review.grade, "cd-grade__letter"));
+      append(words, "p", "Return on risk", "label");
+      const perDollar = Math.abs(review.ratio).toLocaleString("en-US", { style: "currency", currency: "USD" });
+      append(words, "p", state.net >= 0 ?
+        perDollar + " made for each $1 of your largest fall, which was " + unsignedMoney(state.maxDrawdown) + "." :
+        "A loss, after a largest fall of " + unsignedMoney(state.maxDrawdown) + ".", "cd-grade__text");
+    } else {
+      // No letter in a scenario: one fixed price path decides most of the result.
+      grade.classList.add("cd-grade--plain");
+      append(words, "p", "Risk taken", "label");
+      append(words, "p", "Your largest fall from a peak was " + unsignedMoney(state.maxDrawdown) + ".", "cd-grade__text");
+    }
     append(words, "p", "You ran an average net position of " + review.averageExposure.toFixed(1) + " lots against a limit of " + netLimitLots + ".", "cd-grade__text");
 
     if (review.benchmark !== null) {
@@ -560,13 +601,23 @@
       append(row, "td", money(step.delta), tone(step.delta));
     }
 
+    if (history) {
+      if (history.note) {
+        append(debrief, "p", "About this result", "label cd-debrief__head");
+        append(debrief, "p", history.note, "cd-versus");
+      }
+      append(debrief, "p", "What happened next", "label cd-debrief__head");
+      append(debrief, "p", history.aftermath, "cd-versus");
+      append(debrief, "p", "Prices are the U.S. Energy Information Administration’s daily settlements. Bids, clients and storage rates were the game’s own.", "cd-debrief__meta");
+    }
+
     const actions = append(debrief, "div", undefined, "cd-debrief__actions");
     const next = append(actions, "button", "Play a new ranked market", "btn");
     next.type = "button";
     next.addEventListener("click", () => { if (!fields.disabled) begin(randomSeed(), true); });
-    const again = append(actions, "button", "Practise this market again", "btn btn--secondary");
+    const again = append(actions, "button", history ? "Play this scenario again" : "Practise this market again", "btn btn--secondary");
     again.type = "button";
-    again.addEventListener("click", () => { if (!fields.disabled) begin(run.seed, false); });
+    again.addEventListener("click", () => { if (!fields.disabled) begin(run.seed, false, true, run.scenario); });
   }
 
   // --- Ledger ------------------------------------------------------------------
@@ -631,7 +682,9 @@
     return [
       market.shock ? { text: market.shock.headline + ".", shock: true } : null,
       market.resolved || market.revision ? { text: market.headline + "." } : null,
-      market.expired ? { text: market.expired.name + " futures expired at " + quote(market.expired.price) + "." } : null,
+      // In a scenario the headline is what really happened that day.
+      market.history && market.headline ? { text: market.headline } : null,
+      market.expired && !market.history ? { text: market.expired.name + " futures expired at " + quote(market.expired.price) + "." } : null,
     ].filter(Boolean);
   }
 
@@ -657,7 +710,8 @@
       append(button, "span", label, "label");
       append(button, "strong", quote(prices[index]));
       const change = previous ? prices[index] - previous[index] : 0;
-      append(button, "small", previous ? (change > 0 ? "+" : change < 0 ? "−" : "") + (Math.abs(change) / 100).toFixed(2) : last ? "New front" : "Opening", tone(change));
+      append(button, "small", index === 4 && state.market.estimated ? "Estimate" :
+        previous ? (change > 0 ? "+" : change < 0 ? "−" : "") + (Math.abs(change) / 100).toFixed(2) : last ? "New front" : "Opening", tone(change));
     });
     element("curve-hint").hidden = !state.round;
 
@@ -672,8 +726,10 @@
         if (!items.length && market.phase === "pm") continue;
         const change = market.prices[0] - step.path[index - 1].prices[0];
         const row = append(wire, "li");
-        const text = append(row, "span", items.length ? items.map(item => item.text.replace(/\.$/, "")).join(". ") : market.headline);
-        append(text, "small", "Cycle " + step.cycle + (market.phase === "pm" ? ", midday" : ", overnight"));
+        const text = append(row, "span", market.history ? market.headline :
+          items.length ? items.map(item => item.text.replace(/\.$/, "")).join(". ") : market.headline);
+        const history = scenarioOf();
+        append(text, "small", "Cycle " + step.cycle + (history ? ", " + shortDate(history.dates[market.day]) : market.phase === "pm" ? ", midday" : ", overnight"));
         append(row, "strong", "Spot " + move(change), tone(change));
       }
     });
@@ -700,9 +756,11 @@
     const last = state.history.at(-1);
     const previous = last && last.marketBefore.firstMonth === state.market.firstMonth ? last.marketBefore.prices : null;
     const series = [...prices, ...(previous || [])];
-    const low = Math.floor((Math.min(...series) - 25) / 100) * 100;
-    const high = Math.ceil((Math.max(...series) + 25) / 100) * 100;
-    const interval = high - low > 900 ? 300 : high - low > 500 ? 200 : 100;
+    // Grid lines at a round interval that gives about five of them, whatever the range.
+    const range = Math.max(...series) - Math.min(...series) + 50;
+    const interval = [100, 200, 300, 500, 1000, 2000, 2500, 5000].find(step => range / step <= 6) || 10000;
+    const low = Math.floor((Math.min(...series) - 25) / interval) * interval;
+    const high = Math.ceil((Math.max(...series) + 25) / interval) * interval;
     const left = curveMargins.left, right = width - curveMargins.right, top = curveMargins.top, bottom = height - curveMargins.bottom;
     const x = (index) => left + (right - left) * index / (prices.length - 1);
     const y = (value) => bottom - (value - low) / (high - low) * (bottom - top);
@@ -713,7 +771,7 @@
     for (let value = low; value <= high; value += interval) {
       const lineY = Math.round(y(value)) + .5;
       ctx.fillStyle = token("--muted");
-      ctx.fillText("$" + value / 100, 0, lineY);
+      ctx.fillText((value < 0 ? "−$" : "$") + Math.abs(value) / 100, 0, lineY);
       ctx.strokeStyle = token("--line");
       ctx.beginPath();
       ctx.moveTo(left, lineY);
@@ -762,8 +820,13 @@
     element("cycle-note").hidden = !last;
     if (last) {
       const news = newsOf(state.market);
-      set("cycle-headline", "Cycle " + last.cycle + (last.phase === "pm" || state.phase !== "pm" ? "" : " morning") + " · " +
+      const history = scenarioOf();
+      // A scenario's news is a full sentence, so it gets its own line under the date.
+      set("cycle-headline", history ? "Cycle " + last.cycle + " · " + shortDate(history.dates[last.cycle]) :
+        "Cycle " + last.cycle + (last.phase === "pm" || state.phase !== "pm" ? "" : " morning") + " · " +
         (news.length ? news[0].text.replace(/\.$/, "") : state.market.headline));
+      element("cycle-news").hidden = !history;
+      if (history) set("cycle-news", state.market.headline);
       set("cycle-outcome", last.outcome);
       amount("cycle-delta", last.delta);
       // The explanation: the three largest parts of the change, biggest first.
@@ -778,11 +841,12 @@
     }
   }
 
-  function begin(seed, generated, show = true) {
+  function begin(seed, generated, show = true, scenario = null) {
     haggles = { buy: [], sell: [] };
-    run = { id: window.CargoLeaderboard.newRunId(), seed, ranked: claimSeed(seed, generated), decisions: [], completedAt: null };
+    // A scenario is always a practice run: its prices are a matter of record.
+    run = { id: window.CargoLeaderboard.newRunId(), seed, scenario, ranked: scenario ? false : claimSeed(seed, generated), decisions: [], completedAt: null };
     saveRun();
-    renderGame(replay(run.seed, run.decisions));
+    renderGame(play(run.decisions));
     // A run the player starts brings the top of the game back into view.
     if (show) element("cargo-desk").scrollIntoView({ block: "start", behavior: still() ? "instant" : "smooth" });
   }
@@ -871,7 +935,7 @@
     if (!result.ok) return;
 
     const previous = state;
-    const next = replay(run.seed, [...run.decisions, draft]);
+    const next = play([...run.decisions, draft]);
     if (next.history.length !== previous.history.length + 1) return;
     const step = next.history.at(-1);
     run.decisions = next.decisions;
@@ -889,18 +953,18 @@
     const segments = step.path.slice(1).map((to, index) => {
       const from = step.path[index];
       return {
-        label: to.phase === "pm" ? "Morning" : to.phase === "close" ? "Afternoon to the close" : "Afternoon and overnight",
+        label: previous.scenario ? shortDate(scenarioOf().dates[to.day]) : to.phase === "pm" ? "Morning" : to.phase === "close" ? "Afternoon to the close" : "Afternoon and overnight",
         from: { spot: from.prices[0], front: monthPrice(from, front) },
         to: { spot: to.prices[0], front: monthPrice(to, front) },
-        news: newsOf(to),
+        news: previous.scenario ? [{ text: to.headline.split(/(?<=\.)\s+(?=[A-Z])/)[0] }] : newsOf(to),
       };
     });
     try {
       await transition({
         title: "Cycle " + step.cycle + (previous.phase === "pm" ? " · afternoon" : next.phase === "pm" ? " · morning" : ""),
-        time: next.market.time + " CT",
+        time: previous.scenario ? "Real prices" : next.market.time + " CT",
         label: step.label,
-        frontName: monthNames[front],
+        frontName: previous.allMonths[front],
         segments,
         delta: step.delta,
       });
@@ -971,6 +1035,22 @@
     begin(randomSeed(), true);
   });
 
+  // The historical scenarios, listed in the New run dialog.
+  for (const scenario of scenarios) {
+    const item = append(element("scenario-list"), "li");
+    const button = append(item, "button", undefined, "cd-scenario");
+    button.type = "button";
+    append(button, "span", scenario.period, "label");
+    append(button, "b", scenario.title);
+    append(button, "span", scenario.summary, "cd-scenario__text");
+    button.addEventListener("click", () => {
+      if (fields.disabled) return;
+      element("restart-dialog").close();
+      begin("scenario-" + scenario.key, false, true, scenario.key);
+    });
+  }
+  element("scenario-list").closest(".cd-scenarios").hidden = scenarios.length === 0;
+
   // Light and dark. Standalone, the game has its own switch, saved under the same
   // key as the main site. On the site, the site's header switch does the work.
   const themeToggle = document.querySelector("[data-cd-theme-toggle]");
@@ -1032,7 +1112,7 @@
   if (run) {
     if (run.talks) haggles = { buy: run.talks.buy.slice(), sell: run.talks.sell.slice() };
     saveRun();
-    renderGame(replay(run.seed, run.decisions));
+    renderGame(play(run.decisions));
   } else {
     begin(randomSeed(), true, false);
   }

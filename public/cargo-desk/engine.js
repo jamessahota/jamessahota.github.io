@@ -153,7 +153,9 @@
   const maxAsk = 80;
 
   const formatVolume = (barrels) => barrels.toLocaleString("en-US") + " bbl";
-  const priceLabel = (cents) => "$" + (cents / 100).toFixed(2);
+  // Prices can be negative in a historical scenario, so the sign goes before the dollar.
+  // The word joiner keeps the minus sign on the same line as its figure.
+  const priceLabel = (cents) => (cents < 0 ? "−\u2060" : "") + "$" + (Math.abs(cents) / 100).toFixed(2);
   const lotsLabel = (lots) => (Number.isInteger(lots) ? String(lots) : lots.toFixed(1)) + (Math.abs(lots) === 1 ? " lot" : " lots");
   const clamp = (value, low, high) => Math.max(low, Math.min(high, value));
 
@@ -233,6 +235,82 @@
     return { day: 0, phase: "am", time: clock(0, "am"), prices: openingPrices.slice(), firstMonth: 0, headline: "Opening marks", watch: null, resolved: null, revision: null, shock: null, expired: null };
   }
 
+  // --- Historical scenarios -------------------------------------------------------
+  // A scenario replaces the generated market with real daily settlement prices. Its
+  // prices run from the close before the first day (index 0) to the close of the
+  // tenth day (index 10). There are no afternoons, odds or shocks: history is fixed,
+  // and each morning carries a briefing on what was known at the time.
+
+  // Dates are written from fixed tables, so a run reads the same on every machine.
+  const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const calendarMonths = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  function dateLabel(iso) {
+    const date = new Date(iso + "T12:00:00Z");
+    return dayNames[date.getUTCDay()] + " " + date.getUTCDate() + " " + calendarMonths[date.getUTCMonth()] + " " + date.getUTCFullYear();
+  }
+
+  // A scenario's data is checked once, so a mistake in it fails loudly at the start of a
+  // run and never half-way through one.
+  function checkScenario(scenario) {
+    const fail = (problem) => { throw new Error("Scenario " + (scenario?.key || "(no key)") + ": " + problem); };
+    if (!scenario || typeof scenario !== "object") fail("is not an object");
+    const rows = totalCycles + 1;
+    if (!Array.isArray(scenario.dates) || scenario.dates.length !== rows) fail("needs " + rows + " dates");
+    scenario.dates.forEach((date, index) => {
+      if (typeof date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(new Date(date + "T12:00:00Z").getTime())) fail("has a bad date, " + date);
+      if (index && date <= scenario.dates[index - 1]) fail("dates are out of order at " + date);
+    });
+    if (!Array.isArray(scenario.prices) || scenario.prices.length !== rows) fail("needs " + rows + " price rows");
+    for (const row of scenario.prices) {
+      if (!Array.isArray(row) || row.length !== 5 || !row.every(Number.isSafeInteger)) fail("needs five whole-cent prices on every row");
+    }
+    const expiry = scenario.expiry ?? null;
+    // The front month can expire on any day but the last, when the run closes everything anyway.
+    if (expiry !== null && !(Number.isSafeInteger(expiry) && expiry >= 1 && expiry < totalCycles)) fail("expiry must be a day from 1 to " + (totalCycles - 1) + ", or null");
+    if (!Array.isArray(scenario.months) || scenario.months.length !== (expiry ? 5 : 4) || !scenario.months.every(name => typeof name === "string" && name)) {
+      fail("needs " + (expiry ? "five month names, because one expires" : "four month names"));
+    }
+    if (expiry && !Number.isSafeInteger(scenario.afterExpiry?.price)) fail("needs afterExpiry.price in whole cents for the newly listed month");
+    if (!Array.isArray(scenario.days) || scenario.days.length !== totalCycles) fail("needs " + totalCycles + " days of news");
+    for (const key of scenario.terminal?.events || []) {
+      if (!terminalEvents.some(item => item.key === key)) fail("names an unknown terminal event, " + key);
+    }
+    return scenario;
+  }
+
+  function scenarioOpening(scenario) {
+    return {
+      day: 0, phase: "am", time: dateLabel(scenario.dates[1]), prices: scenario.prices[0].slice(), firstMonth: 0,
+      headline: "Prices at the close on " + dateLabel(scenario.dates[0]), watch: null, resolved: null, revision: null, shock: null, expired: null,
+      briefing: scenario.days[0].known, knownAt: dateLabel(scenario.dates[0]), estimated: false,
+    };
+  }
+
+  // One real trading day: from the prices the ticket was written against to that day's settlement.
+  function scenarioMove(scenario, market) {
+    const next = market.day + 1;
+    let prices = scenario.prices[next].slice();
+    let firstMonth = market.firstMonth;
+    let expired = null;
+    let estimated = false;
+    if (scenario.expiry === next) {
+      // The front contract's last day. Its final settlement is the day's front-month price,
+      // and the curve moves up a month. The newly listed fourth month has no price in the
+      // source data until the next day, so the scenario supplies one and says if it is an estimate.
+      expired = { month: firstMonth, name: scenario.months[firstMonth], price: prices[1] };
+      prices = [prices[0], prices[2], prices[3], prices[4], scenario.afterExpiry.price];
+      estimated = !!scenario.afterExpiry.estimated;
+      firstMonth++;
+    }
+    const phase = next >= totalCycles ? "close" : "am";
+    return {
+      day: next, phase, time: dateLabel(scenario.dates[phase === "close" ? next : next + 1]) + (phase === "close" ? " · close" : ""),
+      prices, firstMonth, headline: scenario.days[market.day].happened, history: true,
+      watch: null, resolved: null, revision: null, shock: null, expired,
+      briefing: phase === "am" ? scenario.days[next].known : null, knownAt: dateLabel(scenario.dates[next]), estimated,
+    };
+  }
+
   // Morning to afternoon. A small move, plus whatever lands at midday.
   function middayMove(seed, morning) {
     const day = morning.day;
@@ -297,7 +375,8 @@
   }
 
   // Afternoon to the next morning, or to the final close.
-  function overnightMove(seed, afternoon) {
+  function overnightMove(ctx, afternoon) {
+    const seed = ctx.seed;
     const day = afternoon.day;
     const draw = randomStream(seed, day, "overnight");
     const drift = draw(-60, 60);
@@ -336,9 +415,9 @@
     let prices = evolve(afternoon.prices, { flat, premium, decay: .67, noise, tails });
     let firstMonth = afternoon.firstMonth;
     let expired = null;
-    if (day === expiryDay) {
+    if (day === ctx.expiryDay) {
       // The front month expires at spot and the curve moves up one month.
-      expired = { month: firstMonth, name: monthNames[firstMonth], price: prices[0] };
+      expired = { month: firstMonth, name: ctx.months[firstMonth], price: prices[0] };
       prices = [prices[0], prices[2], prices[3], prices[4], prices[4] + Math.round((prices[4] - prices[3]) * .8)];
       firstMonth++;
     }
@@ -401,7 +480,7 @@
     const contracts = book.futures[month];
     const side = Math.sign(traded);
     const fills = Math.abs(traded);
-    const name = monthNames[month] + " WTI";
+    const name = book.ctx.months[month] + " WTI";
     const closing = contracts[0]?.side === -side ? Math.min(fills, contracts.length) : 0;
     if (closing) {
       const closed = contracts.splice(0, closing);
@@ -422,7 +501,7 @@
       const mark = monthPrice(book.market, month);
       const unrealized = mark === null ? 0 : contracts.reduce((total, contract) => total + (mark - contract.price) * contract.side * lot, 0);
       return {
-        name: monthNames[month],
+        name: book.ctx.months[month],
         expired: month < book.market.firstMonth,
         listed: month < book.market.firstMonth + 4,
         position: holdings[month],
@@ -449,6 +528,8 @@
   function buildMorning(book, seed) {
     const day = book.day;
     const draw = randomStream(seed, day, "terminal");
+    // A scenario can make clients, storage and the mix of terminal events fit its period.
+    const tuning = book.ctx.scenario?.terminal || {};
     const owned = ownedBarrels(book);
     const layout = storageLayout(owned, clientBarrels(book));
     const free = capacity - layout.occupancy;
@@ -457,16 +538,17 @@
     const final = day === totalCycles - 1;
     const due = book.queued.find((shipment) => shipment.stage === day);
     // Clients turn up more often when the tank is already tight.
-    const arrival = first || due || (!final && draw(0, 99) < (free <= 3000 ? 51 : 30));
+    const arrival = first || due || (!final && draw(0, 99) < (free <= 3000 ? tuning.clientTight ?? 51 : tuning.clientLoose ?? 30));
     const inbound = first ? 6000 : due ? due.barrels : arrival ? draw(2, 6) * lot : 0;
-    const event = first || final ? null : terminalEvents[draw(0, terminalEvents.length - 1)];
+    const pool = tuning.events ? tuning.events.map(key => terminalEvents.find(item => item.key === key)) : terminalEvents;
+    const event = first || final ? null : pool[draw(0, pool.length - 1)];
 
     const bidPremium = first ? -draw(18, 52) : final ? draw(12, 46) : draw(...event.bidPremium);
     const offerPremium = event ? draw(...event.offerPremium) : draw(5, 30);
     const buyMax = draw(2, 6) * lot;
     const sellLimit = final ? Math.max(owned, lot) : draw(2, event?.key === "maintenance" ? 3 : 6) * lot;
     const storageMax = draw(4, 6) * lot;
-    const storagePrice = event?.key === "maintenance" ? draw(12, 20) : draw(7, 14);
+    const storagePrice = Math.round((event?.key === "maintenance" ? draw(12, 20) : draw(7, 14)) * (tuning.storageScale ?? 1));
     const shortfall = Math.max(0, layout.ownedOverflow + layout.clientOverflow - leaseCapacity(book.leases, day + 1));
     const bid = spot + bidPremium;
     const offer = spot + offerPremium;
@@ -481,7 +563,7 @@
     let client = null;
     if (inbound) {
       const releaseAfter = draw(2, 4);
-      const rate = draw(28, 56);
+      const rate = Math.round(draw(28, 56) * (tuning.rateScale ?? 1));
       const deferFee = draw(650, 1650) * 100;
       const redirectFee = draw(800, 1900) * 100;
       const preferred = draw(1, 2);
@@ -753,7 +835,8 @@
     };
   }
 
-  function snapshot(book, round, seed) {
+  function snapshot(book, round) {
+    const { seed, months, expiryDay, scenario } = book.ctx;
     const barrels = ownedBarrels(book);
     const clients = clientBarrels(book);
     const layout = storageLayout(barrels, clients);
@@ -771,9 +854,12 @@
       barrels,
       cargoCost: barrels ? Math.round(book.crude.reduce((basis, batch) => basis + batch.barrels * batch.price, 0) / barrels) : null,
       // The four months listed today, nearest first.
-      months: [0, 1, 2, 3].map(slot => monthNames[market.firstMonth + slot]),
+      months: [0, 1, 2, 3].map(slot => months[market.firstMonth + slot]),
+      // Every month this run can trade, including one that has expired or is yet to list.
+      allMonths: months,
       expiryToday: !!round && book.day === expiryDay && market.firstMonth === 0,
-      expiryCycle: expiryDay + 1,
+      expiryCycle: expiryDay >= 0 ? expiryDay + 1 : null,
+      scenario: scenario ? scenario.key : null,
       futuresPositions,
       futuresGross: grossLots(held),
       netLots: barrels / lot + sum(held),
@@ -800,7 +886,8 @@
 
   // --- Carrying out a ticket and moving the market -------------------------------------
 
-  function execute(book, round, order, estimate, seed) {
+  function execute(book, round, order, estimate) {
+    const { seed, months, scenario } = book.ctx;
     const terms = round.orderBook;
     const before = book.market;
     const netBefore = sumComponents(marked(book));
@@ -867,7 +954,7 @@
       if (!quantity) return;
       const month = before.firstMonth + slot;
       tradeFutures(book, month, quantity, before.prices[slot + 1]);
-      labels.push((quantity > 0 ? "Buy " : "Sell ") + Math.abs(quantity) + " " + monthNames[month]);
+      labels.push((quantity > 0 ? "Buy " : "Sell ") + Math.abs(quantity) + " " + months[month]);
     });
 
     if (terms.tankLease) {
@@ -881,12 +968,14 @@
 
     // The market moves: to the afternoon if midday brings news, otherwise through to the next morning.
     const path = [before];
-    if (round.phase === "am") {
+    if (scenario) {
+      path.push(scenarioMove(scenario, before));
+    } else if (round.phase === "am") {
       const midday = middayMove(seed, before);
       path.push(midday);
-      if (!midday.material) path.push(overnightMove(seed, midday));
+      if (!midday.material) path.push(overnightMove(book.ctx, midday));
     } else {
-      path.push(overnightMove(seed, before));
+      path.push(overnightMove(book.ctx, before));
     }
     const after = path.at(-1);
     book.market = after;
@@ -950,13 +1039,26 @@
 
   // --- A run, rebuilt from its seed and decisions ------------------------------------------
 
-  function newBook() {
+  // What stays fixed for a whole run: its seed, and either the generated market's
+  // calendar or a scenario's.
+  function context(seed, scenario) {
+    return scenario ?
+      { seed, scenario: checkScenario(scenario), months: scenario.months, expiryDay: scenario.expiry ? scenario.expiry - 1 : -1 } :
+      { seed, scenario: null, months: monthNames, expiryDay };
+  }
+
+  function newBook(ctx) {
+    const market = ctx.scenario ? scenarioOpening(ctx.scenario) : openingMarket();
+    // A scenario starts with the same book, bought and hedged at that day's real prices.
+    const cost = ctx.scenario ? market.prices[0] : cargoCost;
+    const hedge = ctx.scenario ? market.prices[1] : hedgeEntry;
     return {
+      ctx,
       day: 0,
-      market: openingMarket(),
-      crude: [{ barrels: 6000, price: cargoCost }],
-      futures: [Array.from({ length: 6 }, () => ({ side: -1, price: hedgeEntry })), [], [], [], []],
-      futuresRealized: monthNames.map(() => 0),
+      market,
+      crude: [{ barrels: 6000, price: cost }],
+      futures: ctx.months.map((_, month) => month ? [] : Array.from({ length: 6 }, () => ({ side: -1, price: hedge }))),
+      futuresRealized: ctx.months.map(() => 0),
       loads: [],
       leases: [],
       queued: [],
@@ -965,8 +1067,9 @@
       decisions: [],
       history: [],
       exposureDays: [],
+      openingValue: (market.prices[0] - cost) * 6000,
       session: null,
-      peak: (openingPrices[0] - cargoCost) * 6000,
+      peak: (market.prices[0] - cost) * 6000,
       maxDrawdown: 0,
     };
   }
@@ -974,24 +1077,25 @@
   const nextRound = (book, seed) => book.market.phase === "close" ? null : book.market.phase === "pm" ? buildAfternoon(book) : buildMorning(book, seed);
 
   // An invalid decision stops the replay at the last valid ticket.
-  function replay(seed, decisions = [], { withReview = true } = {}) {
+  // Pass a scenario to play real prices instead of a generated market.
+  function replay(seed, decisions = [], { withReview = true, scenario = null } = {}) {
     const runSeed = typeof seed === "string" && seed.trim() ? seed.trim() : "CUSHING";
-    const book = newBook();
+    const book = newBook(context(runSeed, scenario));
     let round = nextRound(book, runSeed);
     for (const decision of Array.isArray(decisions) ? decisions : []) {
       if (!round || !decision || typeof decision !== "object") break;
       const { side, barrels, storage, storageCycles, client, futuresTrades, haggle } = decision;
       const order = { side, barrels, storage, storageCycles: storage ? storageCycles : 0, client, futuresTrades };
       if (haggle && haggle.side === side) order.haggle = { side: haggle.side, asks: Array.isArray(haggle.asks) ? haggle.asks.slice(0, 2) : [] };
-      const estimate = preview(snapshot(book, round, runSeed), order);
+      const estimate = preview(snapshot(book, round), order);
       if (!estimate.ok) break;
       order.futuresTrades = futuresTrades.slice();
-      execute(book, round, order, estimate, runSeed);
+      execute(book, round, order, estimate);
       round = nextRound(book, runSeed);
     }
 
     const state = {
-      ...snapshot(book, round, runSeed),
+      ...snapshot(book, round),
       entries: book.entries,
       decisions: book.decisions,
       history: book.history,
@@ -1023,12 +1127,12 @@
     return null;
   }
 
-  function benchmark(seed) {
-    let state = replay(seed, [], { withReview: false });
+  function benchmark(seed, scenario) {
+    let state = replay(seed, [], { withReview: false, scenario });
     while (state.round) {
       const order = holdAndHedge(state);
       if (!order) return null;
-      state = replay(seed, [...state.decisions, order], { withReview: false });
+      state = replay(seed, [...state.decisions, order], { withReview: false, scenario });
     }
     return state.net;
   }
@@ -1036,15 +1140,18 @@
   function review(state, book) {
     const totals = { trading: 0, price: 0, basis: 0, spreads: 0, clients: 0, costs: 0 };
     for (const step of state.history) for (const key of Object.keys(totals)) totals[key] += step.parts[key];
-    // The opening book was already marked a little above cost.
+    // The opening book was already marked a little above cost (or at cost, in a scenario).
     const opening = state.net - sum(Object.values(totals));
     // Profit made for each dollar of the worst fall along the way. Falls under $2,000 count as $2,000.
     const ratio = state.net / Math.max(state.maxDrawdown, 200000);
-    const grade = ratio >= 4 ? "A" : ratio >= 2 ? "B" : ratio >= .75 ? "C" : ratio >= 0 ? "D" : "E";
+    // A scenario gets no letter. Its one fixed price path decides most of the result, so
+    // the fair measure there is the comparison with holding the hedged cargo.
+    const grade = book.ctx.scenario ? null : ratio >= 4 ? "A" : ratio >= 2 ? "B" : ratio >= .75 ? "C" : ratio >= 0 ? "D" : "E";
     return {
       parts: totals,
       opening,
-      benchmark: benchmark(state.seed),
+      openingExpected: book.openingValue,
+      benchmark: benchmark(state.seed, book.ctx.scenario),
       ratio,
       grade,
       averageExposure: book.exposureDays.length ? sum(book.exposureDays) / book.exposureDays.length : 0,
@@ -1052,7 +1159,7 @@
   }
 
   const game = {
-    replay, preview, negotiate, totalCycles, capacity, lot, monthNames, maxFuturesLots, netLimitLots, tankLease,
+    replay, preview, negotiate, dateLabel, totalCycles, capacity, lot, monthNames, maxFuturesLots, netLimitLots, tankLease,
     shockChance, expiryCycle: expiryDay + 1, reportCycles: reportDays.map(day => day + 1),
   };
   if (typeof module !== "undefined" && module.exports) module.exports = game;

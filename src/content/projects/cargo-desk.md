@@ -38,13 +38,19 @@ The ticket is live. The tank drawing, the position gauge and the profit-and-loss
 
 After each ticket the desk explains the profit or loss: trade prices against spot, the whole curve moving on the net position, spot moving against futures, calendar spreads, client income and costs. The debrief adds these up over the run, grades the return against the largest fall along the way, and compares the result with simply holding the hedged cargo and never trading.
 
+## Historical scenarios
+
+From New run you can also play four real episodes on real prices: the two weeks in April 2020 when WTI settled below zero, the March 2020 price war, the weeks after Russia invaded Ukraine in 2022, and the attack on Abqaiq in September 2019. Each is ten real trading days. Every morning you get a briefing on what was known at the time, and every evening the day's actual settlement.
+
+The prices are the U.S. Energy Information Administration's daily series for the Cushing WTI spot price and the first four NYMEX futures contracts. The bids and offers around spot, the clients, the storage rates and the counterparties are still the game's own, tuned to suit each period. Scenarios are practice runs: the outcome is a matter of record, so they are not ranked.
+
 ## Ranked and practice runs
 
 A market is generated from a seed, and its prices are the same every time that seed is played. Only the first play of a fresh random market is ranked on the leaderboard. Typing in a seed, or replaying one already seen, is a practice run. Scores are kept in your own browser and are not shared.
 
 ## Limits of the model
 
-All prices, bids and events are simulated. The price moves, event odds, shock sizes, storage rates and client fees are set for a short game and are not calibrated to market data. Futures have no margin, the expiring month settles in cash at spot and not by delivery, and the terminal is a single tank. The counterparties are invented. It is a game about the trade-offs of a physical book and not a forecast or a trading tool.
+Outside the historical scenarios, all prices, bids and events are simulated. The price moves, event odds, shock sizes, storage rates and client fees are set for a short game and are not calibrated to market data. In a scenario the daily settlement prices are real, but the path a price takes within a day on the animated tape is drawn for effect. Futures have no margin, the expiring month settles in cash at spot and not by delivery, and the terminal is a single tank. The counterparties are invented. It is a game about the trade-offs of a physical book and not a forecast or a trading tool.
 
 ## How it was built
 

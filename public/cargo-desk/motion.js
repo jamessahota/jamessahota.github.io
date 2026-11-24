@@ -7,7 +7,7 @@
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   const still = () => reducedMotion.matches || root.dataset.motion === "paused";
   const wholeDollars = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
-  const price = (cents) => "$" + (cents / 100).toFixed(2);
+  const price = (cents) => (cents < 0 ? "−" : "") + "$" + (Math.abs(cents) / 100).toFixed(2);
   const clamp = (value) => Math.max(0, Math.min(1, value));
   const points = 48;
   const jumpAt = .55;
