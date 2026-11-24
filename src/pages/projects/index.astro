@@ -3,7 +3,7 @@ import ProjectPreview from '../../components/ProjectPreview.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getPublicProjects } from '../../lib/content';
 
-const projects = (await getPublicProjects()).sort((a, b) => Number(b.data.featured) - Number(a.data.featured));
+const projects = await getPublicProjects();
 const description = 'Independent projects by James Sahota in AI-assisted commodities research, European infrastructure investment and a crude oil trading game.';
 ---
 

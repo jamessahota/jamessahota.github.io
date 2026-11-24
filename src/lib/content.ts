@@ -56,7 +56,10 @@ export function formatAuthors(authors: string[]): string {
 
 export async function getPublicProjects(): Promise<Project[]> {
   const entries = await getCollection('projects', ({ data }) => data.visibility === 'public');
-  return entries.sort((a, b) => sortKey(b.data.start).localeCompare(sortKey(a.data.start)));
+  return entries.sort((a, b) =>
+    Number(b.data.featured) - Number(a.data.featured) ||
+    sortKey(b.data.start).localeCompare(sortKey(a.data.start))
+  );
 }
 
 export const projectPath = (entry: Project) => `/projects/${entry.id}/`;
