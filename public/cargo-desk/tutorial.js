@@ -42,7 +42,8 @@
 
   function exposure(netLots) {
     if (!Number.isFinite(netLots)) return "";
-    return netLots === 0 ? "Net exposure: flat." : "Net exposure: " + lots(Math.abs(netLots)) + (netLots > 0 ? " long." : " short.");
+    return netLots === 0 ? "After this ticket, net exposure is flat." : "After this ticket, net exposure is " +
+      lots(Math.abs(netLots)) + (netLots > 0 ? " long." : " short.");
   }
 
   function showQuote() {
@@ -51,14 +52,16 @@
       const quote = buyQuote(lesson, draft);
       const mark = el("trade-quote");
       mark.hidden = false;
-      mark.textContent = number(draft.barrels) + " bbl at " + unitPrice(quote.price) + " per bbl. " +
-        quote.monthName + " WTI is " + unitPrice(quote.hedgePrice) + ".";
+      mark.textContent = "Local ask " + unitPrice(quote.price) + " per bbl · " +
+        quote.monthName + " WTI " + unitPrice(quote.hedgePrice) + " per bbl";
       feedback(exposure(quote.netLots));
     } else if (lesson.step === "forward") {
       const quote = forwardQuote(lesson, readForward());
       const contract = quote.contract;
-      put("quote", contract ? "Fixed " + unitPrice(contract.fixedGross) + " per bbl" +
-        (contract.tariff ? " · " + unitPrice(contract.tariff) + " tariff per bbl · " + unitPrice(contract.fixedGross - contract.tariff) + " net" : " · no tariff") : "");
+      put("quote", contract ? contract.monthName + " WTI " + unitPrice(contract.futuresPrice) +
+        (contract.basis < 0 ? " − " : " + ") + unitPrice(Math.abs(contract.basis)) + " route basis gives " +
+        unitPrice(contract.fixedGross) + " fixed per bbl." + (contract.tariff ? " After the " + unitPrice(contract.tariff) +
+        " tariff, you receive " + unitPrice(contract.netPrice) + " per bbl." : " The local route has no tariff.") : "");
       feedback(exposure(quote.netLots));
     }
   }
@@ -71,7 +74,7 @@
     pnl.classList.toggle("negative", breakdown.total < 0);
     const rows = [
       ["Trade and delivery prices vs. spot", breakdown.trading],
-      ["Overall price move on the hedged book", breakdown.price],
+      ["Broad price moves on net exposure", breakdown.price],
       ["Spot vs. futures (basis)", breakdown.basis],
       ...(breakdown.spreads ? [["Calendar spreads", breakdown.spreads]] : []),
       ...(breakdown.clients ? [["Client income", breakdown.clients]] : []),
@@ -89,11 +92,11 @@
     }));
     const parcel = breakdown.parcel;
     put("explanation", "You bought " + number(barrels) + " bbl at " + unitPrice(lesson.buyQuote.price) +
-      " and delivered at " + unitPrice(contract.fixedGross) + " per bbl. The parcel contributed " +
-      amount(parcel.netBeforeSharedCosts) + " after the hedge " + amount(parcel.hedgePnl) +
-      (breakdown.tariffCost ? " and tariff " + amount(-breakdown.tariffCost) : "") +
-      ". On the full book, spot moving against futures contributed " + amount(breakdown.basis) +
-      ". Tank and client fees cost " + whole.format((breakdown.tankFees + breakdown.clientFees) / 100) + ".");
+      " and sold them for " + unitPrice(contract.fixedGross) + " per bbl. Your added cargo contributed " +
+      amount(parcel.netBeforeSharedCosts) + ", including " + amount(parcel.hedgePnl) + " from the futures hedge" +
+      (breakdown.tariffCost ? " and " + amount(-breakdown.tariffCost) + " in pipeline fees" : "") +
+      ". The full desk also carries the starting cargo and paid " + whole.format((breakdown.tankFees + breakdown.clientFees) / 100) +
+      " in tank and client fees.");
   }
 
   function render() {
@@ -105,6 +108,8 @@
       complete: "recap",
     };
     for (const panel of Object.values(screens)) el(panel).hidden = panel !== screens[step];
+    el("settle-note").hidden = step !== "settle";
+    for (const note of dialog.querySelectorAll(".cd-tutorial__note[open]")) note.open = false;
     const complete = step === "complete";
     el("next").hidden = complete;
     el("complete").hidden = !complete;
@@ -112,15 +117,16 @@
     if (step === "buy") {
       put("step", "Step 1 of 3");
       put("title", "Buy crude and hedge it");
-      put("instruction", "The desk starts with 6,000 barrels and six short Dec WTI lots. Buy more crude, then sell one extra futures lot for each 1,000 barrels you buy. Short futures can offset a fall in the value of the crude.");
+      put("instruction", "The desk starts flat with 6,000 barrels and six short WTI lots. Buy more crude at the local ask and sell one extra " +
+        lesson.buyQuote.monthName + " futures lot for each 1,000 barrels you add.");
       put("next", "Commit purchase and hedge");
       el("progress").value = 1;
     } else if (step === "forward") {
       put("step", "Step 2 of 3");
       put("title", "Book a delivery");
-      put("instruction", "Lock a price for your " + number(lesson.barrels) + " barrels in cycle " + deliveryCycle +
-        ". Choose a route and WTI reference month. Once the sale price is fixed, buy back the " +
-        lots(lesson.barrels / 1000) + " you added in step 1.");
+      put("instruction", "Choose a route and a WTI reference to lock in the sale price for cycle " + deliveryCycle +
+        ". The sale now covers the price of those barrels. Buy back the " + lots(lesson.barrels / 1000) + " of " +
+        lesson.buyQuote.monthName + " WTI you sold in step 1.");
       const select = el("month");
       select.replaceChildren(...lesson.market.deliveryOptions.months.map(({ month, name, price }) => {
         const option = document.createElement("option");
@@ -134,26 +140,33 @@
     } else if (step === "settle") {
       put("step", "Step 3 of 3");
       put("title", "Deliver the barrels");
-      put("instruction", "The booked crude stays in the tank until the sale settles. The rest of the desk stays hedged while prices move.");
+      put("instruction", "Advance the cycle to deliver your reserved crude at the agreed price. The rest of the desk stays hedged while the market moves.");
       put("settlement", "Cycle " + lesson.contract.cycle + " · " + number(lesson.barrels) + " bbl · " +
         (lesson.contract.route === "gulf" ? "Gulf delivery" : "Local delivery") + " · " +
-        unitPrice(lesson.contract.fixedGross) + " fixed per bbl. You’ll turn away any clients and pay the tank lease as the tutorial advances.");
+        unitPrice(lesson.contract.fixedGross) + " fixed per bbl. The desk pays its tank lease and turns away any storage clients during the lesson.");
       put("next", "Advance and settle delivery");
       el("progress").value = 3;
     } else {
       put("step", "Tutorial complete");
       put("title", lesson.breakdown.total > 0 ? "Why the desk made money" :
         lesson.breakdown.total < 0 ? "Why the desk lost money" : "Why the desk broke even");
-      put("instruction", "Your P&L across three cycles includes the cargo you started with.");
+      put("instruction", "This is the change in the desk’s profit and loss across three cycles. It includes the cargo and hedge you started with.");
       recap();
       markSeen();
     }
     showQuote();
   }
 
+  function focusStep() {
+    dialog.scrollTop = 0;
+    el("title").focus({ preventScroll: true });
+  }
+
   function open(event) {
-    if (dialog.open) return;
-    opener = event.currentTarget;
+    const trigger = event.currentTarget;
+    if (trigger.disabled || document.querySelector("dialog[open]") ||
+      document.documentElement.classList.contains("cycle-committing")) return;
+    opener = trigger;
     if (!lesson || lesson.step === "complete") {
       lesson = init();
       el("volume").value = "2000";
@@ -161,9 +174,11 @@
       el("route").value = "local";
       el("buyback").value = "0";
       render();
+    } else {
+      showQuote();
     }
     dialog.showModal();
-    el("title").focus();
+    focusStep();
   }
 
   for (const id of ["button", "start"]) el(id).addEventListener("click", open);
@@ -171,8 +186,11 @@
     markSeen();
     el("button").focus();
   });
-  for (const id of ["volume", "short", "route", "month", "buyback"]) el(id).addEventListener("change", showQuote);
-  el("next").addEventListener("click", () => {
+  for (const id of ["volume", "short", "route", "month", "buyback"]) {
+    el(id).addEventListener("change", () => { if (dialog.open && lesson) showQuote(); });
+  }
+  el("next").addEventListener("click", (event) => {
+    if (!dialog.open || !lesson || lesson.step === "complete" || event.detail > 1) return;
     const result = lesson.step === "buy" ? buy(lesson, readBuy()) :
       lesson.step === "forward" ? forward(lesson, readForward()) : settle(lesson);
     if (!result.ok) {
@@ -181,10 +199,15 @@
     }
     lesson = result.state;
     render();
-    el("title").focus();
+    focusStep();
   });
   el("complete").addEventListener("click", () => dialog.close());
-  dialog.addEventListener("close", () => (prompt.hidden && opener === el("start") ? el("button") : opener)?.focus());
+  dialog.addEventListener("close", () => {
+    if (document.querySelector("dialog[open]")) return;
+    const target = opener?.isConnected && !opener.disabled && !opener.closest("[hidden]") ? opener : el("button");
+    opener = null;
+    if (!target.disabled) target.focus({ preventScroll: true });
+  });
 
   window.CargoTutorialUI = { offer };
 })();

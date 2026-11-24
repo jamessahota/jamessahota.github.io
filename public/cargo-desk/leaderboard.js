@@ -1,5 +1,6 @@
 (function () {
   const storagePrefix = "cargo-desk-score-v6:";
+  const usernameKey = "cargo-desk-score-name";
   const archiveRules = new Map([
     ["cargo-desk-score-v5:", "Rules version 5"],
     ["cargo-desk-score-v4:", "Rules version 4"],
@@ -18,6 +19,24 @@
     currency: "USD",
   });
   let fallbackId = 0;
+  let currentUsername = "";
+
+  function normalizedName(value) {
+    if (typeof value !== "string" || value.length > 120 ||
+        /[\p{C}\p{Default_Ignorable_Code_Point}\p{Z}]/u.test(value.replaceAll(" ", ""))) return "";
+    const name = value.trim().normalize("NFC");
+    return [...name].length <= 24 && /^(?:[\p{L}\p{N}\p{P}\p{S}]\p{M}*| )+$/u.test(name) ? name : "";
+  }
+
+  function getUsername() {
+    try { return normalizedName(globalThis.localStorage.getItem(usernameKey)); } catch { return currentUsername; }
+  }
+
+  function setUsername(value) {
+    currentUsername = normalizedName(value);
+    try { globalThis.localStorage.setItem(usernameKey, currentUsername); } catch {}
+    return currentUsername;
+  }
 
   function newRunId() {
     if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
@@ -42,6 +61,7 @@
       seed,
       net,
       completedAt,
+      name: normalizedName(score.name),
       drawdown: Number.isSafeInteger(drawdown) && drawdown >= 0 ? drawdown : null,
     };
   }
@@ -117,7 +137,7 @@
       const table = element("table", undefined, "cd-table");
       table.append(element("caption", rules ? rules + " scores, by final P&L" : "Best ranked runs, by final P&L", "visually-hidden"));
       const headings = element("tr");
-      for (const label of ["Rank", "Run", "Final P&L"]) {
+      for (const label of ["Rank", rules ? "Run" : "Username", "Final P&L"]) {
         const header = element("th", label);
         header.scope = "col";
         if (label === "Final P&L") {
@@ -147,7 +167,7 @@
         const meta = element("small");
         meta.append(completed);
         if (score.drawdown !== null) meta.append(" · largest fall " + dollars(score.drawdown));
-        run.append("Seed " + score.seed, meta);
+        run.append(score.name || (rules ? "Seed " + score.seed : "Unnamed trader"), meta);
         const amount = element("td", (score.net < 0 ? "−" : score.net > 0 ? "+" : "") + dollars(score.net),
           score.net < 0 ? "negative" : score.net > 0 ? "positive" : "");
         row.append(rank, run, amount);
@@ -241,7 +261,7 @@
     return { render, record };
   }
 
-  const api = { create, newRunId };
+  const api = { create, newRunId, normalizedName, getUsername, setUsername };
   if (typeof module !== "undefined") module.exports = api;
   else window.CargoLeaderboard = api;
 })();

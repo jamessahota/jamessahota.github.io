@@ -20,6 +20,8 @@
   const tone = (value) => value < 0 ? "negative" : value > 0 ? "positive" : "";
   const curveMargins = { left: 40, right: 10, top: 14, bottom: 12 };
   const runKey = "cargo-desk-run-v6";
+  const weeklyRunKey = "cargo-desk-weekly-run-v1";
+  const activeModeKey = "cargo-desk-active-mode";
   const seedsKey = "cargo-desk-seeds-v6";
   const previousRunKey = "cargo-desk-run-v5";
   const previousSeedsKey = "cargo-desk-seeds-v5";
@@ -52,6 +54,8 @@
   };
   let futuresInputs = [];
   let run;
+  let campaignRun;
+  let weeklyRun;
   let state;
   // What the player has said so far to each counterparty on this ticket.
   let haggles = { buy: [], sell: [] };
@@ -143,14 +147,28 @@
 
   const validAsks = (asks) => Array.isArray(asks) && asks.length <= 2 && asks.every(ask => ask === "take" || Number.isSafeInteger(ask));
 
-  function loadRun() {
+  function weeklySession(value) {
+    if (!value || typeof value.week !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value.week) ||
+        value.rules !== "weekly-v1" || value.seed !== value.rules + ":" + value.week ||
+        typeof value.token !== "string" || !/^[0-9a-f]{64}$/.test(value.token)) return null;
+    const start = new Date(value.week + "T00:00:00.000Z");
+    if (!Number.isFinite(start.getTime()) || start.getUTCDay() !== 1 ||
+        start.toISOString().slice(0, 10) !== value.week ||
+        new Date(start.getTime() + 7 * 86400000).toISOString() !== value.endsAt) return null;
+    const { week, seed, rules, token, endsAt } = value;
+    return { week, seed, rules, token, endsAt };
+  }
+
+  function loadRun(isWeekly = false) {
     try {
-      const current = localStorage.getItem(runKey);
-      const migrated = current === null;
-      const saved = JSON.parse(current ?? localStorage.getItem(previousRunKey));
+      const current = localStorage.getItem(isWeekly ? weeklyRunKey : runKey);
+      const migrated = !isWeekly && current === null;
+      const saved = JSON.parse(migrated ? localStorage.getItem(previousRunKey) : current);
       if (typeof saved?.id !== "string" || !saved.id || typeof saved.seed !== "string" ||
           !saved.seed.trim() || saved.seed.length > 64 || !Array.isArray(saved.decisions) ||
           saved.decisions.length > totalCycles * 2) return null;
+      const weekly = isWeekly ? weeklySession(saved.weekly) : null;
+      if (isWeekly && (!weekly || weekly.seed !== saved.seed || saved.scenario)) return null;
       const scenario = typeof saved.scenario === "string" ? scenarios.find(item => item.key === saved.scenario) : null;
       if (saved.scenario && !scenario) return null;
       const legacyEstimateThrough = !scenario ? 0 : migrated ? saved.decisions.length : saved.legacyEstimateThrough ?? 0;
@@ -161,8 +179,8 @@
       const completedAt = Number.isSafeInteger(saved.completedAt) && saved.completedAt > 0 ? saved.completedAt : null;
       // A negotiation in progress is kept, so reloading the page cannot undo a refusal.
       const talks = saved.talks?.ticket === decisions.length && validAsks(saved.talks.buy) && validAsks(saved.talks.sell) ? saved.talks : null;
-      return { id: saved.id, seed: saved.seed, scenario: scenario?.key || null, ranked: !migrated && saved.ranked === true && !scenario,
-        decisions, completedAt, talks, legacyEstimateThrough };
+      return { id: saved.id, seed: saved.seed, scenario: scenario?.key || null, ranked: !isWeekly && !migrated && saved.ranked === true && !scenario,
+        decisions, completedAt, talks, legacyEstimateThrough, ...(weekly ? { weekly } : {}) };
     } catch {
       return null;
     }
@@ -170,7 +188,9 @@
 
   function saveRun() {
     run.talks = { ticket: run.decisions.length, buy: haggles.buy, sell: haggles.sell };
-    try { localStorage.setItem(runKey, JSON.stringify(run)); } catch {}
+    if (run.weekly) weeklyRun = run;
+    else campaignRun = run;
+    try { localStorage.setItem(run.weekly ? weeklyRunKey : runKey, JSON.stringify(run)); } catch {}
   }
 
   // --- Head and headline numbers ----------------------------------------------
@@ -181,11 +201,12 @@
       "Cycle " + (state.stage + 1) + " of " + totalCycles + (state.phase === "pm" ? " · afternoon" : ""));
     const history = scenarioOf();
     const kind = element("run-kind");
-    kind.textContent = history ? "Historical scenario" : run.ranked ? "Ranked run" : "Practice run";
-    kind.dataset.kind = run.ranked ? "ranked" : "practice";
-    kind.title = history ? "Real prices, so the outcome is known. Scenarios are practice runs." :
+    kind.textContent = run.weekly ? "Weekly challenge" : history ? "Historical scenario" : run.ranked ? "Ranked run" : "Practice run";
+    kind.dataset.kind = run.weekly ? "weekly" : run.ranked ? "ranked" : "practice";
+    kind.title = run.weekly ? "Everyone plays this week's market." : history ? "Real prices, so the outcome is known. Scenarios are practice runs." :
       run.ranked ? "This run counts for the leaderboard." : "This seed has been played or typed in, so the run is not ranked.";
-    set("seed-value", history ? history.title + " · " + history.period : "Seed " + run.seed);
+    element("restart-button").hidden = Boolean(run.weekly);
+    set("seed-value", run.weekly ? "Week of " + dateLabel(run.weekly.week) : history ? history.title + " · " + history.period : "Seed " + run.seed);
     element("seed-value").title = history ? history.title + " · " + history.period : run.seed;
     set("foot-note", history ? "Prices: U.S. Energy Information Administration, daily WTI spot and futures settlements · Bids, clients, storage rates and counterparties are the game’s own · 1 lot = 1,000 bbl" :
       "Simulated terminal and prices · All times Central · 1 lot = 1,000 bbl");
@@ -646,10 +667,11 @@
     const review = state.review;
     const rank = run.ranked ? board.record({
       id: run.id, seed: run.seed, net: state.net, drawdown: state.maxDrawdown, completedAt: run.completedAt,
+      name: window.CargoLeaderboard.getUsername(),
     }) : null;
     set("decision-label", "Debrief");
     set("phase", "Settled");
-    set("decision-desk", !run.ranked ? "Practice run · not ranked" : rank === 1 ? "Ranked run · personal best" :
+    set("decision-desk", run.weekly ? "Weekly challenge complete" : !run.ranked ? "Practice run · not ranked" : rank === 1 ? "Ranked run · personal best" :
       rank ? "Ranked run · number " + rank + " on your leaderboard" : "Ranked run");
     set("decision-title", "Book closed.");
     set("decision-brief", "All crude is sold and every futures position is closed. Here is the result, where it came from and how much risk it took.");
@@ -731,6 +753,12 @@
     }
 
     const actions = append(debrief, "div", undefined, "cd-debrief__actions");
+    if (run.weekly) {
+      const weeklyBoard = append(actions, "button", "Weekly leaderboard", "btn");
+      weeklyBoard.type = "button";
+      weeklyBoard.addEventListener("click", () => window.CargoWeekly.open());
+      return;
+    }
     const next = append(actions, "button", "Play a new ranked market", "btn");
     next.type = "button";
     next.addEventListener("click", () => { if (!fields.disabled) begin(randomSeed(), true); });
@@ -908,6 +936,7 @@
     if (canvas.width !== Math.round(width * scale)) canvas.width = Math.round(width * scale);
     if (canvas.height !== Math.round(height * scale)) canvas.height = Math.round(height * scale);
     const ctx = canvas.getContext("2d");
+    if (!ctx || ctx.isContextLost?.()) return;
     ctx.setTransform(scale, 0, 0, scale, 0, 0);
     ctx.clearRect(0, 0, width, height);
 
@@ -972,9 +1001,10 @@
 
   function renderGame(next) {
     state = next;
-    window.CargoTutorialUI?.offer(state.history.length === 0);
+    window.CargoTutorialUI?.offer(!run.weekly && state.history.length === 0);
     quoteIndex = -1;
     renderHead();
+    window.CargoWeekly?.render(run);
     renderTerminal();
     renderDeliveryCalendar();
     renderTicket();
@@ -1005,18 +1035,45 @@
     }
   }
 
-  function begin(seed, generated, show = true, scenario = null) {
-    haggles = { buy: [], sell: [] };
-    // A scenario is always a practice run: its prices are a matter of record.
-    run = { id: window.CargoLeaderboard.newRunId(), seed, scenario, ranked: scenario ? false : claimSeed(seed, generated), decisions: [], completedAt: null };
+  function activateRun(nextRun, show) {
+    run = nextRun;
+    haggles = run.talks ? { buy: run.talks.buy.slice(), sell: run.talks.sell.slice() } : { buy: [], sell: [] };
+    try { sessionStorage.setItem(activeModeKey, run.weekly ? "weekly" : "campaign"); } catch {}
     saveRun();
     renderGame(play(run.decisions));
     // A run the player starts brings the top of the game back into view.
     if (show) element("cargo-desk").scrollIntoView({ block: "start", behavior: still() ? "instant" : "smooth" });
   }
 
+  function begin(seed, generated, show = true, scenario = null) {
+    // A scenario is always a practice run: its prices are a matter of record.
+    activateRun({ id: window.CargoLeaderboard.newRunId(), seed, scenario, ranked: scenario ? false : claimSeed(seed, generated),
+      decisions: [], completedAt: null }, show);
+  }
+
+  function enterWeekly(value) {
+    if (fields.disabled) return false;
+    const weekly = weeklySession(value);
+    if (!weekly) return false;
+    const saved = weeklyRun?.weekly;
+    if (saved?.week === weekly.week && saved.token === weekly.token) {
+      activateRun(weeklyRun, true);
+    } else {
+      activateRun({ id: window.CargoLeaderboard.newRunId(), seed: weekly.seed, weekly, ranked: false,
+        decisions: [], completedAt: null }, true);
+    }
+    return true;
+  }
+
+  function leaveWeekly() {
+    if (!run.weekly || fields.disabled) return false;
+    if (campaignRun) activateRun(campaignRun, true);
+    else begin(randomSeed(), true);
+    return true;
+  }
+
   function openNewRun(seed = "") {
-    if (fields.disabled) return;
+    if (fields.disabled || run.weekly) return;
     const midRun = state.history.length > 0 && !!state.round;
     set("restart-message", (midRun ? "Starting a new run abandons this one" + (run.ranked ? ", and it cannot be ranked later. " : ". ") : "") +
       "A new random market is ranked. A seed you type in is a practice run.");
@@ -1030,6 +1087,7 @@
     onReplay(seed) {
       if (fields.disabled) return;
       element("leaderboard-dialog").close();
+      if (run.weekly) leaveWeekly();
       if (state.history.length > 0 && state.round) openNewRun(seed);
       else begin(seed, false);
     },
@@ -1109,23 +1167,24 @@
     saveRun();
     fields.disabled = true;
     element("confirm-button").disabled = true;
-    const controls = ["restart-button", "leaderboard-button", "help-button", "tutorial-button", "tutorial-start", "tutorial-dismiss"]
+    const controls = ["restart-button", "leaderboard-button", "help-button", "tutorial-button", "tutorial-start", "tutorial-dismiss",
+      "weekly-button", "weekly-leave"]
       .map(element).filter(Boolean);
     controls.forEach(control => { control.disabled = true; });
     form.setAttribute("aria-busy", "true");
 
-    // One stretch of tape for each market move since the ticket: morning, then afternoon and overnight.
-    const front = previous.market.firstMonth;
-    const segments = step.path.slice(1).map((to, index) => {
-      const from = step.path[index];
-      return {
-        label: previous.scenario ? shortDate(scenarioOf().dates[to.day]) : to.phase === "pm" ? "Morning" : to.phase === "close" ? "Afternoon to the close" : "Afternoon and overnight",
-        from: { spot: from.prices[0], front: monthPrice(from, front) },
-        to: { spot: to.prices[0], front: monthPrice(to, front) },
-        news: previous.scenario ? [{ text: to.headline.split(/(?<=\.)\s+(?=[A-Z])/)[0] }] : newsOf(to),
-      };
-    });
     try {
+      // One stretch of tape per market move after the ticket.
+      const front = previous.market.firstMonth;
+      const segments = step.path.slice(1).map((to, index) => {
+        const from = step.path[index];
+        return {
+          label: previous.scenario ? shortDate(scenarioOf().dates[to.day]) : to.phase === "pm" ? "Morning" : to.phase === "close" ? "Afternoon to the close" : "Afternoon and overnight",
+          from: { spot: from.prices[0], front: monthPrice(from, front) },
+          to: { spot: to.prices[0], front: monthPrice(to, front) },
+          news: previous.scenario ? [{ text: to.headline.split(/(?<=\.)\s+(?=[A-Z])/)[0] }] : newsOf(to),
+        };
+      });
       await transition({
         title: "Cycle " + step.cycle + (previous.phase === "pm" ? " · afternoon" : next.phase === "pm" ? " · morning" : ""),
         time: previous.scenario ? "Real prices" : next.market.time + " CT",
@@ -1136,16 +1195,19 @@
       });
     } finally {
       fields.disabled = false;
-      renderGame(next);
       controls.forEach(control => { control.disabled = false; });
       form.removeAttribute("aria-busy");
-      const ticket = element("ticket");
-      element("decision-title").focus({ preventScroll: true });
-      const box = ticket.getBoundingClientRect();
-      if (box.top < 0 || box.top > window.innerHeight * .6) {
-        ticket.scrollIntoView({ block: "start", behavior: still() ? "instant" : "smooth" });
+      try {
+        renderGame(next);
+        const ticket = element("ticket");
+        element("decision-title").focus({ preventScroll: true });
+        const box = ticket.getBoundingClientRect();
+        if (box.top < 0 || box.top > window.innerHeight * .6) {
+          ticket.scrollIntoView({ block: "start", behavior: still() ? "instant" : "smooth" });
+        }
+      } finally {
+        reveal();
       }
-      reveal();
     }
   });
 
@@ -1177,8 +1239,23 @@
   element("help-button").addEventListener("click", () => { if (!fields.disabled) element("help-dialog").showModal(); });
   element("leaderboard-button").addEventListener("click", () => {
     if (fields.disabled) return;
+    element("score-name").value = window.CargoLeaderboard.getUsername();
+    set("score-name-status", "");
     board.render();
     element("leaderboard-dialog").showModal();
+  });
+  element("score-name-form").addEventListener("submit", event => {
+    event.preventDefault();
+    const input = element("score-name");
+    const name = window.CargoLeaderboard.normalizedName(input.value);
+    if (input.value.trim() && !name) {
+      set("score-name-status", "Choose a username with 1–24 visible characters.");
+      input.focus();
+      return;
+    }
+    window.CargoLeaderboard.setUsername(name);
+    input.value = name;
+    set("score-name-status", name ? "Username saved for future scores." : "Username cleared.");
   });
   element("restart-button").addEventListener("click", () => openNewRun());
   element("seed-input").addEventListener("input", event => event.target.setCustomValidity(""));
@@ -1274,14 +1351,14 @@
     return input;
   });
 
-  run = loadRun();
-  if (run) {
-    if (run.talks) haggles = { buy: run.talks.buy.slice(), sell: run.talks.sell.slice() };
-    saveRun();
-    renderGame(play(run.decisions));
-  } else {
-    begin(randomSeed(), true, false);
-  }
+  campaignRun = loadRun();
+  weeklyRun = loadRun(true);
+  window.CargoWeekly?.setup({ getRun: () => run, getSavedWeekly: () => weeklyRun, enterWeekly, leaveWeekly });
+  let openedWeekly = false;
+  try { openedWeekly = sessionStorage.getItem(activeModeKey) === "weekly"; } catch {}
+  const savedRun = (openedWeekly && weeklyRun) || campaignRun;
+  if (savedRun) activateRun(savedRun, false);
+  else begin(randomSeed(), true, false);
   new ResizeObserver(drawCurve).observe(element("chart-wrap"));
   document.fonts?.ready.then(drawCurve);
 })();

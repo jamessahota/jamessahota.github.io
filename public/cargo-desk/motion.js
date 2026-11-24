@@ -12,6 +12,7 @@
   const points = 48;
   const jumpAt = .55;
   let panel;
+  let settlePanel;
 
   // A small repeatable source of wiggle. The tape between two real prices is drawn for
   // effect: only the prices at each end of a session come from the game.
@@ -60,8 +61,9 @@
 
   async function transition({ title, time, label, frontName, segments, delta }) {
     if (panel || !segments?.length) return;
-    panel = build();
-    const find = (selector) => panel.querySelector(selector);
+    const activePanel = build();
+    panel = activePanel;
+    const find = (selector) => activePanel.querySelector(selector);
     find(".cycle-ticket-title").textContent = title;
     find(".cycle-ticket-time").textContent = time || "";
     find(".cycle-ticket-label").textContent = label;
@@ -94,16 +96,31 @@
     const low = Math.min(...spot, ...front) - 12;
     const high = Math.max(...spot, ...front) + 12;
 
-    document.body.append(panel);
+    document.body.append(activePanel);
     root.classList.add("cycle-committing");
 
     function draw(progress) {
+      const upTo = progress * last;
+      const whole = Math.min(last, Math.floor(upTo));
+      const current = (series) => whole >= last ? series[last] :
+        series[whole] + (series[whole + 1] - series[whole]) * (upTo - whole);
+      const frontNow = current(front);
+      const spotNow = current(spot);
+      spotLabel.textContent = price(Math.round(spotNow));
+      frontLabel.textContent = price(Math.round(frontNow));
+      for (const item of newsItems) if (progress >= item.at) item.line.hidden = false;
+      // The profit or loss counts up with the tape and lands on the true figure.
+      const value = progress >= 1 ? delta : Math.round(delta * progress / 100) * 100;
+      amount.textContent = (value < 0 ? "−" : value > 0 ? "+" : "") + wholeDollars.format(Math.abs(value) / 100);
+      amount.className = value > 0 ? "positive" : value < 0 ? "negative" : "";
+
       const box = canvas.getBoundingClientRect();
-      if (!box.width) return;
+      if (!box.width || !box.height) return;
       const scale = window.devicePixelRatio || 1;
       if (canvas.width !== Math.round(box.width * scale)) canvas.width = Math.round(box.width * scale);
       if (canvas.height !== Math.round(box.height * scale)) canvas.height = Math.round(box.height * scale);
       const ctx = canvas.getContext("2d");
+      if (!ctx) return;
       ctx.setTransform(scale, 0, 0, scale, 0, 0);
       ctx.clearRect(0, 0, box.width, box.height);
       const x = (index) => 4 + (box.width - 8) * index / last;
@@ -126,33 +143,26 @@
         ctx.fillText(segment.label.toUpperCase(), start + (index ? 6 : 0), box.height - 2);
       });
 
-      const upTo = progress * last;
-      const whole = Math.min(last, Math.floor(upTo));
-      const trace = (series, colour, width) => {
+      const trace = (series, head, colour, width) => {
         ctx.beginPath();
         for (let index = 0; index <= whole; index++) {
           if (index) ctx.lineTo(x(index), y(series[index])); else ctx.moveTo(x(index), y(series[index]));
         }
-        const head = whole >= last ? series[last] : series[whole] + (series[whole + 1] - series[whole]) * (upTo - whole);
         ctx.lineTo(x(upTo), y(head));
         ctx.strokeStyle = colour;
         ctx.lineWidth = width;
         ctx.lineJoin = "round";
         ctx.stroke();
-        return head;
       };
-      const frontNow = trace(front, "#a2a9b0", 1.5);
-      const spotNow = trace(spot, "#ff6a33", 2.5);
+      trace(front, frontNow, "#a2a9b0", 1.5);
+      trace(spot, spotNow, "#ff6a33", 2.5);
       ctx.fillStyle = "#ff6a33";
       ctx.fillRect(x(upTo) - 4, y(spotNow) - 4, 8, 8);
-      spotLabel.textContent = price(Math.round(spotNow));
-      frontLabel.textContent = price(Math.round(frontNow));
+    }
 
-      for (const item of newsItems) if (progress >= item.at) item.line.hidden = false;
-      // The profit or loss counts up with the tape and lands on the true figure.
-      const value = progress >= 1 ? delta : Math.round(delta * progress / 100) * 100;
-      amount.textContent = (value < 0 ? "−" : value > 0 ? "+" : "") + wholeDollars.format(Math.abs(value) / 100);
-      amount.className = value > 0 ? "positive" : value < 0 ? "negative" : "";
+    function paint(progress) {
+      try { draw(progress); } catch { return false; }
+      return true;
     }
 
     const duration = still() ? 0 : 1500 * segments.length;
@@ -160,42 +170,67 @@
     await new Promise((resolve) => {
       let finished = false;
       let frame;
-      const finish = () => {
+      let deadline;
+      let skipHold;
+      const finish = (redraw = true) => {
         if (finished) return;
         finished = true;
         cancelAnimationFrame(frame);
+        window.clearTimeout(deadline);
+        window.clearTimeout(skipHold);
         window.removeEventListener("keydown", skip, true);
-        panel.removeEventListener("click", skip);
-        draw(1);
+        activePanel.removeEventListener("click", skip);
+        document.removeEventListener("visibilitychange", visibility);
+        window.removeEventListener("pagehide", hide);
+        settlePanel = null;
+        if (redraw) paint(1);
         resolve();
       };
+      const hide = () => finish(false);
+      const visibility = () => { if (document.hidden) hide(); };
       // Skipping shows the finished tape for a moment, so the result is never missed.
       const skip = (event) => {
-        if (event.type === "keydown" && ["Shift", "Control", "Alt", "Meta", "Tab"].includes(event.key)) return;
+        if (skipHold !== undefined) return;
+        if (event.type === "keydown") {
+          if (event.ctrlKey || event.metaKey || event.altKey || event.isComposing ||
+            ["Shift", "Control", "Alt", "Meta", "Tab"].includes(event.key) || document.querySelector("dialog[open]")) return;
+          event.preventDefault();
+        }
         cancelAnimationFrame(frame);
-        draw(1);
-        window.setTimeout(finish, 350);
+        if (paint(1)) skipHold = window.setTimeout(finish, 350);
+        else finish(false);
       };
       window.addEventListener("keydown", skip, true);
-      panel.addEventListener("click", skip);
+      activePanel.addEventListener("click", skip);
+      document.addEventListener("visibilitychange", visibility);
+      window.addEventListener("pagehide", hide);
+      settlePanel = hide;
+      if (document.hidden) {
+        hide();
+        return;
+      }
 
       const start = performance.now();
       const tick = (now) => {
         const progress = duration ? clamp((now - start) / duration) : 1;
-        draw(progress);
+        if (!paint(progress)) {
+          finish(false);
+          return;
+        }
         if (progress < 1 && !finished) frame = requestAnimationFrame(tick);
       };
       frame = requestAnimationFrame(tick);
-      // A tab in the background gets no animation frames, so the clock ends it too.
-      window.setTimeout(finish, duration + hold);
+      deadline = window.setTimeout(finish, duration + hold);
     });
   }
 
   function reveal() {
     if (!panel) return;
     const departing = panel;
+    settlePanel?.();
     panel = null;
     root.classList.remove("cycle-committing");
+    departing.style.pointerEvents = "none";
     if (still()) {
       departing.remove();
       return;

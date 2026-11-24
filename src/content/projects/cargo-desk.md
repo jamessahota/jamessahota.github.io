@@ -50,6 +50,10 @@ Trading marks use the U.S. Energy Information Administration’s daily Cushing s
 
 A market is generated from a seed, and its prices are the same every time that seed is played. Only the first play of a fresh random market is ranked on the leaderboard. Typing in a seed, or replaying one already seen, is a practice run. Scores are kept in your own browser and are not shared.
 
+## Weekly challenge
+
+Everyone plays the same ten-cycle market for the week. After settlement, you can publish your username, final P&L and drawdown. The shared board ranks by P&L and breaks ties by lower drawdown. A new market opens every Monday at 00:00 UTC.
+
 ## Limits of the model
 
 Outside the historical scenarios, all prices, bids and events are simulated. The price moves, event odds, shock sizes, storage rates and client fees are set for a short game and are not calibrated to market data. In a scenario the daily trading marks follow recorded prices. The tape animates between those closes for effect. Futures have no margin, the expiring month settles in cash at spot in generated markets and at the recorded expiry settlement in historical markets, and the terminal is a single tank. The counterparties are invented. It is a game about the trade-offs of a physical book and not a forecast or a trading tool.
