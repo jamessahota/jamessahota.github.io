@@ -83,7 +83,9 @@ The trading tools let me compare ways to express a market view and test what hap
   <!-- cushing-release-log:start -->
   <div class="sample-output__release-log" id="cushing-release-log">
     <h4>EIA release log</h4>
-    <p>First review pending for the <time datetime="2026-11-25">25 November 2026</time> release.</p>
+    <ul class="sample-output__release-list">
+    <li data-release-date="2026-11-25"><p><strong><time datetime="2026-11-25">25 November 2026</time></strong> <span class="sample-output__review">Historical replay pending</span></p><p>Cushing crude inventories <strong>down 0.534 million barrels</strong> week over week.</p><p class="sample-output__source"><a href="https://www.eia.gov/petroleum/supply/weekly/archive/2026/2026_11_25/wpsr_2026_11_25.php">EIA Table 4 · 25 November 2026</a></p></li>
+    </ul>
   </div>
   <!-- cushing-release-log:end -->
 </aside>
