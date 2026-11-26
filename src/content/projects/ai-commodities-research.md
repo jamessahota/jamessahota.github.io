@@ -83,8 +83,25 @@ The trading tools let me compare ways to express a market view and test what hap
   <div class="sample-output__release-log" id="cushing-replay-example">
     <h4>25 November 2026 historical replay</h4>
     <p>Cushing crude stocks fell <strong>2.04%</strong> week over week, from 26.147 million to 25.613 million barrels. Under the preset rule, the draw called for buying January WTI and selling February WTI.</p>
-    <p>The replay compared that position with the reverse and a seeded random direction using the same contracts and windows. This release was replayed from archived data and sits outside the forward test.</p>
-    <p class="sample-output__source"><a href="https://www.eia.gov/petroleum/supply/weekly/archive/2026/2026_11_25/wpsr_2026_11_25.php">Source: U.S. Energy Information Administration, Table 4, 25 November 2026</a></p>
+    <p class="sample-output__source"><a href="https://www.eia.gov/petroleum/supply/weekly/archive/2026/2026_11_25/wpsr_2026_11_25.php">Inventory source: EIA Table 4, 25 November 2026</a></p>
+    <p>The historical replay used archived minute bars. It sits outside the forward test.</p>
+    <table aria-label="Modeled entry and exit prices in US dollars per barrel">
+      <thead><tr><th scope="col">WTI contract</th><th scope="col">Entry<br>10:35 a.m. ET</th><th scope="col">Exit<br>11:30 a.m. ET</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">January (CLF7)</th><td>$83.10</td><td>$82.94</td></tr>
+        <tr><th scope="row">February (CLG7)</th><td>$81.75</td><td>$81.56</td></tr>
+      </tbody>
+    </table>
+    <p class="sample-output__source">Modeled prices in USD per barrel.</p>
+    <table aria-label="Gross returns on 100,000 dollars of starting paper equity">
+      <thead><tr><th scope="col">Strategy</th><th scope="col">Gross return</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">Original</th><td>+0.03%</td></tr>
+        <tr><th scope="row">Reversed</th><td>−0.03%</td></tr>
+        <tr><th scope="row">Seeded random</th><td>+0.03%</td></tr>
+      </tbody>
+    </table>
+    <p class="sample-output__source">Each strategy models one spread on $100,000 starting paper equity. Gross returns exclude fees and slippage.</p>
   </div>
   <!-- cushing-release-log:start -->
   <div class="sample-output__release-log" id="cushing-release-log">
