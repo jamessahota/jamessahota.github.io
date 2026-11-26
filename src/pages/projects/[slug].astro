@@ -224,41 +224,9 @@ const sections = headings.filter((heading) => heading.depth === 2);
     font-size: var(--text-base);
   }
 
-  .case :global(.sample-output__method),
-  .case :global(.sample-output__status) {
-    margin-top: var(--space-3);
+  .case :global(.sample-output [id]) {
+    scroll-margin-top: calc(var(--header-height) + var(--space-5));
   }
-
-  .case :global(.sample-output__source) {
-    margin-top: var(--space-2);
-    font-size: var(--text-sm);
-  }
-
-  .case :global(.sample-output__release-log) {
-    border-top: 1px solid var(--line);
-    margin-top: var(--space-4);
-    padding-top: var(--space-4);
-  }
-
-  .case :global(.sample-output__release-log h4) {
-    margin: 0 0 var(--space-2);
-    font-size: var(--text-base);
-    font-weight: 650;
-    color: var(--ink);
-  }
-
-  .case :global(.sample-output__release-list) {
-    list-style: none;
-    padding: 0;
-    margin: var(--space-3) 0 0;
-  }
-
-  .case :global(.sample-output__review) {
-    color: var(--muted);
-    font-size: var(--text-sm);
-  }
-
-  .case :global(.sample-output__release-log details) { margin-top: var(--space-3); }
 
   .case :global(.sample-output__actions) {
     display: flex;

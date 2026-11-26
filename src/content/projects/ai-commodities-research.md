@@ -72,45 +72,13 @@ The trading tools let me compare ways to express a market view and test what hap
 - **Forecast scoring.** Log the direction, probability and horizon before the outcome, then compare the forecast with historical-frequency and volatility benchmarks.
 
 <aside id="cushing-spread-test" class="sample-output" aria-labelledby="cushing-spread-title">
-  <p class="sample-output__meta">Forward paper testing</p>
-  <h3 id="cushing-spread-title">Cushing inventories and the WTI calendar spread</h3>
-  <p class="sample-output__description">Does a draw in Cushing crude stocks strengthen the nearest eligible WTI contract relative to the next month?</p>
-  <ul class="sample-output__method">
-    <li><strong>Signal.</strong> After a draw, buy the nearer contract and sell the next month. A build reverses the position. A second study flips this rule and uses a fair-coin benchmark.</li>
-    <li><strong>Timing.</strong> Record the EIA release before entry. Model entry 5–7 minutes after release and exit 60–62 minutes after release using delayed same-minute trades in both contracts.</li>
-  </ul>
-  <p class="sample-output__status">Each study reviews performance after 60 completed primary trades.</p>
-  <div class="sample-output__release-log" id="cushing-replay-example">
-    <h4>25 November 2026 historical replay</h4>
-    <p>Cushing crude stocks fell <strong>2.04%</strong> week over week, from 26.147 million to 25.613 million barrels. Under the preset rule, the draw called for buying January WTI and selling February WTI.</p>
-    <p class="sample-output__source"><a href="https://www.eia.gov/petroleum/supply/weekly/archive/2026/2026_11_25/wpsr_2026_11_25.php">Inventory source: EIA Table 4, 25 November 2026</a></p>
-    <p>The historical replay used archived minute bars. It sits outside the forward test.</p>
-    <table aria-label="Modeled entry and exit prices in US dollars per barrel">
-      <thead><tr><th scope="col">WTI contract</th><th scope="col">Entry<br>10:35 a.m. ET</th><th scope="col">Exit<br>11:30 a.m. ET</th></tr></thead>
-      <tbody>
-        <tr><th scope="row">January (CLF7)</th><td>$83.10</td><td>$82.94</td></tr>
-        <tr><th scope="row">February (CLG7)</th><td>$81.75</td><td>$81.56</td></tr>
-      </tbody>
-    </table>
-    <p class="sample-output__source">Modeled prices in USD per barrel.</p>
-    <table aria-label="Gross returns on 100,000 dollars of starting paper equity">
-      <thead><tr><th scope="col">Strategy</th><th scope="col">Gross return</th></tr></thead>
-      <tbody>
-        <tr><th scope="row">Original</th><td>+0.03%</td></tr>
-        <tr><th scope="row">Reversed</th><td>−0.03%</td></tr>
-        <tr><th scope="row">Seeded random</th><td>+0.03%</td></tr>
-      </tbody>
-    </table>
-    <p class="sample-output__source">Each strategy models one spread on $100,000 starting paper equity. Gross returns exclude fees and slippage.</p>
+  <div id="cushing-replay-example">
+    <h3 id="cushing-spread-title">Cushing WTI spread paper test</h3>
+    <p class="sample-output__description">Tests whether Cushing crude inventory changes predict the WTI calendar spread after EIA releases.</p>
+    <div class="sample-output__actions">
+      <a class="btn btn--secondary" id="cushing-release-log" href="/projects/ai-commodities-research/cushing-results/"><span>View paper-trading results</span></a>
+    </div>
   </div>
-  <!-- cushing-release-log:start -->
-  <div class="sample-output__release-log" id="cushing-release-log">
-    <h4>EIA release log</h4>
-    <ul class="sample-output__release-list">
-    <li data-release-date="2026-11-25"><p><strong><time datetime="2026-11-25">25 November 2026</time></strong> <span class="sample-output__review">Historical paper trade</span></p><p>Cushing crude inventories <strong>down 0.534 million barrels</strong> week over week.</p><p class="sample-output__source"><a href="https://www.eia.gov/petroleum/supply/weekly/archive/2026/2026_11_25/wpsr_2026_11_25.php">EIA Table 4 · 25 November 2026</a></p></li>
-    </ul>
-  </div>
-  <!-- cushing-release-log:end -->
 </aside>
 
 ## Shared infrastructure

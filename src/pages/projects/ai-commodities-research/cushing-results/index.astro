@@ -1,0 +1,151 @@
+---
+import Icon from '../../../../components/Icon.astro';
+import BaseLayout from '../../../../layouts/BaseLayout.astro';
+
+const description = 'Weekly modeled WTI calendar-spread prices and gross returns around EIA inventory releases.';
+---
+
+<BaseLayout title="Cushing spread results" description={description} ogType="article">
+  <article class="cushing-results container">
+    <header class="page-header">
+      <a class="arrow-link arrow-link--back" href="/projects/ai-commodities-research/#cushing-spread-test">
+        <Icon name="arrow-left" />
+        AI commodities research
+      </a>
+      <h1 class="display">Cushing spread results</h1>
+      <p class="lede">{description}</p>
+    </header>
+
+    <div class="results-grid">
+      <div class="results-main prose">
+        <!-- cushing-release-log:start -->
+        <div class="sample-output__release-log" id="cushing-release-log">
+          <h2>EIA release log</h2>
+          <ul class="sample-output__release-list">
+          <li data-release-date="2026-11-25"><p><strong><time datetime="2026-11-25">25 November 2026</time></strong> <span class="sample-output__review">Historical paper trade</span></p><p>Cushing crude inventories <strong>down 0.534 million barrels</strong> week over week.</p><p class="sample-output__source"><a href="https://www.eia.gov/petroleum/supply/weekly/archive/2026/2026_11_25/wpsr_2026_11_25.php">EIA Table 4 · 25 November 2026</a> · <a href="#cushing-replay-example">View historical replay</a></p></li>
+          </ul>
+        </div>
+        <!-- cushing-release-log:end -->
+        <section class="sample-output__release-log" id="cushing-replay-example">
+          <h2>25 November 2026 historical replay</h2>
+          <p>Cushing crude stocks fell <strong>2.04%</strong> week over week, from 26.147 million to 25.613 million barrels. Under the preset rule, the draw called for buying January WTI and selling February WTI.</p>
+          <p class="sample-output__source"><a href="https://www.eia.gov/petroleum/supply/weekly/archive/2026/2026_11_25/wpsr_2026_11_25.php">Inventory source: EIA Table 4, 25 November 2026</a></p>
+          <p>The historical replay used archived minute bars. It sits outside the forward test.</p>
+          <table aria-label="Modeled entry and exit prices in US dollars per barrel">
+            <thead><tr><th scope="col">WTI contract</th><th scope="col">Entry<br>10:35 a.m. ET</th><th scope="col">Exit<br>11:30 a.m. ET</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">January (CLF7)</th><td>$83.10</td><td>$82.94</td></tr>
+              <tr><th scope="row">February (CLG7)</th><td>$81.75</td><td>$81.56</td></tr>
+            </tbody>
+          </table>
+          <p class="sample-output__source">Modeled prices in USD per barrel.</p>
+          <table aria-label="Gross returns on 100,000 dollars of starting paper equity">
+            <thead><tr><th scope="col">Strategy</th><th scope="col">Gross return</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">Original</th><td>+0.03%</td></tr>
+              <tr><th scope="row">Reversed</th><td>−0.03%</td></tr>
+              <tr><th scope="row">Seeded random</th><td>+0.03%</td></tr>
+            </tbody>
+          </table>
+          <p class="sample-output__source">Each strategy models one spread on $100,000 starting paper equity. Gross returns exclude fees and slippage.</p>
+        </section>
+      </div>
+
+      <aside class="results-method prose" aria-labelledby="results-method-title">
+        <h2 id="results-method-title">How to read the results</h2>
+        <dl>
+          <dt>Original</dt>
+          <dd>An inventory draw goes long the nearer WTI month and short the next. A build flips both legs.</dd>
+          <dt>Reversed</dt>
+          <dd>Takes the opposite side of the original rule on the same release.</dd>
+          <dt>Seeded random</dt>
+          <dd>A fair-coin algorithm picks one side using a fixed starting value and the release date. The same date always gives the same pick.</dd>
+        </dl>
+        <p>All three use the same contracts, position size and prices. The random comparison helps test whether the inventory signal picks direction better than chance. The forward review is set for 60 completed primary trades.</p>
+        <p>The primary window models entry 5–7 minutes after the release and exit 60–62 minutes after it.</p>
+      </aside>
+    </div>
+  </article>
+</BaseLayout>
+
+<style is:global>
+  .cushing-results {
+    padding-bottom: var(--space-8);
+  }
+
+  .cushing-results .page-header {
+    padding-top: clamp(1.5rem, 1rem + 2vw, 2.5rem);
+    border-bottom: 1px solid var(--ink);
+  }
+
+  .cushing-results h1 {
+    max-width: 20ch;
+    font-family: var(--display);
+    font-size: clamp(2.75rem, 7vw, 6rem);
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    line-height: 1.02;
+    text-transform: uppercase;
+  }
+
+  .cushing-results .results-grid {
+    display: grid;
+    gap: var(--space-5);
+    padding-top: var(--space-6);
+  }
+
+  @media (min-width: 62rem) {
+    .cushing-results .results-grid {
+      grid-template-columns: minmax(0, 2fr) minmax(16rem, 1fr);
+      gap: var(--space-7);
+      align-items: start;
+    }
+  }
+
+  .cushing-results .results-grid .prose { min-width: 0; max-width: none; }
+
+  .cushing-results .sample-output__release-log,
+  .cushing-results .results-method {
+    padding: clamp(1rem, 2.5vw, 1.75rem);
+    border: 1px solid var(--line);
+    background: var(--surface);
+    scroll-margin-top: calc(var(--header-height) + var(--space-5));
+  }
+
+  .cushing-results .sample-output__release-log { border-top: 3px solid var(--accent); }
+  .cushing-results .results-grid h2 { margin: 0 0 var(--space-3); }
+  .cushing-results .results-method dt { margin-top: var(--space-3); color: var(--ink); font-weight: 650; }
+  .cushing-results .results-method dd { margin-inline-start: 0; }
+  .cushing-results .results-method p + p { margin-top: var(--space-3); }
+
+  .cushing-results .sample-output__release-list { list-style: none; padding: 0; }
+  .cushing-results .sample-output__release-list li + li {
+    margin-top: var(--space-4);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--line);
+  }
+
+  .cushing-results .sample-output__review,
+  .cushing-results .sample-output__source {
+    color: var(--muted);
+    font-size: var(--text-sm);
+  }
+
+  .cushing-results .sample-output__release-log p + p,
+  .cushing-results .sample-output__source { margin-top: var(--space-2); }
+  .cushing-results details { margin-top: var(--space-4); padding-top: var(--space-3); border-top: 1px solid var(--line); }
+  .cushing-results summary { cursor: pointer; font-weight: 550; }
+  .cushing-results details[open] summary { margin-bottom: var(--space-3); }
+
+  .cushing-results table {
+    width: 100%;
+    margin-top: var(--space-4);
+    border-collapse: collapse;
+    font-size: var(--text-sm);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .cushing-results th,
+  .cushing-results td { padding: .65rem .35rem; border-bottom: 1px solid var(--line); text-align: right; }
+  .cushing-results th:first-child { text-align: left; }
+</style>
