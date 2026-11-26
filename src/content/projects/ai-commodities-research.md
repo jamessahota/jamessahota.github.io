@@ -80,6 +80,12 @@ The trading tools let me compare ways to express a market view and test what hap
     <li><strong>Timing.</strong> Record the EIA release before entry. Model entry 5–7 minutes after release and exit 60–62 minutes after release using delayed same-minute trades in both contracts.</li>
   </ul>
   <p class="sample-output__status">Each study reviews performance after 60 completed primary trades.</p>
+  <div class="sample-output__release-log" id="cushing-replay-example">
+    <h4>25 November 2026 historical replay</h4>
+    <p>Cushing crude stocks fell <strong>2.04%</strong> week over week, from 26.147 million to 25.613 million barrels. Under the preset rule, the draw called for buying January WTI and selling February WTI.</p>
+    <p>The replay compared that position with the reverse and a seeded random direction using the same contracts and windows. This release was replayed from archived data and sits outside the forward test.</p>
+    <p class="sample-output__source"><a href="https://www.eia.gov/petroleum/supply/weekly/archive/2026/2026_11_25/wpsr_2026_11_25.php">Source: U.S. Energy Information Administration, Table 4, 25 November 2026</a></p>
+  </div>
   <!-- cushing-release-log:start -->
   <div class="sample-output__release-log" id="cushing-release-log">
     <h4>EIA release log</h4>
