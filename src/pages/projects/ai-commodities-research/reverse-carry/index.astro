@@ -1,0 +1,213 @@
+---
+import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import BaseLayout from '../../../../layouts/BaseLayout.astro';
+import Icon from '../../../../components/Icon.astro';
+import ReverseCarryChart from '../../../../components/ReverseCarryChart.astro';
+import { books, markets, day, timestamp, usd, percent, quantity, direction, type TrackRecord } from '../../../../lib/reverse-carry';
+
+const dataPath = '/data/reverse-carry/track-record.json';
+const feed: TrackRecord = JSON.parse(await readFile(resolve('public', dataPath.slice(1)), 'utf8'));
+const latest = feed.sessions.at(-1);
+if (feed.schema !== 'reverse-carry-public-v1' || !latest || latest.session !== feed.as_of_session) {
+  throw new Error('Missing or inconsistent reverse-carry paper record.');
+}
+const history = [...feed.sessions].reverse();
+const signal = latest.signal;
+const description = 'Follow two forward-tested energy futures portfolios with and without WTI. Compare timestamped signals, paper fills, daily P&L and drawdowns.';
+const sections = [['portfolios','Portfolios'], ['latest-signal','Latest signal'], ['journal','Daily ledger'], ['method','Trading rule']];
+---
+<BaseLayout title="Reverse carry | Paper trading record" description={description} ogType="article">
+  <article class="record container" data-as-of={feed.as_of_session} data-event-sha256={latest.event_sha256}>
+    <header class="record-head">
+      <a class="arrow-link arrow-link--back" href="/projects/ai-commodities-research/#reverse-carry"><Icon name="arrow-left" /> AI commodities research</a>
+      <div class="headline">
+        <div>
+          <p class="label label--marked">Forward paper test</p>
+          <h1>Reverse carry</h1>
+          <p class="intro">Long the lowest carry. Short the highest. Two energy futures portfolios test what changes when WTI joins natural gas and gasoline.</p>
+        </div>
+        <dl class="dateline">
+          <div><dt>Inception</dt><dd><time datetime={feed.inception_session}>{day(feed.inception_session)}</time></dd></div>
+          <div><dt>Latest settlement</dt><dd><time datetime={feed.as_of_session}>{day(feed.as_of_session)}</time></dd></div>
+          <div><dt>Recorded through</dt><dd><time datetime={feed.updated_at_utc}>{timestamp(feed.updated_at_utc)}</time></dd></div>
+        </dl>
+      </div>
+      <nav class="jumps" aria-label="Track record sections">
+        {sections.map(([id,label]) => <a href={'#' + id}>{label}<Icon name="arrow-down" /></a>)}
+      </nav>
+    </header>
+
+    <section id="portfolios" class="block" aria-labelledby="portfolio-heading">
+      <h2 id="portfolio-heading">Portfolio comparison</h2>
+      <p class="context">Each book starts with $1 million in simulated equity. Trading costs and collateral interest are zero. All amounts are in US dollars.</p>
+      <div class="book-grid">
+        {books.map((book,i) => {
+          const a = latest.books[book.id];
+          return <section class:list={['book', { 'book--second': i === 1 }]} aria-labelledby={'name-' + book.id}>
+            <h3 id={'name-' + book.id}>{book.name}</h3><p class="universe">{book.markets}</p>
+            <dl class="metrics">
+              <div class="equity"><dt>Portfolio equity</dt><dd>{usd(a.equity_usd)}</dd></div>
+              <div><dt>Daily P&amp;L</dt><dd>{usd(a.daily_pnl_usd)}</dd></div>
+              <div><dt>Cumulative P&amp;L</dt><dd>{usd(a.cumulative_pnl_usd)}</dd></div>
+              <div><dt>Current drawdown</dt><dd>{percent(a.drawdown_pct)}</dd></div>
+              <div><dt>Max drawdown</dt><dd>{percent(a.max_drawdown_pct)}</dd></div>
+            </dl>
+            <div class="holdings">
+              <strong>Held after settlement</strong>
+              {Object.keys(a.positions).length ? <ul>{Object.entries(a.positions).map(([ticker, qty]) => <li>{direction(qty)} {quantity(qty)} <b>{ticker}</b></li>)}</ul> : <span>Flat · 0 contracts</span>}
+            </div>
+          </section>;
+        })}
+      </div>
+      <div class="legend"><span><i></i>With WTI</span><span><i></i>Without WTI</span></div>
+      <div class="plots">
+        <ReverseCarryChart title="Equity over time" metric="equity_usd" sessions={feed.sessions} />
+        <ReverseCarryChart title="Drawdown from peak" metric="drawdown_pct" sessions={feed.sessions} />
+      </div>
+    </section>
+    <section id="latest-signal" class="block" aria-labelledby="signal-heading">
+      <h2 id="signal-heading">Latest signal</h2>
+      {signal.status === 'recorded' && signal.recorded_at_utc ? <>
+        <p class="context">Recorded <strong><time datetime={signal.recorded_at_utc}>{timestamp(signal.recorded_at_utc)}</time></strong> for the <strong><time datetime={signal.settlement_at_utc}>{timestamp(signal.settlement_at_utc)}</time></strong> paper settlement. The quantities below are target contracts.</p>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="Latest market rankings and target contracts">
+          <table>
+            <caption class="visually-hidden">Latest annualised carry scores and target holdings for each portfolio</caption>
+            <thead><tr><th scope="col">Market</th><th scope="col">Curve pair</th><th scope="col">Annualised carry</th><th scope="col">With WTI target</th><th scope="col">Without WTI target</th></tr></thead>
+            <tbody>{Object.entries(signal.curves).sort(([,a],[,b]) => Number(a.annualized_carry ?? Infinity) - Number(b.annualized_carry ?? Infinity)).map(([root,c]) =>
+              <tr><th scope="row">{markets[root]}<small>{c.trade_contract}</small></th><td>{c.near} / {c.deferred}</td><td>{c.annualized_carry === null ? 'Unavailable' : percent(Number(c.annualized_carry) * 100)}</td>
+                {books.map(book => {
+                  const target = signal.books[book.id];
+                  const qty = target?.positions[c.trade_contract] ?? '0';
+                  return <td>{target && Object.hasOwn(target.weights, root) ? <span class:list={['side',{ active:Number(qty) !== 0 }]}>{direction(qty)}{Number(qty) !== 0 && ' ' + quantity(qty)}</span> : 'Outside portfolio'}</td>;
+                })}
+              </tr>)}</tbody>
+          </table>
+        </div>
+      </> : <p class="context">The signal deadline for {day(signal.for_session)} passed. Existing positions carry forward.</p>}
+    </section>
+
+    <section id="journal" class="block" aria-labelledby="journal-heading">
+      <div class="section-line"><h2 id="journal-heading">Daily ledger</h2><a href={dataPath} download class="arrow-link">Download record (JSON)<Icon name="download" /></a></div>
+      <p class="context">Select a settlement date to see the day’s results, paper fills and targets for the next session. All timestamps use New York time.</p>
+      <div class="sessions">
+        {history.map((s,index) => <details open={index === 0} id={'session-' + s.session}>
+          <summary><strong><time datetime={s.session}>{day(s.session)}</time></strong><span>{s.books.with_wti.trades.length + s.books.without_wti.trades.length} paper fills across both books</span></summary>
+          <div class="session-body">
+            <h3>Daily results</h3>
+            <div class="table-scroll" tabindex="0" role="region" aria-label={'Daily results on ' + s.session}>
+              <table>
+                <caption class="visually-hidden">Dollar results and percentage drawdowns on {day(s.session)}</caption>
+                <thead><tr><th scope="col">Portfolio</th><th scope="col">Daily P&amp;L</th><th scope="col">Cumulative P&amp;L</th><th scope="col">Equity</th><th scope="col">Drawdown</th><th scope="col">Max drawdown</th></tr></thead>
+                <tbody>{books.map(b => { const a = s.books[b.id]; return <tr><th scope="row">{b.name}</th><td>{usd(a.daily_pnl_usd)}</td><td>{usd(a.cumulative_pnl_usd)}</td><td>{usd(a.equity_usd)}</td><td>{percent(a.drawdown_pct)}</td><td>{percent(a.max_drawdown_pct)}</td></tr>; })}</tbody>
+              </table>
+            </div>
+            <div class="session-columns">
+              <div><h3>Paper fills</h3><p class="subtext">Settlement <time datetime={s.settlement_at_utc}>{timestamp(s.settlement_at_utc)}</time></p>
+                {books.map(b => <div class="book-entry"><h4>{b.name}</h4>
+                  {s.books[b.id].trades.length ? <ul class="entries">{s.books[b.id].trades.map(t =>
+                    <li><strong>{Number(t.signed_quantity) > 0 ? 'Buy' : 'Sell'} {quantity(t.signed_quantity)} {t.ticker}</strong>
+                      <small>Filled <time datetime={t.filled_at_utc}>{timestamp(t.filled_at_utc)}</time></small>
+                      <small>Signal <time datetime={t.signal_recorded_at_utc}>{timestamp(t.signal_recorded_at_utc)}</time></small>
+                      <small>Position after fill · {direction(t.after)} {quantity(t.after)}</small></li>)}</ul>
+                    : <p>{s.books[b.id].entry_status === 'opening_cash' ? 'Opening cash. No paper fills.' : 'No paper fills this session.'}</p>}
+                </div>)}
+              </div>
+              <div><h3>Next-session targets</h3>
+                {s.signal.status === 'recorded' && s.signal.recorded_at_utc ? <>
+                  <p class="subtext">Signal <time datetime={s.signal.recorded_at_utc}>{timestamp(s.signal.recorded_at_utc)}</time><br/>Target settlement <time datetime={s.signal.settlement_at_utc}>{timestamp(s.signal.settlement_at_utc)}</time></p>
+                  {books.map(b => { const p = s.signal.books[b.id]?.positions ?? {}; return <div class="book-entry"><h4>{b.name}</h4>
+                    {Object.keys(p).length ? <ul>{Object.entries(p).map(([ticker,q]) => <li>{direction(q)} {quantity(q)} <b>{ticker}</b></li>)}</ul> : <p>Flat · 0 contracts</p>}</div>; })}
+                </> : <p class="subtext">Deadline missed for {day(s.signal.for_session)}. Existing holdings carry forward.</p>}
+              </div>
+            </div>
+          </div>
+        </details>)}
+      </div>
+    </section>
+
+    <section id="method" class="block method" aria-labelledby="method-heading">
+      <div><h2 id="method-heading">How we choose longs and shorts</h2><p class="context">The same fixed rule ranks each portfolio’s markets independently after every settlement.</p></div>
+      <div class="rules">
+        <div><h3>Measure the curve</h3><p>Use the first two consecutive monthly futures more than seven calendar days from their last trading dates. The annualised carry score is <b>(nearby settlement ÷ deferred settlement − 1) × 365 ÷ days between their last trading dates.</b> This compares the shape of each market’s curve.</p></div>
+        <div><h3>Buy the lowest, sell the highest</h3><p>The three-market book ranks WTI, natural gas and gasoline. The two-market book ranks gas and gasoline. The lowest score goes long, the highest goes short and an intermediate score stays flat. Ties share that side equally. An all-way tie or an unavailable ratio leaves the book flat.</p></div>
+        <div><h3>Size and timestamp the trade</h3><p>Each side targets $500,000 of exposure using fixed starting capital. We divide by the eligible nearby contract’s signal-day settlement and contract multiplier, truncating fractional lots to eight decimal places. Positions roll into the next eligible delivery month as contracts approach expiry.</p></div>
+        <div><h3>Fill, then measure</h3><p>A signal recorded before the next pricing window can fill at that session’s settlement. A missed signal carries existing holdings forward. Daily P&amp;L uses contracts held entering the session and the change in each contract’s settlement. Drawdown measures the fall from the portfolio’s highest recorded equity.</p></div>
+      </div>
+    </section>
+    <footer class="source-bar"><strong>Sources</strong><span>Model signals and account values come from the <a href={dataPath}>timestamped paper ledger</a>. Contract marks use <a href="https://massive.com/docs/rest/futures/aggregates">Massive’s NYMEX session settlements</a>. Exchange reference <a href="https://www.cmegroup.com/market-data/daily-bulletin.html">CME Daily Bulletin</a>.</span></footer>
+  </article>
+</BaseLayout>
+<style>
+  .record { max-width:78rem; }
+  .record-head { padding-top:clamp(1.5rem,3vw,2.5rem); }
+  .headline { display:grid; gap:1.5rem 3rem; margin-top:clamp(2rem,5vw,4rem); align-items:end; }
+  .headline h1 { margin:.55rem 0 .75rem; font:400 clamp(3.6rem,8.7vw,7.4rem)/1 var(--display); letter-spacing:-.015em; text-transform:uppercase; }
+  .intro,.context { color:var(--ink-2); max-width:66ch; }
+  .intro { font-size:var(--text-lg); max-width:58ch; }
+  .dateline { border-block:1px solid var(--line); }
+  .dateline>div { display:flex; justify-content:space-between; align-items:baseline; gap:.8rem; padding:.38rem 0; font-size:var(--text-xs); }
+  .dateline>div+div { border-top:1px solid var(--line); }
+  .dateline dt { color:var(--muted); }
+  .dateline dd { font-family:var(--mono); text-align:right; }
+  .jumps { display:flex; flex-wrap:wrap; gap:.35rem 1.5rem; margin-top:2rem; padding:.7rem 0; border-block:1px solid var(--ink); }
+  .jumps a { display:inline-flex; align-items:center; gap:.35rem; font-weight:560; font-size:var(--text-sm); text-decoration:none; }
+  .jumps a:hover { color:var(--accent-text); }
+  .jumps :global(svg) { width:.75rem; }
+  .block { margin-top:clamp(2.25rem,5vw,4rem); scroll-margin-top:calc(var(--header-height) + 1rem); }
+  .block h2 { font-size:clamp(1.75rem,3vw,2.5rem); }
+  .context { margin-top:.55rem; font-size:.98rem; }
+  .book-grid,.plots,.session-columns { display:grid; gap:1rem; }
+  .book-grid { margin-top:1.4rem; }
+  .book { border:1px solid var(--line); border-top:4px solid var(--accent-text); background:var(--surface); padding:clamp(1rem,2.5vw,1.65rem); min-width:0; }
+  .book--second { border-top-color:var(--ink); }
+  .book h3 { font-size:1.45rem; }
+  .universe { color:var(--muted); font-size:var(--text-sm); margin-top:.2rem; min-height:1.35em; }
+  .metrics { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.7rem 1rem; margin-top:1.2rem; }
+  .metrics .equity { grid-column:span 2; padding-bottom:.85rem; border-bottom:1px solid var(--line); }
+  .metrics dt,.holdings strong,.legend,.source-bar,.subtext { color:var(--muted); font-size:var(--text-xs); }
+  .metrics dd { font:500 1.05rem/1.4 var(--mono); font-variant-numeric:tabular-nums; word-break:break-word; }
+  .metrics .equity dd { font-family:var(--sans); letter-spacing:-.06em; font-size:clamp(1.85rem,3.9vw,3.3rem); line-height:1.15; }
+  .holdings { display:flex; flex-wrap:wrap; align-items:baseline; gap:.2rem .8rem; margin-top:1rem; padding-top:.6rem; border-top:1px solid var(--line); font-size:var(--text-sm); }
+  .holdings strong { font-weight:500; }
+  .legend { display:flex; flex-wrap:wrap; gap:1rem; margin:1rem 0 .5rem; }
+  .legend span,.section-line { display:flex; align-items:center; gap:.5rem; }
+  .legend i { width:1.5rem; border-top:3px solid var(--accent-text); }
+  .legend span+span i { border-top:2px dashed var(--ink); }
+  .section-line { flex-wrap:wrap; justify-content:space-between; gap:.8rem; }
+  .section-line .arrow-link { font-size:.72rem; }
+  .table-scroll { max-width:100%; overflow-x:auto; margin-top:1.1rem; }
+  table { width:100%; border-collapse:collapse; text-align:left; font-size:var(--text-sm); font-variant-numeric:tabular-nums; }
+  th,td { padding:.7rem .8rem; border-bottom:1px solid var(--line); vertical-align:middle; }
+  th:first-child,td:first-child { padding-left:0; }
+  thead th { font-size:.75rem; font-weight:550; color:var(--muted); border-top:1px solid var(--line); }
+  td { font-family:var(--mono); font-size:.8rem; white-space:nowrap; }
+  td:last-child,th:last-child { padding-right:0; }
+  th[scope=row] { font-weight:600; }
+  th small,.entries small { display:block; color:var(--muted); font-size:.73rem; font-weight:400; }
+  .side.active { font-weight:650; }
+  .sessions { margin-top:1.1rem; border-top:1px solid var(--ink); }
+  details { border-bottom:1px solid var(--line); }
+  summary { display:list-item; cursor:pointer; padding:.85rem .25rem; }
+  summary::marker { color:var(--accent-text); }
+  summary span { display:inline-block; margin-left:.75rem; font-size:var(--text-sm); color:var(--muted); }
+  .session-body { padding:clamp(1rem,2.5vw,1.5rem); margin-bottom:1rem; background:var(--surface); border:1px solid var(--line); min-width:0; }
+  .session-body h3,.rules h3 { font-size:1.05rem; letter-spacing:-.015em; }
+  .session-body .table-scroll { margin:.7rem 0 1.4rem; }
+  .session-columns>div { padding-top:.7rem; border-top:1px solid var(--line); }
+  .book-entry { margin-top:.55rem; font-size:.85rem; }
+  .book-entry h4 { font-size:inherit; margin:0; }
+  .entries li+li { margin-top:.5rem; }
+  .subtext { margin-top:.3rem; }
+  .method { border-top:1px solid var(--ink); padding-top:1.5rem; display:grid; gap:1.25rem 3rem; }
+  .rules { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(18rem,100%),1fr)); gap:1.1rem 2rem; }
+  .rules p { margin-top:.4rem; font-size:.92rem; color:var(--ink-2); }
+  .source-bar { display:flex; flex-wrap:wrap; align-items:baseline; gap:.3rem .8rem; border-top:1px solid var(--line); padding-top:1rem; margin-top:2rem; }
+  @media(min-width:44rem) {
+    .book-grid,.plots,.session-columns { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .headline { grid-template-columns:minmax(0,1.6fr) minmax(15rem,.7fr); }
+  }
+  @media(min-width:65rem) {
+    .method { grid-template-columns:minmax(0,.72fr) minmax(0,2fr); }
+  }
+</style>

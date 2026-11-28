@@ -10,7 +10,7 @@ export const GET: APIRoute = async ({ site }) => {
   const projects = (await getPublicProjects()).map(projectPath);
   const paths = [
     '/', '/research/', '/projects/', '/experience/', '/about/', '/cv/',
-    '/projects/ai-commodities-research/cushing-results/', ...research, ...projects,
+    '/projects/ai-commodities-research/cushing-results/', '/projects/ai-commodities-research/reverse-carry/', ...research, ...projects,
   ];
 
   const urls = paths.map((path) => `  <url><loc>${new URL(path, site).href}</loc></url>`).join('\n');

@@ -1,0 +1,49 @@
+---
+import { books, day, percent, usd, type Session } from '../lib/reverse-carry';
+interface Props { sessions: Session[]; metric: 'equity_usd' | 'drawdown_pct'; title: string; }
+const { sessions, metric, title } = Astro.props;
+const start = sessions[0];
+const end = sessions[sessions.length - 1];
+const values = sessions.flatMap(s => books.map(b => Number(s.books[b.id][metric])));
+const low = Math.min(...values);
+const high = Math.max(...values);
+const flat = high === low;
+const format = metric === 'equity_usd' ? usd : percent;
+const x = (i: number) => sessions.length === 1 ? 205 : 9 + (i / (sessions.length - 1)) * 392;
+const y = (n: number) => flat ? 49 : 88 - (n - low) / (high - low) * 78;
+const series = books.map(b => {
+  const points = sessions.map((s, i) => [x(i), y(Number(s.books[b.id][metric]))]);
+  return { id: b.id, points: points.map(p => p.join(',')).join(' '), last: points[points.length - 1] };
+});
+const overlap = sessions.every(s => Number(s.books.with_wti[metric]) === Number(s.books.without_wti[metric]));
+const desc = books.map(b => b.name + ' ' + format(end.books[b.id][metric])).join('. ');
+---
+<figure class="plot">
+  <figcaption><h3>{title}</h3><span>{sessions.length === 1 ? 'Opening observation' : overlap ? 'Both portfolios coincide' : 'By settlement session'}</span></figcaption>
+  <div class="chart" role="img" aria-label={title + ' from ' + day(start.session) + ' to ' + day(end.session) + '. ' + desc + '. Exact values in the daily ledger.'}>
+    <div class:list={['scale', { flat }]}><span>{format(high)}</span>{!flat && <span>{format(low)}</span>}</div>
+    <svg viewBox="0 0 410 98" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+      {(flat ? [49] : [10, 49, 88]).map(row => <line x1="0" x2="410" y1={row} y2={row} class="grid" />)}
+      {series.map((s,i) => <g class={s.id}>
+        {sessions.length > 1 && <polyline points={s.points} fill="none" vector-effect="non-scaling-stroke" />}
+        <circle cx={s.last[0]} cy={s.last[1]} r={i === 0 ? 4.5 : 2.3} />
+      </g>)}
+    </svg>
+  </div>
+  <div class:list={['xaxis', { single: sessions.length === 1 }]}><span>{day(start.session)}</span>{sessions.length > 1 && <span>{day(end.session)}</span>}</div>
+</figure>
+<style>
+  .plot { min-width:0; padding:1rem clamp(1rem,2vw,1.6rem); border:1px solid var(--line); background:var(--surface); }
+  figcaption { display:flex; flex-wrap:wrap; gap:.3rem .75rem; align-items:baseline; justify-content:space-between; }
+  h3 { font-size:1.1rem; } figcaption span, .xaxis, .scale { font-size:.72rem; color:var(--muted); }
+  .chart { display:grid; grid-template-columns:auto minmax(0,1fr); gap:.5rem; margin-top:1.2rem; }
+  .scale { display:flex; flex-direction:column; justify-content:space-between; padding:.17rem 0; font-family:var(--mono); }
+  .scale.flat { justify-content:center; }
+  svg { width:100%; height:6.1rem; overflow:visible; }
+  .grid { stroke:var(--line); stroke-width:1; vector-effect:non-scaling-stroke; }
+  .with_wti { stroke:var(--accent-text); fill:var(--accent-text); stroke-width:3.5; }
+  .without_wti { stroke:var(--ink); fill:var(--ink); stroke-width:1.5; }
+  .without_wti polyline { stroke-dasharray:6 4; }
+  .xaxis { display:flex; justify-content:space-between; margin-top:.2rem; font-family:var(--mono); }
+  .xaxis.single { justify-content:center; }
+</style>

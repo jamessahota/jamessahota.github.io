@@ -1,0 +1,101 @@
+{
+  "schema": "reverse-carry-public-v1",
+  "inception_session": "2026-11-27",
+  "as_of_session": "2026-11-27",
+  "updated_at_utc": "2026-11-28T01:43:16.459012+00:00",
+  "reference_capital_usd": "1000000",
+  "transaction_cost_usd": "0",
+  "collateral_income_usd": "0",
+  "mandate_sha256": "672fb356ec82887d1de699df5a5c24d69f8364a1a4e3c8fee10fe3b07b8d34c6",
+  "sessions": [
+    {
+      "session": "2026-11-27",
+      "event_sha256": "550b1b61ce3eeb545e6eb07a53766928c6e421a68e6194caf0d82ede28324dad",
+      "settlement_at_utc": "2026-11-27T19:30:00+00:00",
+      "processed_at_utc": "2026-11-28T01:43:16.459012+00:00",
+      "books": {
+        "with_wti": {
+          "entry_status": "opening_cash",
+          "positions": {},
+          "daily_market_pnl_usd": {
+            "CL": "0",
+            "NG": "0",
+            "RB": "0"
+          },
+          "daily_pnl_usd": "0",
+          "cumulative_pnl_usd": "0",
+          "equity_usd": "1000000",
+          "peak_equity_usd": "1000000",
+          "drawdown_pct": "0",
+          "max_drawdown_pct": "0",
+          "trades": []
+        },
+        "without_wti": {
+          "entry_status": "opening_cash",
+          "positions": {},
+          "daily_market_pnl_usd": {
+            "NG": "0",
+            "RB": "0"
+          },
+          "daily_pnl_usd": "0",
+          "cumulative_pnl_usd": "0",
+          "equity_usd": "1000000",
+          "peak_equity_usd": "1000000",
+          "drawdown_pct": "0",
+          "max_drawdown_pct": "0",
+          "trades": []
+        }
+      },
+      "signal": {
+        "status": "recorded",
+        "recorded_at_utc": "2026-11-28T01:43:16.459012+00:00",
+        "for_session": "2026-11-30",
+        "settlement_at_utc": "2026-11-30T19:30:00+00:00",
+        "deadline_utc": "2026-11-30T19:28:00+00:00",
+        "curves": {
+          "CL": {
+            "near": "CLF27",
+            "deferred": "CLG27",
+            "trade_contract": "CLF27",
+            "annualized_carry": "0.16625996421018382951033024239466406377094517650888"
+          },
+          "NG": {
+            "near": "NGF27",
+            "deferred": "NGG27",
+            "trade_contract": "NGF27",
+            "annualized_carry": "1.5692210273729114824031283327408460718094560966943"
+          },
+          "RB": {
+            "near": "RBF27",
+            "deferred": "RBG27",
+            "trade_contract": "RBF27",
+            "annualized_carry": "-0.018519719131687323999244553313958568823166280016969"
+          }
+        },
+        "books": {
+          "with_wti": {
+            "weights": {
+              "CL": "0",
+              "NG": "-0.5",
+              "RB": "0.5"
+            },
+            "positions": {
+              "NGF27": "-14.32254368",
+              "RBF27": "4.87300937"
+            }
+          },
+          "without_wti": {
+            "weights": {
+              "NG": "-0.5",
+              "RB": "0.5"
+            },
+            "positions": {
+              "NGF27": "-14.32254368",
+              "RBF27": "4.87300937"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

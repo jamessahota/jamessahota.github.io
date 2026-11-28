@@ -81,6 +81,14 @@ The trading tools let me compare ways to express a market view and test what hap
   </div>
 </aside>
 
+<aside id="reverse-carry" class="sample-output" aria-labelledby="reverse-carry-title">
+  <h3 id="reverse-carry-title">Reverse-carry paper portfolios</h3>
+  <p class="sample-output__description">Follow two futures portfolios with and without WTI. The forward record pairs each timestamped long or short decision with its subsequent paper fills, daily P&amp;L and drawdown.</p>
+  <div class="sample-output__actions">
+    <a class="btn btn--secondary" href="/projects/ai-commodities-research/reverse-carry/"><span>View reverse-carry track record</span></a>
+  </div>
+</aside>
+
 ## Shared infrastructure
 
 Much of the work sits beneath the individual research outputs:
