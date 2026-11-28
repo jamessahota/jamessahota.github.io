@@ -1,41 +1,66 @@
 ---
-import { books, day, percent, usd, type Session } from '../lib/reverse-carry';
-interface Props { sessions: Session[]; metric: 'equity_usd' | 'drawdown_pct'; title: string; }
-const { sessions, metric, title } = Astro.props;
-const start = sessions[0];
-const end = sessions[sessions.length - 1];
-const values = sessions.flatMap(s => books.map(b => Number(s.books[b.id][metric])));
-const low = Math.min(...values);
-const high = Math.max(...values);
-const flat = high === low;
+import { books, day, percent, usd, type Book, type Session } from '../lib/reverse-carry';
+interface Props {
+  sessions: Session[];
+  metric: 'equity_usd' | 'drawdown_pct';
+  title: string;
+  firstResults: Record<Book, number>;
+}
+const { sessions, metric, title, firstResults } = Astro.props;
 const format = metric === 'equity_usd' ? usd : percent;
-const x = (i: number) => sessions.length === 1 ? 205 : 9 + (i / (sessions.length - 1)) * 392;
-const y = (n: number) => flat ? 49 : 88 - (n - low) / (high - low) * 78;
-const series = books.map(b => {
-  const points = sessions.map((s, i) => [x(i), y(Number(s.books[b.id][metric]))]);
-  return { id: b.id, points: points.map(p => p.join(',')).join(' '), last: points[points.length - 1] };
+const traces = books.map(book => {
+  const first = metric === 'equity_usd' ? 0 : firstResults[book.id];
+  const values = sessions.slice(first).map(s => Number(s.books[book.id][metric]));
+  return { ...book, first, values };
 });
-const overlap = sessions.every(s => Number(s.books.with_wti[metric]) === Number(s.books.without_wti[metric]));
-const desc = books.map(b => b.name + ' ' + format(end.books[b.id][metric])).join('. ');
+const first = Math.min(...traces.map(t => t.first));
+const dates = sessions.slice(first);
+function plot() {
+  if (!dates.length) return null;
+  const values = traces.flatMap(t => t.values);
+  const low = Math.min(...values);
+  const high = Math.max(...values);
+  const x = (i: number) => dates.length === 1 ? 205 : 9 + (i / (dates.length - 1)) * 392;
+  const y = (n: number) => low === high ? 49 : 88 - (n - low) / (high - low) * 78;
+  const series = traces.map(t => {
+    const points = t.values.map((v, i) => [x(t.first - first + i), y(v)]);
+    return { id: t.id, points, last: points.at(-1) };
+  });
+  const description = traces.map(t => {
+    const last = t.values.at(-1);
+    return t.name + ' ' + (last === undefined ? 'pending' : format(last));
+  }).join('. ');
+  const [a, b] = traces;
+  const overlap = a.first === b.first && a.values.every((v, i) => v === b.values[i]);
+  const pending = traces.find(t => !t.values.length);
+  let caption = overlap ? 'Both portfolios coincide' : 'By settlement session';
+  if (pending) caption = pending.name + ' pending';
+  else if (dates.length === 1 && metric === 'equity_usd') caption = 'Opening balance';
+  return { low, high, flat: low === high, series, description, caption };
+}
+const chart = plot();
 ---
 <figure class="plot">
-  <figcaption><h3>{title}</h3><span>{sessions.length === 1 ? 'Opening observation' : overlap ? 'Both portfolios coincide' : 'By settlement session'}</span></figcaption>
-  <div class="chart" role="img" aria-label={title + ' from ' + day(start.session) + ' to ' + day(end.session) + '. ' + desc + '. Exact values in the daily ledger.'}>
-    <div class:list={['scale', { flat }]}><span>{format(high)}</span>{!flat && <span>{format(low)}</span>}</div>
-    <svg viewBox="0 0 410 98" preserveAspectRatio="none" aria-hidden="true" focusable="false">
-      {(flat ? [49] : [10, 49, 88]).map(row => <line x1="0" x2="410" y1={row} y2={row} class="grid" />)}
-      {series.map((s,i) => <g class={s.id}>
-        {sessions.length > 1 && <polyline points={s.points} fill="none" vector-effect="non-scaling-stroke" />}
-        <circle cx={s.last[0]} cy={s.last[1]} r={i === 0 ? 4.5 : 2.3} />
-      </g>)}
-    </svg>
-  </div>
-  <div class:list={['xaxis', { single: sessions.length === 1 }]}><span>{day(start.session)}</span>{sessions.length > 1 && <span>{day(end.session)}</span>}</div>
+  <figcaption><h3>{title}</h3><span>{chart?.caption ?? 'Pending'}</span></figcaption>
+  {chart ? <>
+    <div class="chart" role="img" aria-label={title + ' from ' + day(dates[0].session) + ' to ' + day(dates[dates.length - 1].session) + '. ' + chart.description + '. Exact values in the daily ledger.'}>
+      <div class:list={['scale', { flat: chart.flat }]}><span>{format(chart.high)}</span>{!chart.flat && <span>{format(chart.low)}</span>}</div>
+      <svg viewBox="0 0 410 98" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+        {(chart.flat ? [49] : [10, 49, 88]).map(row => <line x1="0" x2="410" y1={row} y2={row} class="grid" />)}
+        {chart.series.map((s,i) => s.last && <g class={s.id}>
+          {s.points.length > 1 && <polyline points={s.points.map(p => p.join(',')).join(' ')} fill="none" vector-effect="non-scaling-stroke" />}
+          <circle cx={s.last[0]} cy={s.last[1]} r={i === 0 ? 4.5 : 2.3} />
+        </g>)}
+      </svg>
+    </div>
+    <div class:list={['xaxis', { single: dates.length === 1 }]}><span>{day(dates[0].session)}</span>{dates.length > 1 && <span>{day(dates[dates.length - 1].session)}</span>}</div>
+  </> : <p class="pending">Drawdown will appear after the first position has been held between two settlements.</p>}
 </figure>
 <style>
   .plot { min-width:0; padding:1rem clamp(1rem,2vw,1.6rem); border:1px solid var(--line); background:var(--surface); }
   figcaption { display:flex; flex-wrap:wrap; gap:.3rem .75rem; align-items:baseline; justify-content:space-between; }
   h3 { font-size:1.1rem; } figcaption span, .xaxis, .scale { font-size:.72rem; color:var(--muted); }
+  .pending { margin:1.2rem 0; max-width:42ch; color:var(--muted); font-size:var(--text-sm); }
   .chart { display:grid; grid-template-columns:auto minmax(0,1fr); gap:.5rem; margin-top:1.2rem; }
   .scale { display:flex; flex-direction:column; justify-content:space-between; padding:.17rem 0; font-family:var(--mono); }
   .scale.flat { justify-content:center; }

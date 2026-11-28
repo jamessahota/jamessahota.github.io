@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 import BaseLayout from '../../../../layouts/BaseLayout.astro';
 import Icon from '../../../../components/Icon.astro';
 import ReverseCarryChart from '../../../../components/ReverseCarryChart.astro';
-import { books, markets, day, timestamp, usd, percent, quantity, direction, type TrackRecord } from '../../../../lib/reverse-carry';
+import { books, markets, day, timestamp, usd, percent, quantity, direction, firstResultIndices, paperStatus, type TrackRecord } from '../../../../lib/reverse-carry';
 
 const dataPath = '/data/reverse-carry/track-record.json';
 const feed: TrackRecord = JSON.parse(await readFile(resolve('public', dataPath.slice(1)), 'utf8'));
@@ -13,6 +13,8 @@ if (feed.schema !== 'reverse-carry-public-v1' || !latest || latest.session !== f
   throw new Error('Missing or inconsistent reverse-carry paper record.');
 }
 const history = [...feed.sessions].reverse();
+const firstResults = firstResultIndices(feed.sessions);
+const latestIndex = feed.sessions.length - 1;
 const signal = latest.signal;
 const description = 'Follow two forward-tested energy futures portfolios with and without WTI. Compare timestamped signals, paper fills, daily P&L and drawdowns.';
 const sections = [['portfolios','Portfolios'], ['latest-signal','Latest signal'], ['journal','Daily ledger'], ['method','Trading rule']];
@@ -44,14 +46,18 @@ const sections = [['portfolios','Portfolios'], ['latest-signal','Latest signal']
       <div class="book-grid">
         {books.map((book,i) => {
           const a = latest.books[book.id];
+          const status = paperStatus(latest, book.id, latestIndex >= firstResults[book.id]);
           return <section class:list={['book', { 'book--second': i === 1 }]} aria-labelledby={'name-' + book.id}>
             <h3 id={'name-' + book.id}>{book.name}</h3><p class="universe">{book.markets}</p>
+            {status && <p class="paper-status">{status}</p>}
             <dl class="metrics">
-              <div class="equity"><dt>Portfolio equity</dt><dd>{usd(a.equity_usd)}</dd></div>
-              <div><dt>Daily P&amp;L</dt><dd>{usd(a.daily_pnl_usd)}</dd></div>
-              <div><dt>Cumulative P&amp;L</dt><dd>{usd(a.cumulative_pnl_usd)}</dd></div>
-              <div><dt>Current drawdown</dt><dd>{percent(a.drawdown_pct)}</dd></div>
-              <div><dt>Max drawdown</dt><dd>{percent(a.max_drawdown_pct)}</dd></div>
+              <div class="equity"><dt>{latestIndex === 0 ? 'Opening balance' : 'Portfolio equity'}</dt><dd>{usd(a.equity_usd)}</dd></div>
+              {status ? <div class="pending-performance"><dt>Trading performance</dt><dd>Pending</dd></div> : <>
+                <div><dt>Daily P&amp;L</dt><dd>{usd(a.daily_pnl_usd)}</dd></div>
+                <div><dt>Cumulative P&amp;L</dt><dd>{usd(a.cumulative_pnl_usd)}</dd></div>
+                <div><dt>Current drawdown</dt><dd>{percent(a.drawdown_pct)}</dd></div>
+                <div><dt>Max drawdown</dt><dd>{percent(a.max_drawdown_pct)}</dd></div>
+              </>}
             </dl>
             <div class="holdings">
               <strong>Held after settlement</strong>
@@ -62,8 +68,8 @@ const sections = [['portfolios','Portfolios'], ['latest-signal','Latest signal']
       </div>
       <div class="legend"><span><i></i>With WTI</span><span><i></i>Without WTI</span></div>
       <div class="plots">
-        <ReverseCarryChart title="Equity over time" metric="equity_usd" sessions={feed.sessions} />
-        <ReverseCarryChart title="Drawdown from peak" metric="drawdown_pct" sessions={feed.sessions} />
+        <ReverseCarryChart title="Equity over time" metric="equity_usd" sessions={feed.sessions} firstResults={firstResults} />
+        <ReverseCarryChart title="Drawdown from peak" metric="drawdown_pct" sessions={feed.sessions} firstResults={firstResults} />
       </div>
     </section>
     <section id="latest-signal" class="block" aria-labelledby="signal-heading">
@@ -91,15 +97,29 @@ const sections = [['portfolios','Portfolios'], ['latest-signal','Latest signal']
       <div class="section-line"><h2 id="journal-heading">Daily ledger</h2><a href={dataPath} download class="arrow-link">Download record (JSON)<Icon name="download" /></a></div>
       <p class="context">Select a settlement date to see the day’s results, paper fills and targets for the next session. All timestamps use New York time.</p>
       <div class="sessions">
-        {history.map((s,index) => <details open={index === 0} id={'session-' + s.session}>
-          <summary><strong><time datetime={s.session}>{day(s.session)}</time></strong><span>{s.books.with_wti.trades.length + s.books.without_wti.trades.length} paper fills across both books</span></summary>
+        {history.map((s,index) => {
+          const sessionIndex = latestIndex - index;
+          const rows = books.map(({id, name}) => ({
+            id, name, account: s.books[id], status: paperStatus(s, id, sessionIndex >= firstResults[id]),
+          }));
+          const fills = rows.reduce((sum, row) => sum + row.account.trades.length, 0);
+          const sharedStatus = rows[0].status === rows[1].status ? rows[0].status : null;
+          return <details open={index === 0} id={'session-' + s.session}>
+          <summary><strong><time datetime={s.session}>{day(s.session)}</time></strong><span>{sharedStatus ?? (fills + (fills === 1 ? ' paper fill' : ' paper fills') + ' across both books')}</span></summary>
           <div class="session-body">
-            <h3>Daily results</h3>
-            <div class="table-scroll" tabindex="0" role="region" aria-label={'Daily results on ' + s.session}>
+            <h3>Balances and trading performance</h3>
+            <div class="table-scroll" tabindex="0" role="region" aria-label={'Balances and trading performance on ' + s.session}>
               <table>
                 <caption class="visually-hidden">Dollar results and percentage drawdowns on {day(s.session)}</caption>
                 <thead><tr><th scope="col">Portfolio</th><th scope="col">Daily P&amp;L</th><th scope="col">Cumulative P&amp;L</th><th scope="col">Equity</th><th scope="col">Drawdown</th><th scope="col">Max drawdown</th></tr></thead>
-                <tbody>{books.map(b => { const a = s.books[b.id]; return <tr><th scope="row">{b.name}</th><td>{usd(a.daily_pnl_usd)}</td><td>{usd(a.cumulative_pnl_usd)}</td><td>{usd(a.equity_usd)}</td><td>{percent(a.drawdown_pct)}</td><td>{percent(a.max_drawdown_pct)}</td></tr>; })}</tbody>
+                <tbody>{rows.map(({name, account, status}) => <tr>
+                  <th scope="row">{name}{status && <small>{status}</small>}</th>
+                  <td>{status ? 'Pending' : usd(account.daily_pnl_usd)}</td>
+                  <td>{status ? 'Pending' : usd(account.cumulative_pnl_usd)}</td>
+                  <td>{usd(account.equity_usd)}</td>
+                  <td>{status ? 'Pending' : percent(account.drawdown_pct)}</td>
+                  <td>{status ? 'Pending' : percent(account.max_drawdown_pct)}</td>
+                </tr>)}</tbody>
               </table>
             </div>
             <div class="session-columns">
@@ -122,7 +142,7 @@ const sections = [['portfolios','Portfolios'], ['latest-signal','Latest signal']
               </div>
             </div>
           </div>
-        </details>)}
+        </details>; })}
       </div>
     </section>
 
@@ -163,6 +183,8 @@ const sections = [['portfolios','Portfolios'], ['latest-signal','Latest signal']
   .book--second { border-top-color:var(--ink); }
   .book h3 { font-size:1.45rem; }
   .universe { color:var(--muted); font-size:var(--text-sm); margin-top:.2rem; min-height:1.35em; }
+  .paper-status { margin-top:.55rem; font-size:var(--text-sm); font-weight:550; }
+  .pending-performance { grid-column:span 2; }
   .metrics { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.7rem 1rem; margin-top:1.2rem; }
   .metrics .equity { grid-column:span 2; padding-bottom:.85rem; border-bottom:1px solid var(--line); }
   .metrics dt,.holdings strong,.legend,.source-bar,.subtext { color:var(--muted); font-size:var(--text-xs); }

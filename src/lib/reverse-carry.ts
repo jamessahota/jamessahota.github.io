@@ -53,6 +53,27 @@ export interface TrackRecord {
   sessions: Session[];
 }
 
+const hasPosition = (positions: Positions) => Object.values(positions).some(qty => Number(qty) !== 0);
+
+export function firstResultIndices(sessions: Session[]): Record<Book, number> {
+  function firstResult(book: Book) {
+    // A settlement fill can first earn P&L at the following settlement.
+    const heldAt = sessions.findIndex(s => hasPosition(s.books[book].positions));
+    return heldAt >= 0 && heldAt + 1 < sessions.length ? heldAt + 1 : Infinity;
+  }
+  return { with_wti: firstResult('with_wti'), without_wti: firstResult('without_wti') };
+}
+
+export function paperStatus(session: Session, book: Book, hasResult: boolean): string | null {
+  if (hasResult) return null;
+  if (hasPosition(session.books[book].positions)) return 'First fill recorded, awaiting first result.';
+  const target = session.signal.books[book];
+  if (session.signal.status === 'recorded' && target && hasPosition(target.positions)) {
+    return 'Signal recorded, awaiting first fill.';
+  }
+  return 'Awaiting first position.';
+}
+
 const dates = new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeZone: 'UTC' });
 const times = new Intl.DateTimeFormat('en-GB', {
   day: 'numeric', month: 'short', year: 'numeric',
